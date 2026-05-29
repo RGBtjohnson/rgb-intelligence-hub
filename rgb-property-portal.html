@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RGB Property Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#C9A84C;--gold-dim:#8A6E2F;--black:#0D0D0D;--off:#141414;
+  --s1:#1A1A1A;--s2:#222;--s3:#2A2A2A;
+  --bd:rgba(201,168,76,.2);--bs:rgba(255,255,255,.06);
+  --t:#F0EDE4;--tm:#8A8680;--td:#5A5754;
+  --red:#C94C4C;--grn:#4CAF80;--blu:#4C8FC9;--amb:#C98A4C;--pur:#9B59B6;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--off);color:var(--t);min-height:100vh;}
+
+/* HEADER */
+.hdr{background:var(--black);border-bottom:.5px solid var(--bs);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.hbrand{display:flex;align-items:center;gap:10px;}
+.hring{width:26px;height:26px;border:1px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.hring span{font-family:'Playfair Display',serif;font-size:9px;color:var(--gold);letter-spacing:1px;}
+.htitle{font-family:'Playfair Display',serif;font-size:14px;color:var(--t);}
+.hsub{font-size:10px;color:var(--tm);}
+.back-btn{background:rgba(201,168,76,.1);border:.5px solid var(--bd);color:var(--gold);font-size:10px;padding:5px 12px;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.06em;text-decoration:none;display:flex;align-items:center;gap:5px;transition:all .15s;}
+.back-btn:hover{background:rgba(201,168,76,.18);}
+.hnav{display:flex;gap:2px;overflow-x:auto;}
+.nb{background:none;border:none;color:var(--tm);font-size:10px;padding:4px 9px;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;}
+.nb:hover,.nb.active{background:var(--s2);color:var(--t);}
+.nb.active{color:var(--gold);}
+
+/* PROPERTY BANNER */
+.prop-banner{background:linear-gradient(135deg,rgba(201,168,76,.08) 0%,transparent 60%);border-bottom:.5px solid var(--bd);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.prop-name{font-family:'Playfair Display',serif;font-size:20px;color:var(--t);}
+.prop-meta{font-size:11px;color:var(--tm);margin-top:2px;}
+.prop-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.pchip{font-size:9px;padding:3px 8px;border-radius:20px;border:.5px solid var(--bs);color:var(--tm);font-weight:500;letter-spacing:.08em;}
+.pchip.brand{border-color:rgba(76,175,128,.3);color:var(--grn);}
+.pchip.market{border-color:var(--bd);color:var(--gold);}
+
+/* SCREEN */
+.scr{padding:22px 24px;animation:fu .3s ease both;}
+.sh{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
+.st{font-family:'Playfair Display',serif;font-size:21px;font-weight:400;}
+.ss{font-size:11px;color:var(--tm);margin-top:3px;}
+
+/* DAR FORM */
+.dar-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:680px){.dar-layout{grid-template-columns:1fr;}}
+.dar-form-card{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;}
+.dfc-header{padding:13px 16px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;justify-content:space-between;}
+.dfc-title{font-size:12px;font-weight:500;color:var(--t);}
+.dfc-status{font-size:9px;padding:2px 8px;border-radius:4px;}
+.s-open{background:rgba(76,143,201,.12);color:var(--blu);}
+.s-submitted{background:rgba(76,175,128,.12);color:var(--grn);}
+.s-locked{background:rgba(90,87,84,.3);color:var(--td);}
+.dfc-body{padding:16px;}
+.field-group{margin-bottom:13px;}
+.field-label{font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--td);display:block;margin-bottom:5px;}
+.field-input{width:100%;background:var(--s3);border:.5px solid var(--bs);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--t);font-family:'DM Mono',monospace;outline:none;transition:border-color .15s;}
+.field-input:focus{border-color:var(--gold);}
+.field-input:disabled{opacity:.4;cursor:not-allowed;}
+.field-input.locked{background:var(--s2);border-color:var(--bs);color:var(--tm);}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
+.submit-btn{width:100%;background:var(--gold);color:var(--black);border:none;font-size:11px;font-weight:600;padding:10px 0;border-radius:7px;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.08em;margin-top:4px;transition:opacity .15s;}
+.submit-btn:hover{opacity:.85;}
+.submit-btn:disabled{opacity:.4;cursor:not-allowed;background:var(--td);}
+.submit-confirm{display:none;background:rgba(76,175,128,.1);border:.5px solid rgba(76,175,128,.3);border-radius:7px;padding:12px 16px;margin-top:10px;text-align:center;}
+.submit-confirm.show{display:block;}
+.submit-confirm-icon{font-size:20px;margin-bottom:6px;}
+.submit-confirm-text{font-size:11px;color:var(--grn);font-weight:500;}
+.submit-confirm-sub{font-size:10px;color:var(--tm);margin-top:3px;}
+.security-note{background:rgba(201,76,76,.06);border:.5px solid rgba(201,76,76,.2);border-radius:6px;padding:9px 12px;display:flex;gap:8px;align-items:flex-start;margin-top:10px;}
+.security-note-text{font-size:10px;color:var(--tm);line-height:1.6;}
+
+/* DAR HISTORY */
+.dar-history{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;margin-top:14px;}
+.dh-header{padding:12px 15px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;justify-content:space-between;}
+.dh-title{font-size:11px;font-weight:500;color:var(--t);}
+table{width:100%;border-collapse:collapse;}
+thead th{text-align:left;font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--td);padding:7px 12px;border-bottom:.5px solid var(--bs);}
+th.r,td.r{text-align:right;}
+tbody tr{border-bottom:.5px solid var(--bs);transition:background .15s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(255,255,255,.02);}
+tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
+.mono{font-family:'DM Mono',monospace;font-size:10px;}
+.sd{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px;}
+.dg{background:var(--grn);}.da{background:var(--amb);}.dr{background:var(--red);}
+.lock-badge{font-size:9px;padding:1px 6px;border-radius:3px;background:rgba(90,87,84,.3);color:var(--td);}
+
+/* RATE SHOP */
+.rw{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;margin-top:8px;}
+.rctabs{display:flex;gap:3px;padding:8px 11px;border-bottom:.5px solid var(--bs);overflow-x:auto;}
+.rct{font-size:10px;padding:3px 9px;border-radius:4px;border:.5px solid var(--bs);background:none;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .15s;}
+.rct:hover,.rct.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08);}
+.rscroll{overflow-x:auto;}
+.rtable{width:100%;border-collapse:collapse;min-width:800px;}
+.rtable th{font-size:8px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--td);padding:7px 7px;text-align:center;border-bottom:.5px solid var(--bs);background:var(--off);}
+.rtable th.pc{text-align:left;padding-left:12px;min-width:165px;}
+.rtable td{padding:7px 7px;text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--tm);border-bottom:.5px solid var(--bs);}
+.rtable td.pc{text-align:left;padding-left:12px;font-family:'DM Sans',sans-serif;font-size:10px;}
+.rtable tr:last-child td{border-bottom:none;}
+.rtable tr.rr td{background:rgba(201,168,76,.05);}
+.rtable tr.rr td.pc{color:var(--gold);font-weight:500;}
+.rtable tr.sh td{background:var(--off);color:var(--td);font-size:8px;letter-spacing:.12em;text-transform:uppercase;font-family:'DM Sans',sans-serif;padding:4px 12px;}
+.rl{color:var(--grn)!important;}.rh{color:var(--red)!important;}
+.rs{color:var(--red)!important;font-size:8px!important;}.rlo{color:var(--amb)!important;font-size:8px!important;}
+.ab{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:3px 9px;font-size:10px;margin-right:5px;margin-bottom:5px;}
+.ab-r{background:rgba(201,76,76,.12);border:.5px solid rgba(201,76,76,.3);color:var(--red);}
+.ab-a{background:rgba(201,138,76,.12);border:.5px solid rgba(201,138,76,.3);color:var(--amb);}
+.ab-g{background:rgba(76,175,128,.12);border:.5px solid rgba(76,175,128,.3);color:var(--grn);}
+
+/* LABOR */
+.labor-krow{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px;}
+@media(max-width:680px){.labor-krow{grid-template-columns:1fr 1fr;}}
+.kc{background:var(--s1);border:.5px solid var(--bs);border-radius:9px;padding:12px 14px;}
+.kl{font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--td);margin-bottom:5px;}
+.kv{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:var(--t);line-height:1;}
+.kch{font-size:9px;margin-top:4px;}
+.up{color:var(--grn);}.dn{color:var(--red);}.neu{color:var(--tm);}
+.labor-table{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;margin-bottom:14px;}
+.labor-upload{background:var(--s1);border:1px dashed rgba(201,168,76,.3);border-radius:11px;padding:32px 24px;text-align:center;cursor:pointer;transition:all .2s;margin-top:14px;}
+.labor-upload:hover{border-color:var(--gold);background:var(--s2);}
+.lu-icon{font-size:28px;margin-bottom:10px;}
+.lu-title{font-size:14px;color:var(--t);margin-bottom:5px;font-family:'Playfair Display',serif;}
+.lu-sub{font-size:10px;color:var(--tm);}
+
+/* RECAP */
+.rc{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;}
+.rch2{padding:12px 16px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;justify-content:space-between;}
+.rct2{font-size:12px;font-weight:500;color:var(--t);}
+.rst{font-size:9px;padding:2px 7px;border-radius:3px;}
+.rspend{background:rgba(201,138,76,.12);color:var(--amb);}
+.rsok{background:rgba(76,175,128,.12);color:var(--grn);}
+.rf2{padding:14px 16px;}
+.rf2 label{font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--td);display:block;margin-bottom:4px;margin-top:10px;}
+.rf2 label:first-child{margin-top:0;}
+.ri2{width:100%;background:var(--s3);border:.5px solid var(--bs);border-radius:5px;padding:7px 9px;font-size:11px;color:var(--t);font-family:'DM Sans',sans-serif;resize:none;outline:none;transition:border-color .15s;}
+.ri2:focus{border-color:var(--gold);}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.rsub{margin-top:12px;background:var(--gold);color:var(--black);border:none;font-size:10px;font-weight:500;padding:7px 16px;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.06em;}
+
+/* OPS */
+.og{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px;}
+@media(max-width:600px){.og{grid-template-columns:1fr;}}
+.os{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;}
+.osh{padding:11px 14px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;gap:8px;}
+.oi{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.ost{font-size:11px;font-weight:500;color:var(--t);}
+.osc{margin-left:auto;font-size:8px;color:var(--td);background:var(--s3);padding:2px 4px;border-radius:3px;}
+.ol{font-size:10px;color:var(--tm);cursor:pointer;transition:all .15s;border-bottom:.5px solid var(--bs);display:flex;justify-content:space-between;align-items:center;padding:7px 14px;}
+.ol:last-child{border-bottom:none;}
+.ol:hover{background:rgba(255,255,255,.02);color:var(--t);}
+.ol.q{opacity:.38;cursor:default;}
+
+/* SALES */
+.crml{display:grid;grid-template-columns:250px 1fr;gap:12px;margin-top:7px;}
+.cl2{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;}
+.clh{padding:10px 12px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;justify-content:space-between;}
+.cnb{background:var(--gold);color:var(--black);border:none;font-size:9px;font-weight:500;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.ca2{padding:9px 12px;border-bottom:.5px solid var(--bs);cursor:pointer;transition:background .15s;}
+.ca2:hover,.ca2.active{background:rgba(201,168,76,.05);}
+.ca2.active .cn{color:var(--gold);}
+.cn{font-size:11px;font-weight:500;color:var(--t);}
+.cm{font-size:9px;color:var(--td);margin-top:2px;}
+.cstatus{font-size:8px;padding:2px 5px;border-radius:3px;float:right;margin-top:1px;}
+.shot{background:rgba(201,76,76,.12);color:var(--red);}
+.swarm{background:rgba(201,138,76,.12);color:var(--amb);}
+.sact{background:rgba(76,175,128,.12);color:var(--grn);}
+.cd2{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;}
+.cdh{padding:14px 18px;border-bottom:.5px solid var(--bs);}
+.cdn{font-family:'Playfair Display',serif;font-size:17px;color:var(--t);}
+.cds{font-size:10px;color:var(--td);margin-top:3px;}
+.cst{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:.5px solid var(--bs);}
+.csk{padding:11px 18px;border-right:.5px solid var(--bs);}
+.csk:last-child{border-right:none;}
+.cskl{font-size:8px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;}
+.cskv{font-family:'DM Mono',monospace;font-size:14px;color:var(--t);}
+.cact{padding:12px 18px;}
+.catl{font-size:9px;font-weight:500;color:var(--tm);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;}
+.ai2{display:flex;gap:8px;padding:7px 0;border-bottom:.5px solid var(--bs);}
+.ai2:last-child{border-bottom:none;}
+.adot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.at2{font-size:10px;color:var(--tm);line-height:1.5;}
+.ad2{font-size:9px;color:var(--td);margin-top:2px;font-family:'DM Mono',monospace;}
+
+.ib{background:rgba(201,168,76,.07);border:.5px solid var(--bd);border-radius:7px;padding:9px 14px;margin-bottom:13px;display:flex;align-items:center;gap:8px;font-size:10px;color:var(--tm);}
+.ib strong{color:var(--gold);}
+.tw{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;margin-bottom:13px;}
+.tbar{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:.5px solid var(--bs);}
+.ttitle{font-size:11px;font-weight:500;color:var(--t);}
+.fp{font-size:9px;padding:2px 8px;border-radius:20px;border:.5px solid var(--bs);background:none;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.fp:hover,.fp.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08);}
+
+@keyframes fu{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.hidden{display:none!important;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hbrand">
+    <div class="hring"><span>RGB</span></div>
+    <div>
+      <div class="htitle" id="hdrTitle">Property Portal</div>
+      <div class="hsub" id="hdrSub">RGB Hospitality</div>
+    </div>
+  </div>
+  <div class="hnav">
+    <button class="nb" onclick="sw('dar')" id="nav-dar">DAR Entry</button>
+    <button class="nb" onclick="sw('rateshop')" id="nav-rateshop">Rate Shop</button>
+    <button class="nb" onclick="sw('labor')" id="nav-labor">RGB Labor</button>
+    <button class="nb" onclick="sw('recap')" id="nav-recap">Weekly Recap</button>
+    <button class="nb" onclick="sw('ops')" id="nav-ops">Ops Portal</button>
+    <button class="nb" onclick="sw('sales')" id="nav-sales">Sales</button>
+  </div>
+  <a class="back-btn" href="rgb-intelligence-hub-v4.html">← RGB Hub</a>
+</div>
+
+<!-- PROPERTY BANNER -->
+<div class="prop-banner">
+  <div>
+    <div class="prop-name" id="propName">Loading...</div>
+    <div class="prop-meta" id="propMeta">RGB Hospitality</div>
+  </div>
+  <div class="prop-chips">
+    <span class="pchip brand" id="propBrand">—</span>
+    <span class="pchip market" id="propMarket">—</span>
+    <span class="pchip" id="propRooms">—</span>
+  </div>
+</div>
+
+<!-- DAR ENTRY -->
+<div id="screen-dar" class="scr hidden">
+  <div class="sh">
+    <div><div class="st">DAR Entry</div><div class="ss" id="darSub">Night auditor submits daily figures. GM reviews in the AM. Submitted entries are locked.</div></div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tm)" id="dar-date"></div>
+  </div>
+  <div class="ib">🔒 <span><strong>Submit-only.</strong> Once submitted, entries are locked and can only be corrected by RGB corporate. Night auditor submits, GM reviews. Any errors — contact tjohnson@rgbhospitality.com</span></div>
+
+  <div class="dar-layout">
+    <!-- ENTRY FORM -->
+    <div class="dar-form-card">
+      <div class="dfc-header">
+        <div class="dfc-title">Tonight's Entry</div>
+        <div class="dfc-status s-open" id="formStatus">Open for Entry</div>
+      </div>
+      <div class="dfc-body">
+        <div class="field-group">
+          <label class="field-label">Report Date</label>
+          <input class="field-input" type="date" id="darDate">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Submitted By</label>
+          <input class="field-input" type="text" id="darSubmitter" placeholder="Night auditor name...">
+        </div>
+
+        <div style="font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin:14px 0 10px;">Rooms</div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Rooms Rented</label>
+            <input class="field-input" type="number" id="darRooms" placeholder="0">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Rooms OOO</label>
+            <input class="field-input" type="number" id="darOOO" placeholder="0">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Comp Rooms</label>
+            <input class="field-input" type="number" id="darComp" placeholder="0">
+          </div>
+          <div class="field-group">
+            <label class="field-label">No Shows</label>
+            <input class="field-input" type="number" id="darNoShow" placeholder="0">
+          </div>
+        </div>
+
+        <div style="font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin:14px 0 10px;">Revenue</div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Room Revenue ($)</label>
+            <input class="field-input" type="number" id="darRoomRev" placeholder="0.00">
+          </div>
+          <div class="field-group">
+            <label class="field-label">F&B Revenue ($)</label>
+            <input class="field-input" type="number" id="darFB" placeholder="0.00">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Parking ($)</label>
+            <input class="field-input" type="number" id="darParking" placeholder="0.00">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Other Revenue ($)</label>
+            <input class="field-input" type="number" id="darOther" placeholder="0.00">
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Total Revenue ($) <span style="color:var(--td)">(auto-calculated)</span></label>
+          <input class="field-input locked" type="text" id="darTotal" readonly placeholder="Auto">
+        </div>
+
+        <div style="font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin:14px 0 10px;">Ledger Balances</div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">City Ledger ($)</label>
+            <input class="field-input" type="number" id="darCity" placeholder="0.00">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Guest Ledger ($)</label>
+            <input class="field-input" type="number" id="darGuest" placeholder="0.00">
+          </div>
+        </div>
+
+        <div style="font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin:14px 0 10px;">Notes</div>
+        <div class="field-group">
+          <label class="field-label">Night Audit Notes (optional)</label>
+          <textarea class="field-input" rows="2" id="darNotes" placeholder="Any issues, anomalies, or items for GM review..."></textarea>
+        </div>
+
+        <button class="submit-btn" id="submitBtn" onclick="submitDAR()">Submit DAR Entry →</button>
+
+        <div class="submit-confirm" id="submitConfirm">
+          <div class="submit-confirm-icon">✅</div>
+          <div class="submit-confirm-text">DAR Submitted Successfully</div>
+          <div class="submit-confirm-sub" id="submitMeta">Locked · Entry cannot be edited · Corporate notified</div>
+        </div>
+
+        <div class="security-note" style="margin-top:12px;">
+          <span style="font-size:14px;">🔒</span>
+          <div class="security-note-text">Submitted entries are <strong style="color:var(--t)">permanently locked</strong>. Corrections must go through RGB corporate. This protects data integrity for ownership reporting.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALCULATED PREVIEW -->
+    <div>
+      <div class="dar-form-card" style="margin-bottom:14px;">
+        <div class="dfc-header">
+          <div class="dfc-title">Tonight's Preview</div>
+          <div style="font-size:9px;color:var(--td)">Updates as you type</div>
+        </div>
+        <div class="dfc-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="kc"><div class="kl">Occupancy</div><div class="kv" id="preOcc">—</div></div>
+            <div class="kc"><div class="kl">ADR</div><div class="kv" id="preADR">—</div></div>
+            <div class="kc"><div class="kl">RevPAR</div><div class="kv" id="preRevPAR">—</div></div>
+            <div class="kc"><div class="kl">Total Revenue</div><div class="kv" id="preTotal">—</div></div>
+          </div>
+          <div style="margin-top:12px;padding:10px;background:var(--s3);border-radius:6px;">
+            <div style="font-size:9px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">vs Last Night</div>
+            <div style="font-size:10px;color:var(--tm)" id="preComparison">Fill in tonight's numbers to see comparison</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECENT SUBMISSIONS -->
+      <div class="dar-history">
+        <div class="dh-header">
+          <div class="dh-title">Recent Submissions — <span id="propNameShort">This Property</span></div>
+          <span class="lock-badge">🔒 Read only</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr>
+              <th>Date</th><th class="r">Rooms</th><th class="r">Occ%</th>
+              <th class="r">ADR</th><th class="r">RevPAR</th><th class="r">Room Rev</th>
+              <th class="r">Total Rev</th><th>Submitted By</th><th>Time</th>
+            </tr></thead>
+            <tbody id="darHistoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RATE SHOP -->
+<div id="screen-rateshop" class="scr hidden">
+  <div class="sh"><div><div class="st">Rate Shop — Corpus Christi</div><div class="ss">All Corpus clusters · Daily compset · May 28 – Jun 8, 2026</div></div></div>
+  <div style="margin-bottom:11px;">
+    <div style="font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--td);margin-bottom:6px;">⚡ Today's Anomalies</div>
+    <span class="ab ab-r">🔴 Residence Inn DT SOLD OUT Mon + close Tue — demand spike downtown</span>
+    <span class="ab ab-a">⚠️ TRU Corpus $109 Thu while SPID compset avg $127 — review for weekend</span>
+    <span class="ab ab-g">✅ Springhill $149 on 5/30 vs compset avg $152 — competitive</span>
+    <span class="ab ab-a">⚠️ Hampton Navigation $119 — Portland cluster avg $154 same DOW</span>
+  </div>
+  <div class="rw">
+    <div class="rctabs">
+      <button class="rct active" onclick="showCluster('spid',this)">SPID</button>
+      <button class="rct" onclick="showCluster('navigation',this)">Navigation</button>
+      <button class="rct" onclick="showCluster('downtown',this)">Downtown CC</button>
+      <button class="rct" onclick="showCluster('rockport',this)">Rockport</button>
+    </div>
+    <div class="rscroll"><table class="rtable" id="rateTable"></table></div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:8px;font-size:9px;color:var(--td);flex-wrap:wrap;">
+    <span><span style="color:var(--gold)">■</span> RGB Property</span>
+    <span><span style="color:var(--grn)">Low</span> = market low</span>
+    <span><span style="color:var(--red)">High</span> = premium</span>
+    <span><span style="color:var(--amb)">LOS</span> = min stay</span>
+    <span><span style="color:var(--red)">SOLD</span> = sold out</span>
+  </div>
+</div>
+
+<!-- RGB LABOR INTELLIGENCE -->
+<div id="screen-labor" class="scr hidden">
+  <div class="sh">
+    <div><div class="st">RGB Labor Intelligence</div><div class="ss" id="laborSub">Schedule vs actual · MPOR · Department breakdown</div></div>
+  </div>
+  <div class="labor-krow" id="laborKPIs"></div>
+  <div class="tw">
+    <div class="tbar"><div class="ttitle">Department Breakdown — Week of May 18</div></div>
+    <table>
+      <thead><tr>
+        <th>Department</th><th class="r">Scheduled Hrs</th><th class="r">Actual Hrs</th>
+        <th class="r">Variance</th><th class="r">OT $</th><th class="r">MPOR</th>
+      </tr></thead>
+      <tbody id="laborBody"></tbody>
+    </table>
+  </div>
+  <div class="labor-upload" onclick="this.style.borderColor='var(--gold)'">
+    <div class="lu-icon">📂</div>
+    <div class="lu-title">Upload ADP Schedule Export</div>
+    <div class="lu-sub">Drop your ADP weekly export here to update schedule vs actual. Accepts Excel or CSV.</div>
+    <div style="margin-top:12px;"><button style="background:var(--gold);color:var(--black);border:none;font-size:10px;font-weight:500;padding:6px 16px;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">Upload File →</button></div>
+  </div>
+</div>
+
+<!-- WEEKLY RECAP -->
+<div id="screen-recap" class="scr hidden">
+  <div class="sh"><div><div class="st">GM Weekly Recap</div><div class="ss">Due every Friday · Rolls up to RGB leadership for Monday discussion</div></div><div class="rst rspend">Pending this week</div></div>
+  <div class="rc">
+    <div class="rch2"><div class="rct2">Weekly Recap — <span id="recapPropName">This Property</span></div><div class="rst rspend">Not yet submitted</div></div>
+    <div class="rf2">
+      <div class="r3">
+        <div><label>Occ %</label><input class="ri2" type="text" placeholder="e.g. 82%"></div>
+        <div><label>ADR</label><input class="ri2" type="text" placeholder="e.g. $142"></div>
+        <div><label>RevPAR</label><input class="ri2" type="text" placeholder="e.g. $116"></div>
+      </div>
+      <label>Weekly Performance Summary</label>
+      <textarea class="ri2" rows="2" placeholder="Wins, strong segments, notable items this week..."></textarea>
+      <label>Out of Order Rooms (room #, reason, return date)</label>
+      <textarea class="ri2" rows="2" placeholder="101 — HVAC repair — return 5/30..."></textarea>
+      <label>Property Maintenance Concerns</label>
+      <textarea class="ri2" rows="2" placeholder="Any maintenance items needing tracking or escalation..."></textarea>
+      <label>Outstanding Items — Needs Approval or Guidance</label>
+      <textarea class="ri2" rows="2" placeholder="Purchasing approvals, HR decisions, capital items..."></textarea>
+      <label>90-Day Revenue Forecast</label>
+      <textarea class="ri2" rows="2" placeholder="Pace vs budget, known groups, demand drivers, concerns..."></textarea>
+      <label>90-Day Labor / ADP Forecast</label>
+      <textarea class="ri2" rows="2" placeholder="Staffing, anticipated OT, open positions, adjustments..."></textarea>
+      <label>STR Review — 5/15 Style</label>
+      <textarea class="ri2" rows="3" placeholder="Index vs comp, where winning/losing, what's driving it, action items..."></textarea>
+      <label>What's Coming Next Week</label>
+      <textarea class="ri2" rows="2" placeholder="Groups, events, pace concerns, anything leadership should know..."></textarea>
+      <button class="rsub">Submit Recap →</button>
+    </div>
+  </div>
+</div>
+
+<!-- OPS PORTAL -->
+<div id="screen-ops" class="scr hidden">
+  <div class="sh"><div><div class="st">Ops Portal</div><div class="ss">Everything RGB in one place · Forms, resources & references</div></div></div>
+  <div class="og">
+    <div class="os"><div class="osh"><div class="oi" style="background:rgba(76,175,128,.12);color:var(--grn)">👥</div><div class="ost">Human Resources</div><div class="osc">7</div></div>
+      <div class="ol"><span>Reference Check Form</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>Personnel Action Form</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>Hourly Employee Onboarding</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>Salary Employee Onboarding</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>RGB Handbook</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>ADP Termination Steps</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>Performance Improvement Plan</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+    </div>
+    <div class="os"><div class="osh"><div class="oi" style="background:rgba(201,168,76,.12);color:var(--gold)">💼</div><div class="ost">Accounting & Payroll</div><div class="osc">6</div></div>
+      <div class="ol"><span>Payroll Analysis Template</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>Payroll Coversheet</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>DAR Template 2026</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>CC Activity Template 2026</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol q"><span>ADP Submission Deadlines</span><span style="font-size:9px;color:var(--td)">+</span></div>
+      <div class="ol q"><span>Month-End Close Checklist</span><span style="font-size:9px;color:var(--td)">+</span></div>
+    </div>
+    <div class="os"><div class="osh"><div class="oi" style="background:rgba(201,138,76,.12);color:var(--amb)">🔧</div><div class="ost">Maintenance & IT</div><div class="osc">4</div></div>
+      <div class="ol"><span>Corporate Maintenance Request</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>Preventive Maintenance Checklist</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol q"><span>Vendor Contacts by Property</span><span style="font-size:9px;color:var(--td)">+</span></div>
+      <div class="ol q"><span>IT Help & PMS Support</span><span style="font-size:9px;color:var(--td)">+</span></div>
+    </div>
+    <div class="os"><div class="osh"><div class="oi" style="background:rgba(201,76,76,.12);color:var(--red)">🏷️</div><div class="ost">Brand Resources</div><div class="osc">5</div></div>
+      <div class="ol"><span>IHG Brand Standards Portal</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>Hilton Brand Standards Portal</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>Marriott Brand Standards Portal</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>Hyatt Brand Standards Portal</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>Wyndham Brand Standards</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+    </div>
+    <div class="os"><div class="osh"><div class="oi" style="background:rgba(76,175,128,.12);color:var(--grn)">📋</div><div class="ost">GM Resources</div><div class="osc">6</div></div>
+      <div class="ol"><span>Expense Report</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>5-15 Template</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>Huddle Templates</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol"><span>Daily Snapshot Template</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol q"><span>GM Contact Directory</span><span style="font-size:9px;color:var(--td)">+</span></div>
+      <div class="ol q"><span>RGB Leadership Contacts</span><span style="font-size:9px;color:var(--td)">+</span></div>
+    </div>
+    <div class="os"><div class="osh"><div class="oi" style="background:rgba(76,143,201,.12);color:var(--blu)">🛒</div><div class="ost">Purchasing & Inventories</div><div class="osc">4</div></div>
+      <div class="ol"><span>Linen Inventory Sheet</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      <div class="ol q"><span>Vendor Directory</span><span style="font-size:9px;color:var(--td)">+</span></div>
+      <div class="ol q"><span>Purchase Order Template</span><span style="font-size:9px;color:var(--td)">+</span></div>
+      <div class="ol q"><span>Par Level Standards</span><span style="font-size:9px;color:var(--td)">+</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- SALES CRM -->
+<div id="screen-sales" class="scr hidden">
+  <div class="sh"><div><div class="st">Sales Activity</div><div class="ss">Corpus Christi accounts · Pipeline · Key accounts · Activity log</div></div></div>
+  <div class="ib">💡 <span><strong>Corpus Christi portfolio accounts.</strong> Log your calls, visits, and proposals here. Corporate sales team has full portfolio view.</span></div>
+  <div class="crml">
+    <div class="cl2">
+      <div class="clh"><span style="font-size:11px;font-weight:500;color:var(--t)">Accounts</span><button class="cnb">+ New</button></div>
+      <div class="ca2 active"><span class="cstatus shot">HOT</span><div class="cn">Naval Air Station CC</div><div class="cm">Government · Multi-property</div></div>
+      <div class="ca2"><span class="cstatus sact">ACTIVE</span><div class="cn">Cheniere Energy</div><div class="cm">Corporate · Portfolio-wide</div></div>
+      <div class="ca2"><span class="cstatus swarm">WARM</span><div class="cn">Texas A&M CC</div><div class="cm">University · Seasonal</div></div>
+      <div class="ca2"><span class="cstatus sact">ACTIVE</span><div class="cn">CHRISTUS Spohn</div><div class="cm">Healthcare · Extended stay</div></div>
+      <div class="ca2"><span class="cstatus swarm">WARM</span><div class="cn">Port of Corpus Christi</div><div class="cm">Government / Industrial</div></div>
+    </div>
+    <div class="cd2">
+      <div class="cdh">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="cdn">Naval Air Station CC</div>
+          <span class="cstatus shot" style="float:none;">HOT</span>
+        </div>
+        <div class="cds">Government · Primary: LT. Commander James Webb</div>
+      </div>
+      <div class="cst">
+        <div class="csk"><div class="cskl">Est. Annual Value</div><div class="cskv">$180K</div></div>
+        <div class="csk"><div class="cskl">Room Nights YTD</div><div class="cskv">643</div></div>
+        <div class="csk"><div class="cskl">Last Contact</div><div class="cskv" style="font-size:12px;">May 14</div></div>
+      </div>
+      <div class="cact">
+        <div class="catl">Activity Log</div>
+        <div class="ai2"><div class="adot dg"></div><div><div class="at2">Confirmed Q3 block 40 rooms Hampton Navigation. $129 Sun–Thu, $149 Fri–Sat.</div><div class="ad2">May 14, 2026 · Zach Bornstein</div></div></div>
+        <div class="ai2"><div class="adot da"></div><div><div class="at2">Expanded proposal for Springhill SPID overflow. Awaiting contracting officer.</div><div class="ad2">May 8, 2026 · Zach Bornstein</div></div></div>
+        <div class="ai2"><div class="adot dg"></div><div><div class="at2">Site visit — HI Marina and Hampton Navigation. Strong interest in Marina meeting space.</div><div class="ad2">Apr 29, 2026 · Taylor Johnson</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══ PROPERTY CONFIG ═══
+const PROPERTIES = {
+  'residence-inn-south': {
+    name:'Residence Inn South (SPID)',brand:'MARRIOTT',market:'Corpus Christi',
+    rooms:120,address:'Corpus Christi, TX',shortName:'RI South',
+    recentDAR:[
+      {date:'05/27',rooms:104,occ:86.7,adr:174.22,revpar:151.02,roomRev:18119,totalRev:18741,by:'J. Martinez',time:'2:14am',locked:true},
+      {date:'05/26',rooms:98,occ:81.7,adr:169.88,revpar:138.81,roomRev:16648,totalRev:17201,by:'J. Martinez',time:'2:08am',locked:true},
+      {date:'05/25',rooms:89,occ:74.2,adr:162.14,revpar:120.31,roomRev:14430,totalRev:14987,by:'K. Reyes',time:'2:22am',locked:true},
+      {date:'05/24',rooms:112,occ:93.3,adr:179.56,revpar:167.59,roomRev:20111,totalRev:20891,by:'J. Martinez',time:'2:11am',locked:true},
+      {date:'05/23',rooms:120,occ:100.0,adr:209.00,revpar:209.00,roomRev:25080,totalRev:26124,by:'K. Reyes',time:'2:19am',locked:true},
+    ],
+    labor:{
+      depts:[
+        {name:'Housekeeping',sched:148,actual:162,mpor:0.44,ot:520},
+        {name:'Front Desk',sched:84,actual:86,mpor:null,ot:120},
+        {name:'Maintenance',sched:42,actual:41,mpor:null,ot:0},
+        {name:'Management',sched:56,actual:58,mpor:null,ot:180},
+      ]
+    }
+  },
+  'holiday-inn-marina': {
+    name:'Holiday Inn Downtown Marina',brand:'IHG',market:'Corpus Christi',
+    rooms:345,address:'Corpus Christi, TX',shortName:'HI Marina',
+    recentDAR:[
+      {date:'05/27',rooms:289,occ:83.8,adr:168.22,revpar:140.94,roomRev:48616,totalRev:54210,by:'Night Audit',time:'2:31am',locked:true},
+    ],
+    labor:{depts:[{name:'Housekeeping',sched:312,actual:328,mpor:0.38,ot:420},{name:'Front Desk',sched:168,actual:172,mpor:null,ot:240},{name:'F&B',sched:196,actual:208,mpor:null,ot:720},{name:'Maintenance',sched:84,actual:82,mpor:null,ot:0}]}
+  }
+};
+
+// Detect property from URL
+const urlParams = new URLSearchParams(window.location.search);
+const propKey = urlParams.get('property') || 'residence-inn-south';
+const PROP = PROPERTIES[propKey] || PROPERTIES['residence-inn-south'];
+
+// Set property info in header and banner
+document.getElementById('hdrTitle').textContent = PROP.shortName + ' Portal';
+document.getElementById('hdrSub').textContent = PROP.market + ' · RGB Hospitality';
+document.getElementById('propName').textContent = PROP.name;
+document.getElementById('propMeta').textContent = PROP.address + ' · ' + PROP.rooms + ' rooms';
+document.getElementById('propBrand').textContent = PROP.brand;
+document.getElementById('propMarket').textContent = PROP.market;
+document.getElementById('propRooms').textContent = PROP.rooms + ' Rooms';
+document.getElementById('propNameShort').textContent = PROP.shortName;
+document.getElementById('recapPropName').textContent = PROP.name;
+document.getElementById('darSub').textContent = PROP.name + ' · Night auditor submits · GM reviews AM · Entries locked on submission';
+document.getElementById('laborSub').textContent = PROP.name + ' · Schedule vs actual · MPOR · Department breakdown';
+document.title = PROP.shortName + ' · RGB Property Portal';
+
+// Set today's date
+const today = new Date();
+document.getElementById('darDate').value = today.toISOString().split('T')[0];
+document.getElementById('dar-date').textContent = today.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+// ═══ DAR FORM ═══
+const revFields = ['darRoomRev','darFB','darParking','darOther'];
+revFields.forEach(id=>{
+  document.getElementById(id).addEventListener('input', updatePreview);
+});
+document.getElementById('darRooms').addEventListener('input', updatePreview);
+
+function updatePreview(){
+  const rooms = parseFloat(document.getElementById('darRooms').value)||0;
+  const roomRev = parseFloat(document.getElementById('darRoomRev').value)||0;
+  const fb = parseFloat(document.getElementById('darFB').value)||0;
+  const parking = parseFloat(document.getElementById('darParking').value)||0;
+  const other = parseFloat(document.getElementById('darOther').value)||0;
+  const total = roomRev + fb + parking + other;
+
+  document.getElementById('darTotal').value = total > 0 ? '$'+total.toFixed(2) : '';
+
+  if(rooms > 0 && roomRev > 0){
+    const avail = PROP.rooms;
+    const occ = (rooms/avail*100).toFixed(1);
+    const adr = (roomRev/rooms).toFixed(2);
+    const revpar = (roomRev/avail).toFixed(2);
+    document.getElementById('preOcc').textContent = occ+'%';
+    document.getElementById('preADR').textContent = '$'+adr;
+    document.getElementById('preRevPAR').textContent = '$'+revpar;
+    document.getElementById('preTotal').textContent = '$'+(total/1000).toFixed(1)+'K';
+
+    // Compare to last night
+    const last = PROP.recentDAR[0];
+    if(last){
+      const occDiff = (parseFloat(occ)-last.occ).toFixed(1);
+      const revDiff = (total-last.totalRev).toFixed(0);
+      const occColor = occDiff>=0?'var(--grn)':'var(--red)';
+      const revColor = revDiff>=0?'var(--grn)':'var(--red)';
+      document.getElementById('preComparison').innerHTML =
+        `Occ: <span style="color:${occColor}">${occDiff>=0?'+':''}${occDiff}pts</span> vs last night &nbsp;·&nbsp; Rev: <span style="color:${revColor}">${revDiff>=0?'+':'-'}$${Math.abs(revDiff).toLocaleString()}</span>`;
+    }
+  } else {
+    document.getElementById('preOcc').textContent='—';
+    document.getElementById('preADR').textContent='—';
+    document.getElementById('preRevPAR').textContent='—';
+    document.getElementById('preTotal').textContent='—';
+  }
+}
+
+function submitDAR(){
+  const rooms = document.getElementById('darRooms').value;
+  const roomRev = document.getElementById('darRoomRev').value;
+  const submitter = document.getElementById('darSubmitter').value;
+  const date = document.getElementById('darDate').value;
+
+  if(!rooms||!roomRev||!submitter||!date){
+    alert('Please fill in at minimum: Report Date, Submitted By, Rooms Rented, and Room Revenue.');
+    return;
+  }
+
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+
+  // Lock the form
+  document.querySelectorAll('.field-input').forEach(el=>{
+    el.disabled=true;
+    el.classList.add('locked');
+  });
+  document.getElementById('submitBtn').disabled=true;
+  document.getElementById('formStatus').textContent='Submitted & Locked';
+  document.getElementById('formStatus').className='dfc-status s-locked';
+  document.getElementById('submitConfirm').classList.add('show');
+  document.getElementById('submitMeta').textContent=
+    `Submitted by ${submitter} at ${timeStr} · Locked · RGB corporate notified`;
+
+  // Note: In production this POST goes to the Apps Script Web App URL
+  // fetch('YOUR_APPS_SCRIPT_WEB_APP_URL', {method:'POST', body: JSON.stringify({...})})
+  console.log('DAR submitted — in production this writes to RGB Master Sheet via Apps Script');
+}
+
+// Populate history table
+function buildDARHistory(){
+  const rows = PROP.recentDAR.map(d=>{
+    const dc=d.occ>=85?'dg':d.occ>=70?'da':'dr';
+    return`<tr>
+      <td class="mono">${d.date}</td>
+      <td class="mono r">${d.rooms}</td>
+      <td class="mono r"><span class="sd ${dc}"></span>${d.occ.toFixed(1)}%</td>
+      <td class="mono r">$${d.adr.toFixed(2)}</td>
+      <td class="mono r">$${d.revpar.toFixed(2)}</td>
+      <td class="mono r">$${d.roomRev.toLocaleString()}</td>
+      <td class="mono r">$${d.totalRev.toLocaleString()}</td>
+      <td style="font-size:10px;color:var(--tm)">${d.by}</td>
+      <td class="mono" style="color:var(--td)">${d.time} <span class="lock-badge">🔒</span></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('darHistoryBody').innerHTML=rows;
+}
+
+// ═══ LABOR ═══
+function buildLabor(){
+  const d = PROP.labor;
+  const totSched = d.depts.reduce((a,b)=>a+b.sched,0);
+  const totActual = d.depts.reduce((a,b)=>a+b.actual,0);
+  const totOT = d.depts.reduce((a,b)=>a+b.ot,0);
+  const hkDept = d.depts.find(x=>x.name==='Housekeeping');
+  const score = (totSched/totActual*100).toFixed(1);
+  const scoreColor = score>=98?'var(--grn)':score>=94?'var(--amb)':'var(--red)';
+
+  document.getElementById('laborKPIs').innerHTML=`
+    <div class="kc"><div class="kl">Scheduled Hours</div><div class="kv">${totSched}</div><div class="kch neu">Week of May 18</div></div>
+    <div class="kc"><div class="kl">Actual Hours</div><div class="kv" style="color:${totActual>totSched?'var(--red)':'var(--grn)'}">${totActual}</div><div class="kch ${totActual>totSched?'dn':'up'}">${totActual>totSched?'▼ +':'▲ -'}${Math.abs(totActual-totSched)} hrs vs schedule</div></div>
+    <div class="kc"><div class="kl">OT Exposure</div><div class="kv" style="color:var(--amb)">$${totOT.toLocaleString()}</div><div class="kch dn">▼ Review</div></div>
+    <div class="kc"><div class="kl">MPOR</div><div class="kv" style="color:${scoreColor}">${hkDept?hkDept.mpor:'—'}</div><div class="kch neu">Housekeeping</div></div>`;
+
+  const rows = d.depts.map(dept=>{
+    const varAmt = dept.actual-dept.sched;
+    const varColor = varAmt>0?'var(--red)':varAmt<0?'var(--grn)':'var(--tm)';
+    return`<tr>
+      <td>${dept.name}</td>
+      <td class="mono r">${dept.sched}</td>
+      <td class="mono r">${dept.actual}</td>
+      <td class="mono r" style="color:${varColor}">${varAmt>0?'+':''}${varAmt} hrs</td>
+      <td class="mono r" style="color:${dept.ot>0?'var(--amb)':'var(--grn)'}">${dept.ot>0?'$'+dept.ot.toLocaleString():'—'}</td>
+      <td class="mono r">${dept.mpor||'—'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('laborBody').innerHTML=rows;
+}
+
+// ═══ RATE SHOP DATA (Corpus only) ═══
+const DATES=['5/28','5/29','5/30','5/31','6/1','6/2','6/3','6/4','6/5','6/6','6/7','6/8'];
+const DOWS=['THU','FRI','SAT','SUN','MON','TUE','WED','THU','FRI','SAT','SUN','MON'];
+const CL={
+  spid:{rgb:[{n:'Aloft CC',r:[109,149,159,169,109,109,119,119,129,149,159,119]},{n:'Hyatt Place CC',r:[118,142,196,162,118,118,119,119,129,149,149,119]},{n:'Springhill Suites',r:[119,149,149,159,119,119,119,119,129,149,149,119]},{n:'TRU Corpus',r:[109,136,156,149,109,109,109,109,119,136,141,109]},{n:'Residence Inn South ★',r:[179,189,189,199,179,179,189,189,199,199,209,169]}],comp:[{n:'Hilton Garden Inn CC',r:[119,139,139,149,109,109,119,119,129,139,139,109]},{n:'Staybridge CC',r:[124,144,144,154,119,119,124,129,134,154,139,119]},{n:'Residence Inn CC',r:[104,149,149,149,104,104,109,109,119,149,149,104]},{n:'Home2 CC SE',r:[143,174,174,184,124,124,134,139,144,174,189,129]},{n:'Courtyard',r:[104,134,134,139,104,104,109,114,119,134,144,99]},{n:'Hampton SPID',r:['Sold out',149,'Sold out',159,129,129,129,129,139,149,149,119]}]},
+  navigation:{rgb:[{n:'Hampton Navigation',r:[119,139,139,144,119,119,124,124,134,139,139,119]},{n:'HIE Navigation',r:[109,139,139,144,109,109,114,114,124,139,139,109]}],comp:[{n:'Hampton CC NW',r:[115,169,169,164,115,115,120,120,130,169,169,115]},{n:'HI Airport CC',r:[109,114,119,114,109,109,114,114,119,114,119,109]},{n:'La Quinta Airport',r:[83,108,116,111,83,83,88,88,98,108,116,83]},{n:'HIE Calallen',r:[109,129,129,134,109,109,114,114,124,129,129,109]}]},
+  downtown:{rgb:[{n:'HI Marina',r:[129,194,199,214,139,134,144,149,159,199,214,134]},{n:'Residence Inn DT',r:[219,'Sold out',249,259,219,214,224,229,239,'Sold out',259,219]}],comp:[{n:'Emerald Beach',r:['Sold out','Sold out','Sold out','Sold out',199,189,199,204,219,'Sold out','Sold out',189]},{n:'Omni',r:[219,209,209,219,219,214,219,224,229,209,209,209]},{n:'DoubleTree',r:[156,198,226,221,156,151,161,166,176,198,226,151]},{n:'Best Western Marina',r:[119,179,169,164,119,114,124,129,139,179,169,114]}]},
+  rockport:{rgb:[{n:'HIE Rockport',r:[109,129,169,159,109,109,119,119,129,169,159,109]}],comp:[{n:'La Quinta Rockport',r:[114,169,164,159,114,114,119,119,129,169,164,114]},{n:'Hampton Rockport',r:[109,144,144,149,109,109,114,114,124,144,144,109]},{n:'Fairfield Rockport',r:[109,149,149,154,109,109,114,114,124,149,149,109]}]}
+};
+
+function rcls(v,all){if(typeof v!=='number')return'';const n=all.filter(x=>typeof x==='number');if(!n.length)return'';return v===Math.min(...n)&&Math.min(...n)<Math.max(...n)?'rl':v>=Math.max(...n)*0.95?'rh':'';}
+function showCluster(k,btn){
+  document.querySelectorAll('.rct').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  const d=CL[k];if(!d){document.getElementById('rateTable').innerHTML='';return;}
+  let h=`<thead><tr><th class="pc">Property</th>${DATES.map((dt,i)=>`<th><div style="font-size:7px;color:var(--td)">${DOWS[i]}</div><div>${dt}</div></th>`).join('')}</tr></thead><tbody>`;
+  h+=`<tr class="sh"><td colspan="${DATES.length+1}">RGB Properties</td></tr>`;
+  d.rgb.forEach(row=>{
+    const isThis = row.n.includes('★');
+    h+=`<tr class="rr"><td class="pc">${row.n}</td>`;
+    row.r.forEach((v,i)=>{
+      const all=[...d.rgb,...d.comp].map(p=>p.r[i]);
+      const s=typeof v!=='number'?(String(v||'').toLowerCase().includes('sold')?'rs':'rlo'):'';
+      const extra = isThis?'font-weight:600;':'';
+      h+=`<td class="${s||rcls(v,all)}" style="${extra}">${v===null?'—':v}</td>`;
+    });h+='</tr>';
+  });
+  h+=`<tr class="sh"><td colspan="${DATES.length+1}">Compset</td></tr>`;
+  d.comp.forEach(row=>{
+    h+=`<tr><td class="pc">${row.n}</td>`;
+    row.r.forEach((v,i)=>{
+      const all=[...d.rgb,...d.comp].map(p=>p.r[i]);
+      const s=typeof v!=='number'?(String(v||'').toLowerCase().includes('sold')?'rs':'rlo'):'';
+      h+=`<td class="${s||rcls(v,all)}">${v===null?'—':v}</td>`;
+    });h+='</tr>';
+  });
+  h+='</tbody>';document.getElementById('rateTable').innerHTML=h;
+}
+
+// ═══ NAV ═══
+const SCREENS=['dar','rateshop','labor','recap','ops','sales'];
+function sw(n){
+  SCREENS.forEach(s=>{
+    document.getElementById('screen-'+s).classList.add('hidden');
+    const b=document.getElementById('nav-'+s);if(b)b.classList.remove('active');
+  });
+  document.getElementById('screen-'+n).classList.remove('hidden');
+  const b=document.getElementById('nav-'+n);if(b)b.classList.add('active');
+  if(n==='dar'){buildDARHistory();}
+  if(n==='rateshop'){showCluster('spid',document.querySelector('.rct'));}
+  if(n==='labor'){buildLabor();}
+}
+
+// Auto-load DAR screen
+sw('dar');
+</script>
+</body>
+</html>

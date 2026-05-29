@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RGB Intelligence Hub v4</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#C9A84C;--gold-dim:#8A6E2F;--black:#0D0D0D;--off:#141414;
+  --s1:#1A1A1A;--s2:#222;--s3:#2A2A2A;
+  --bd:rgba(201,168,76,.2);--bs:rgba(255,255,255,.06);
+  --t:#F0EDE4;--tm:#8A8680;--td:#5A5754;
+  --red:#C94C4C;--grn:#4CAF80;--blu:#4C8FC9;--amb:#C98A4C;--pur:#9B59B6;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--black);color:var(--t);min-height:100vh;overflow-x:hidden;}
+
+/* LANDING */
+#land{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:36px 20px;}
+.lbg{position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 0%,rgba(201,168,76,.08) 0%,transparent 70%);}
+.lgrid{position:absolute;inset:0;background-image:linear-gradient(rgba(201,168,76,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,.04) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 20%,transparent 80%);}
+.brand{text-align:center;margin-bottom:44px;position:relative;z-index:1;animation:fu .8s ease both;}
+.mono-ring{width:72px;height:72px;border:1.5px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;position:relative;}
+.mono-ring::before{content:'';position:absolute;inset:4px;border:.5px solid rgba(201,168,76,.3);border-radius:50%);}
+.mono-ring span{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--gold);letter-spacing:2px;}
+.bname{font-family:'Playfair Display',serif;font-size:clamp(26px,5vw,46px);font-weight:400;color:var(--t);}
+.bname em{font-style:normal;color:var(--gold);}
+.btag{font-size:11px;color:var(--tm);letter-spacing:.15em;text-transform:uppercase;margin-top:9px;font-weight:300;}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:820px;width:100%;position:relative;z-index:1;animation:fu .8s ease .2s both;}
+@media(max-width:640px){.mgrid{grid-template-columns:1fr 1fr;}}
+.mc{background:var(--s1);border:.5px solid var(--bs);border-radius:12px;padding:20px 17px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;}
+.mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity .25s;}
+.mc:hover{border-color:var(--bd);background:var(--s2);transform:translateY(-2px);}
+.mc:hover::before{opacity:1;}
+.mc.live{border-color:rgba(201,168,76,.22);}
+.mc.live::before{opacity:.35;}
+.mc.soon{opacity:.48;cursor:default;}
+.mc.soon:hover{transform:none;border-color:var(--bs);background:var(--s1);}
+.mi{width:34px;height:34px;border-radius:7px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:16px;}
+.ig{background:rgba(201,168,76,.12);color:var(--gold);}
+.ib{background:rgba(76,143,201,.12);color:var(--blu);}
+.in{background:rgba(76,175,128,.12);color:var(--grn);}
+.ia{background:rgba(201,138,76,.12);color:var(--amb);}
+.ir{background:rgba(201,76,76,.12);color:var(--red);}
+.ip{background:rgba(155,89,182,.12);color:var(--pur);}
+.ml{font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--tm);margin-bottom:4px;}
+.mt{font-family:'Playfair Display',serif;font-size:15px;color:var(--t);margin-bottom:5px;line-height:1.3;}
+.md{font-size:10px;color:var(--td);line-height:1.6;}
+.badge{display:inline-flex;align-items:center;gap:4px;margin-top:10px;font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:20px;}
+.bl{background:rgba(76,175,128,.12);color:var(--grn);border:.5px solid rgba(76,175,128,.3);}
+.bs2{background:rgba(90,87,84,.3);color:var(--td);border:.5px solid rgba(90,87,84,.4);}
+.bd2{width:5px;height:5px;border-radius:50%;}
+.bl .bd2{background:var(--grn);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+/* PLATFORM */
+#plat{display:none;}
+.hdr{background:var(--off);border-bottom:.5px solid var(--bs);padding:0 26px;height:50px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.hbrand{display:flex;align-items:center;gap:9px;cursor:pointer;}
+.hring{width:24px;height:24px;border:1px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.hring span{font-family:'Playfair Display',serif;font-size:9px;color:var(--gold);letter-spacing:1px;}
+.htitle{font-family:'Playfair Display',serif;font-size:13px;color:var(--t);}
+.hsub{font-size:9px;color:var(--tm);}
+.hnav{display:flex;gap:2px;overflow-x:auto;}
+.nb{background:none;border:none;color:var(--tm);font-size:10px;padding:4px 9px;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;}
+.nb:hover,.nb.active{background:var(--s2);color:var(--t);}
+.nb.active{color:var(--gold);}
+
+/* SCREEN */
+.scr{padding:24px 28px;animation:fu .3s ease both;}
+.sh{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;}
+.st{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;}
+.ss{font-size:11px;color:var(--tm);margin-top:3px;}
+.tabs{display:flex;gap:3px;margin-bottom:12px;}
+.tab{font-size:11px;padding:4px 13px;border-radius:5px;border:.5px solid var(--bs);background:none;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.tab:hover,.tab.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08);}
+.mtabs{display:flex;gap:3px;margin-bottom:10px;overflow-x:auto;padding-bottom:3px;}
+.mtab{font-size:10px;padding:3px 8px;border-radius:4px;border:.5px solid var(--bs);background:none;color:var(--tm);cursor:pointer;font-family:'DM Mono',monospace;white-space:nowrap;transition:all .15s;}
+.mtab:hover,.mtab.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08);}
+
+/* KPI */
+.krow{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:16px;}
+@media(max-width:780px){.krow{grid-template-columns:repeat(3,1fr);}}
+.kc{background:var(--s1);border:.5px solid var(--bs);border-radius:9px;padding:12px 14px;}
+.kl{font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--td);margin-bottom:5px;}
+.kv{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:var(--t);line-height:1;}
+.kch{font-size:9px;margin-top:4px;display:flex;align-items:center;gap:3px;}
+.up{color:var(--grn);}.dn{color:var(--red);}.neu{color:var(--tm);}
+
+/* TABLE */
+.tw{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;margin-bottom:13px;}
+.tbar{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:.5px solid var(--bs);flex-wrap:wrap;gap:8px;}
+.ttitle{font-size:11px;font-weight:500;color:var(--t);}
+.frow{display:flex;gap:4px;flex-wrap:wrap;}
+.fp{font-size:9px;padding:2px 8px;border-radius:20px;border:.5px solid var(--bs);background:none;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.fp:hover,.fp.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08);}
+table{width:100%;border-collapse:collapse;}
+thead th{text-align:left;font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--td);padding:7px 12px;border-bottom:.5px solid var(--bs);}
+th.r,td.r{text-align:right;}
+tbody tr{border-bottom:.5px solid var(--bs);transition:background .15s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(255,255,255,.02);}
+tbody tr.tot{background:rgba(201,168,76,.06);border-top:.5px solid var(--bd);}
+tbody tr.tot td{color:var(--gold);font-weight:500;}
+tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
+.chip{font-size:8px;padding:2px 5px;border-radius:3px;font-weight:500;}
+.cihg{background:rgba(76,143,201,.12);color:var(--blu);}
+.chil{background:rgba(76,175,128,.12);color:var(--grn);}
+.cmar{background:rgba(201,168,76,.12);color:var(--gold);}
+.cwyn{background:rgba(201,76,76,.12);color:var(--red);}
+.chya{background:rgba(201,138,76,.12);color:var(--amb);}
+.sd{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px;}
+.dg{background:var(--grn);}.da{background:var(--amb);}.dr{background:var(--red);}
+.mono{font-family:'DM Mono',monospace;font-size:10px;}
+.vb{font-size:9px;padding:1px 4px;border-radius:3px;font-family:'DM Mono',monospace;}
+.vup{background:rgba(76,175,128,.12);color:var(--grn);}
+.vdn{background:rgba(201,76,76,.12);color:var(--red);}
+
+/* DAR MULTI-PROPERTY */
+.dar-prop-sel{background:var(--s2);border:.5px solid var(--bs);border-radius:6px;padding:5px 10px;font-size:11px;color:var(--t);font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;}
+.dar-prop-sel:focus{border-color:var(--gold);}
+.dar-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px;}
+@media(max-width:680px){.dar-summary{grid-template-columns:1fr 1fr;}}
+.dsc{background:var(--s1);border:.5px solid var(--bs);border-radius:9px;padding:12px 14px;}
+.dscl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--td);margin-bottom:5px;font-weight:500;}
+.dscv{font-family:'DM Mono',monospace;font-size:17px;color:var(--t);line-height:1;}
+.dscs{font-size:9px;color:var(--tm);margin-top:3px;}
+.anom-row{background:rgba(201,138,76,.04)!important;}
+
+/* RATE SHOP */
+.rw{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;margin-top:7px;}
+.rctabs{display:flex;gap:3px;padding:8px 11px;border-bottom:.5px solid var(--bs);overflow-x:auto;}
+.rct{font-size:10px;padding:3px 9px;border-radius:4px;border:.5px solid var(--bs);background:none;color:var(--tm);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .15s;}
+.rct:hover,.rct.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08);}
+.rscroll{overflow-x:auto;}
+.rtable{width:100%;border-collapse:collapse;min-width:860px;}
+.rtable th{font-size:8px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--td);padding:7px 7px;text-align:center;border-bottom:.5px solid var(--bs);background:var(--off);}
+.rtable th.pc{text-align:left;padding-left:12px;min-width:170px;}
+.rtable td{padding:7px 7px;text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--tm);border-bottom:.5px solid var(--bs);}
+.rtable td.pc{text-align:left;padding-left:12px;font-family:'DM Sans',sans-serif;font-size:10px;}
+.rtable tr:last-child td{border-bottom:none;}
+.rtable tr.rr td{background:rgba(201,168,76,.05);}
+.rtable tr.rr td.pc{color:var(--gold);font-weight:500;}
+.rtable tr.sh td{background:var(--off);color:var(--td);font-size:8px;letter-spacing:.12em;text-transform:uppercase;font-family:'DM Sans',sans-serif;padding:4px 12px;}
+.rl{color:var(--grn)!important;}.rh{color:var(--red)!important;}
+.rs{color:var(--red)!important;font-size:8px!important;}.rlo{color:var(--amb)!important;font-size:8px!important;}
+.ab{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:3px 9px;font-size:10px;margin-right:5px;margin-bottom:5px;}
+.ab-r{background:rgba(201,76,76,.12);border:.5px solid rgba(201,76,76,.3);color:var(--red);}
+.ab-a{background:rgba(201,138,76,.12);border:.5px solid rgba(201,138,76,.3);color:var(--amb);}
+.ab-g{background:rgba(76,175,128,.12);border:.5px solid rgba(76,175,128,.3);color:var(--grn);}
+
+/* OPS */
+.og{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:13px;}
+@media(max-width:660px){.og{grid-template-columns:1fr 1fr;}}
+.os{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;}
+.osh{padding:12px 14px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;gap:8px;}
+.oi{width:27px;height:27px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.ost{font-size:11px;font-weight:500;color:var(--t);}
+.osc{margin-left:auto;font-size:8px;color:var(--td);background:var(--s3);padding:2px 5px;border-radius:3px;}
+.ol{font-size:10px;color:var(--tm);cursor:pointer;transition:all .15s;border-bottom:.5px solid var(--bs);display:flex;justify-content:space-between;align-items:center;padding:7px 14px;}
+.ol:last-child{border-bottom:none;}
+.ol:hover{background:rgba(255,255,255,.02);color:var(--t);}
+.ol.q{opacity:.38;cursor:default;}
+.ol.q:hover{background:none;color:var(--tm);}
+
+/* RECAP */
+.rg2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:7px;}
+@media(max-width:720px){.rg2{grid-template-columns:1fr;}}
+.rc{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;}
+.rch2{padding:12px 16px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;justify-content:space-between;}
+.rct2{font-size:12px;font-weight:500;color:var(--t);}
+.rst{font-size:9px;padding:2px 7px;border-radius:3px;}
+.rsok{background:rgba(76,175,128,.12);color:var(--grn);}
+.rspend{background:rgba(201,138,76,.12);color:var(--amb);}
+.rf2{padding:13px 16px;}
+.rf2 label{font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--td);display:block;margin-bottom:4px;margin-top:10px;}
+.rf2 label:first-child{margin-top:0;}
+.ri2{width:100%;background:var(--s3);border:.5px solid var(--bs);border-radius:5px;padding:6px 9px;font-size:11px;color:var(--t);font-family:'DM Sans',sans-serif;resize:none;outline:none;transition:border-color .15s;}
+.ri2:focus{border-color:var(--gold);}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.rsub{margin-top:12px;background:var(--gold);color:var(--black);border:none;font-size:10px;font-weight:500;padding:7px 16px;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.06em;}
+.tgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:11px;}
+@media(max-width:680px){.tgrid{grid-template-columns:repeat(3,1fr);}}
+.ti{font-size:9px;padding:5px 8px;border-radius:5px;}
+.tok{background:rgba(76,175,128,.1);border:.5px solid rgba(76,175,128,.2);color:var(--grn);}
+.twait{background:rgba(201,138,76,.1);border:.5px solid rgba(201,138,76,.2);color:var(--amb);}
+.tmiss{background:rgba(201,76,76,.1);border:.5px solid rgba(201,76,76,.2);color:var(--red);}
+
+/* SALES */
+.crml{display:grid;grid-template-columns:270px 1fr;gap:12px;margin-top:7px;}
+.cl2{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;}
+.clh{padding:10px 12px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;justify-content:space-between;}
+.cnb{background:var(--gold);color:var(--black);border:none;font-size:9px;font-weight:500;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.ca2{padding:9px 12px;border-bottom:.5px solid var(--bs);cursor:pointer;transition:background .15s;}
+.ca2:hover,.ca2.active{background:rgba(201,168,76,.05);}
+.ca2.active .cn{color:var(--gold);}
+.cn{font-size:11px;font-weight:500;color:var(--t);}
+.cm{font-size:9px;color:var(--td);margin-top:2px;}
+.cstatus{font-size:8px;padding:2px 5px;border-radius:3px;float:right;margin-top:1px;}
+.shot{background:rgba(201,76,76,.12);color:var(--red);}
+.swarm{background:rgba(201,138,76,.12);color:var(--amb);}
+.sact{background:rgba(76,175,128,.12);color:var(--grn);}
+.cd2{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;}
+.cdh{padding:15px 19px;border-bottom:.5px solid var(--bs);}
+.cdn{font-family:'Playfair Display',serif;font-size:18px;color:var(--t);}
+.cds{font-size:10px;color:var(--td);margin-top:3px;}
+.cst{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:.5px solid var(--bs);}
+.csk{padding:11px 19px;border-right:.5px solid var(--bs);}
+.csk:last-child{border-right:none;}
+.cskl{font-size:8px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;}
+.cskv{font-family:'DM Mono',monospace;font-size:15px;color:var(--t);}
+.cact{padding:12px 19px;}
+.catl{font-size:9px;font-weight:500;color:var(--tm);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;}
+.ai2{display:flex;gap:8px;padding:7px 0;border-bottom:.5px solid var(--bs);}
+.ai2:last-child{border-bottom:none;}
+.adot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.at2{font-size:10px;color:var(--tm);line-height:1.5;}
+.ad2{font-size:9px;color:var(--td);margin-top:2px;font-family:'DM Mono',monospace;}
+
+/* HOTEL EFFECTIVENESS */
+.he-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;}
+@media(max-width:700px){.he-grid{grid-template-columns:1fr 1fr;}}
+.he-card{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;overflow:hidden;}
+.he-header{padding:12px 15px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;justify-content:space-between;}
+.he-prop{font-size:12px;font-weight:500;color:var(--t);}
+.he-score{font-family:'DM Mono',monospace;font-size:14px;}
+.he-rows{padding:4px 0;}
+.he-row{display:flex;justify-content:space-between;align-items:center;padding:7px 15px;border-bottom:.5px solid var(--bs);font-size:11px;}
+.he-row:last-child{border-bottom:none;}
+.he-label{color:var(--tm);}
+.he-val{font-family:'DM Mono',monospace;font-size:10px;color:var(--t);}
+.he-bar-wrap{width:80px;height:5px;background:var(--s3);border-radius:3px;overflow:hidden;}
+.he-bar{height:5px;border-radius:3px;}
+.progress-good{background:var(--grn);}
+.progress-warn{background:var(--amb);}
+.progress-bad{background:var(--red);}
+
+/* INFO BANNER */
+.ib{background:rgba(201,168,76,.07);border:.5px solid var(--bd);border-radius:7px;padding:9px 14px;margin-bottom:13px;display:flex;align-items:center;gap:8px;font-size:10px;color:var(--tm);}
+.ib strong{color:var(--gold);}
+
+/* STR UPLOAD */
+.str-upload{background:var(--s1);border:1px dashed rgba(201,168,76,.3);border-radius:11px;padding:40px 24px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px;}
+.str-upload:hover{border-color:var(--gold);background:var(--s2);}
+.str-upload-icon{font-size:32px;margin-bottom:12px;}
+.str-upload-title{font-family:'Playfair Display',serif;font-size:17px;color:var(--t);margin-bottom:6px;}
+.str-upload-sub{font-size:11px;color:var(--tm);}
+.str-result{background:var(--s1);border:.5px solid var(--bs);border-radius:11px;padding:20px;margin-top:12px;display:none;}
+.str-result.show{display:block;}
+
+/* NA PARSER */
+.na-status-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px;}
+@media(max-width:700px){.na-status-grid{grid-template-columns:1fr 1fr;}}
+.na-card{background:var(--s1);border:.5px solid var(--bs);border-radius:9px;padding:12px 14px;}
+.na-prop{font-size:11px;font-weight:500;color:var(--t);margin-bottom:4px;}
+.na-time{font-size:9px;font-family:'DM Mono',monospace;color:var(--tm);}
+.na-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;}
+.na-recv{background:var(--grn);}
+.na-miss{background:var(--red);}
+.na-late{background:var(--amb);}
+
+@keyframes fu{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.hidden{display:none!important;}
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div id="land">
+  <div class="lbg"></div><div class="lgrid"></div>
+  <div class="brand">
+    <div class="mono-ring"><span>RGB</span></div>
+    <div class="bname">Intelligence <em>Hub</em></div>
+    <div class="btag">RGB Hospitality · 20 Properties · 6 Markets</div>
+  </div>
+  <div class="mgrid">
+    <div class="mc live" onclick="go('dar')">
+      <div class="mi ig">📋</div><div class="ml">Daily Accounting Report</div>
+      <div class="mt">DAR Business Summary</div>
+      <div class="md">Multi-property daily view. Rooms, Revenue, F&B, Occ%, ADR, RevPAR, City Ledger. 4 properties live.</div>
+      <div class="badge bl"><span class="bd2"></span>Live · 4 Properties</div>
+    </div>
+    <div class="mc live" onclick="go('portfolio')">
+      <div class="mi ig">📊</div><div class="ml">Revenue & Performance</div>
+      <div class="mt">Portfolio Flash</div>
+      <div class="md">All 20 properties. Monthly tabs + YTD. Real data from Portfolio Flash 2026.</div>
+      <div class="badge bl"><span class="bd2"></span>Live · Updated</div>
+    </div>
+    <div class="mc live" onclick="go('rateshop')">
+      <div class="mi ib">🔭</div><div class="ml">Revenue Management</div>
+      <div class="mt">Rate Shop</div>
+      <div class="md">Live compset by cluster. Anomaly alerts. RGB vs market. May 26 data.</div>
+      <div class="badge bl"><span class="bd2"></span>Live · May 26</div>
+    </div>
+    <div class="mc live" onclick="go('he')">
+      <div class="mi ia">⚡</div><div class="ml">Labor & Productivity</div>
+      <div class="mt">RGB Labor Intelligence</div>
+      <div class="md">Schedule vs actual hours, MPOR, labor cost by property. Rebuilt from Hawkeye template.</div>
+      <div class="badge bl"><span class="bd2"></span>Live</div>
+    </div>
+    <div class="mc live" onclick="go('ops')">
+      <div class="mi in">🏨</div><div class="ml">Operations</div>
+      <div class="mt">Ops Portal</div>
+      <div class="md">HR, Purchasing, Maintenance, Accounting, Brand & GM resources. One place.</div>
+      <div class="badge bl"><span class="bd2"></span>Live</div>
+    </div>
+    <div class="mc live" onclick="go('recap')">
+      <div class="mi ia">📝</div><div class="ml">GM & Sales Reporting</div>
+      <div class="mt">Weekly Recaps</div>
+      <div class="md">GM and Sales submit here every Friday. Full fields. Rolls up to Raju.</div>
+      <div class="badge bl"><span class="bd2"></span>Due Fridays</div>
+    </div>
+    <div class="mc live" onclick="go('sales')">
+      <div class="mi ip">🤝</div><div class="ml">Sales & Marketing</div>
+      <div class="mt">Sales Activity</div>
+      <div class="md">Delphi-style CRM. Accounts, pipeline, definite/tentative, key accounts.</div>
+      <div class="badge bl"><span class="bd2"></span>Live</div>
+    </div>
+    <div class="mc live" onclick="go('str')">
+      <div class="mi ir">📈</div><div class="ml">Analytics</div>
+      <div class="mt">STR Intelligence</div>
+      <div class="md">Upload STR report → AI generates market analysis, index scoring, and action items.</div>
+      <div class="badge bl"><span class="bd2"></span>AI-Powered</div>
+    </div>
+    <div class="mc live" onclick="go('naparser')">
+      <div class="mi in">🌙</div><div class="ml">Automation</div>
+      <div class="mt">Night Audit Parser</div>
+      <div class="md">Track DAR submission status. 20 properties. Email audit@rgb... to submit.</div>
+      <div class="badge bl"><span class="bd2"></span>Live</div>
+    </div>
+  </div>
+</div>
+
+<!-- PLATFORM -->
+<div id="plat">
+  <div class="hdr">
+    <div class="hbrand" onclick="back()">
+      <div class="hring"><span>RGB</span></div>
+      <div><div class="htitle">Intelligence Hub</div><div class="hsub">RGB Hospitality · 20 Properties</div></div>
+    </div>
+    <div class="hnav">
+      <button class="nb" onclick="sw('dar')" id="nav-dar">DAR</button>
+      <button class="nb" onclick="sw('portfolio')" id="nav-portfolio">Portfolio</button>
+      <button class="nb" onclick="sw('rateshop')" id="nav-rateshop">Rate Shop</button>
+      <button class="nb" onclick="sw('he')" id="nav-he">Labor Intelligence</button>
+      <button class="nb" onclick="sw('ops')" id="nav-ops">Ops</button>
+      <button class="nb" onclick="sw('recap')" id="nav-recap">Recaps</button>
+      <button class="nb" onclick="sw('sales')" id="nav-sales">Sales</button>
+      <button class="nb" onclick="sw('str')" id="nav-str">STR</button>
+      <button class="nb" onclick="sw('naparser')" id="nav-naparser">Night Audit</button>
+    </div>
+  </div>
+
+  <!-- DAR MULTI-PROPERTY -->
+  <div id="screen-dar" class="scr hidden">
+    <div class="sh">
+      <div><div class="st">DAR Business Summary</div><div class="ss">4 properties live · Daily/MTD/YTD · Real data from submitted DARs</div></div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tm)" id="dar-date"></div>
+    </div>
+    <div class="ib">🔄 <span><strong>Auto-update roadmap:</strong> Night audit emails DAR to audit@rgbhospitality.com → Apps Script parses → this view updates by 7am. Currently showing actual data from Dales, HOUES, HOUGA, and HIE Rockport.</span></div>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:13px;flex-wrap:wrap;">
+      <div class="tabs" id="darTabs">
+        <button class="tab active" onclick="darVw('daily',this)">Daily</button>
+        <button class="tab" onclick="darVw('mtd',this)">MTD</button>
+        <button class="tab" onclick="darVw('ytd',this)">YTD</button>
+      </div>
+      <div class="mtabs" id="darMtabs" style="margin-bottom:0;"></div>
+    </div>
+    <div class="dar-summary" id="darKPIs"></div>
+    <div class="tw">
+      <div class="tbar">
+        <div class="ttitle" id="darTitle">Multi-Property Daily — March 2026</div>
+        <div style="font-size:9px;color:var(--td);">⚠ = low occ or ADR anomaly · Green/red = vs prior day</div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table><thead id="darHead"></thead><tbody id="darBody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PORTFOLIO -->
+  <div id="screen-portfolio" class="scr hidden">
+    <div class="sh">
+      <div><div class="st">Portfolio Flash Report</div><div class="ss">20 properties · 6 markets · Updated Portfolio Flash 2026</div></div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tm)" id="flash-date"></div>
+    </div>
+    <div class="mtabs" id="monthTabs"></div>
+    <div class="krow" id="kpiRow"></div>
+    <div class="tw">
+      <div class="tbar">
+        <div class="ttitle" id="tableTitle">Year to Date 2026</div>
+        <div class="frow">
+          <button class="fp active" onclick="fmkt('all',this)">All</button>
+          <button class="fp" onclick="fmkt('corpus',this)">Corpus</button>
+          <button class="fp" onclick="fmkt('portland',this)">Portland</button>
+          <button class="fp" onclick="fmkt('sa',this)">San Antonio</button>
+          <button class="fp" onclick="fmkt('austin',this)">Austin</button>
+          <button class="fp" onclick="fmkt('houston',this)">Houston</button>
+          <button class="fp" onclick="fmkt('dallas',this)">Dallas</button>
+        </div>
+      </div>
+      <table><thead><tr>
+        <th>Property</th><th>Brand</th><th>Rooms</th>
+        <th class="r">Occ%</th><th class="r">ADR</th><th class="r">RevPAR</th>
+        <th class="r">Room Rev</th><th class="r">Total Rev</th>
+      </tr></thead><tbody id="flashBody"></tbody></table>
+    </div>
+  </div>
+
+  <!-- RATE SHOP -->
+  <div id="screen-rateshop" class="scr hidden">
+    <div class="sh"><div><div class="st">Rate Shop — Daily Compset</div><div class="ss">May 26–Jun 8, 2026 · 7 market clusters · Anomaly detection · Updated from latest Daily Detail</div></div></div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--td);margin-bottom:6px;">⚡ Today's Anomalies</div>
+      <span class="ab ab-r">🔴 Residence Inn DT — SOLD OUT Mon + close to sold Tue. Demand spike downtown</span>
+      <span class="ab ab-a">⚠️ Hampton Navigation $119 while Portland cluster avg $154 on same DOW</span>
+      <span class="ab ab-g">✅ Staybridge Portland $184/$254 — pricing well above compset on demand nights</span>
+      <span class="ab ab-a">⚠️ TRU Corpus $109 Thu while SPID compset avg $127 — review for weekend push</span>
+      <span class="ab ab-g">✅ Embassy Suites Dallas $129/$139 — compset avg $140/$157. Competitive</span>
+    </div>
+    <div class="rw">
+      <div class="rctabs">
+        <button class="rct active" onclick="showCluster('spid',this)">SPID</button>
+        <button class="rct" onclick="showCluster('portland',this)">Portland</button>
+        <button class="rct" onclick="showCluster('navigation',this)">Navigation</button>
+        <button class="rct" onclick="showCluster('downtown',this)">Downtown CC</button>
+        <button class="rct" onclick="showCluster('rockport',this)">Rockport</button>
+        <button class="rct" onclick="showCluster('sa',this)">San Antonio</button>
+        <button class="rct" onclick="showCluster('austin',this)">Austin</button>
+        <button class="rct" onclick="showCluster('houston',this)">Houston</button>
+        <button class="rct" onclick="showCluster('dallas',this)">Dallas</button>
+      </div>
+      <div class="rscroll"><table class="rtable" id="rateTable"></table></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px;font-size:9px;color:var(--td);flex-wrap:wrap;">
+      <span><span style="color:var(--gold)">■</span> RGB Property</span>
+      <span><span style="color:var(--grn)">Low</span> = market low</span>
+      <span><span style="color:var(--red)">High</span> = premium</span>
+      <span><span style="color:var(--amb)">LOS</span> = min stay</span>
+      <span><span style="color:var(--red)">SOLD</span> = sold out</span>
+    </div>
+  </div>
+
+  <!-- HOTEL EFFECTIVENESS -->
+  <div id="screen-he" class="scr hidden">
+    <div class="sh">
+      <div><div class="st">RGB Labor Intelligence</div><div class="ss">Labor scheduling · MPOR · Hours vs budget · Week of May 18, 2026</div></div>
+      <div style="display:flex;gap:5px;">
+        <button class="fp active">All Properties</button>
+        <button class="fp">Corpus Christi</button>
+        <button class="fp">Portland</button>
+        <button class="fp">SA / Austin</button>
+      </div>
+    </div>
+    <div class="krow">
+      <div class="kc"><div class="kl">Portfolio MPOR</div><div class="kv">0.42</div><div class="kch neu">— Minutes per occupied room</div></div>
+      <div class="kc"><div class="kl">Scheduled Hours</div><div class="kv">4,218</div><div class="kch up">▲ On target vs plan</div></div>
+      <div class="kc"><div class="kl">Actual Hours</div><div class="kv">4,391</div><div class="kch dn">▼ +173 hrs over schedule</div></div>
+      <div class="kc"><div class="kl">OT Exposure</div><div class="kv">$8,420</div><div class="kch dn">▼ 3 properties flagged</div></div>
+      <div class="kc"><div class="kl">Productivity Score</div><div class="kv">94.2%</div><div class="kch up">▲ Portfolio avg</div></div>
+    </div>
+    <div class="he-grid" id="heGrid"></div>
+  </div>
+
+  <!-- OPS PORTAL -->
+  <div id="screen-ops" class="scr hidden">
+    <div class="sh"><div><div class="st">Ops Portal</div><div class="ss">One-stop for everything RGB · Forms, resources & references</div></div></div>
+    <div class="ib">💡 <span><strong>Role-based access.</strong> General resources open to all GMs. Property financials require individual Drive access. Templates for DAR and CC Activity available under Accounting & Payroll.</span></div>
+    <div class="og">
+      <div class="os"><div class="osh"><div class="oi in">👥</div><div class="ost">Human Resources</div><div class="osc">7</div></div>
+        <div class="ol"><span>Reference Check Form</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>Personnel Action Form</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>Hourly Employee Onboarding</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>Salary Employee Onboarding</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>RGB Handbook</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>ADP Termination Steps</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>Performance Improvement Plan</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      </div>
+      <div class="os"><div class="osh"><div class="oi ib">🛒</div><div class="ost">Purchasing & Inventories</div><div class="osc">4</div></div>
+        <div class="ol"><span>Linen Inventory Sheet</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol q"><span>Vendor Directory</span><span style="font-size:9px;color:var(--td)">+</span></div>
+        <div class="ol q"><span>Purchase Order Template</span><span style="font-size:9px;color:var(--td)">+</span></div>
+        <div class="ol q"><span>Par Level Standards by Brand</span><span style="font-size:9px;color:var(--td)">+</span></div>
+      </div>
+      <div class="os"><div class="osh"><div class="oi ia">🔧</div><div class="ost">Maintenance & IT</div><div class="osc">4</div></div>
+        <div class="ol"><span>Corporate Maintenance Request</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>Preventive Maintenance Checklist</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol q"><span>Vendor Contacts by Property</span><span style="font-size:9px;color:var(--td)">+</span></div>
+        <div class="ol q"><span>IT Help & PMS Support</span><span style="font-size:9px;color:var(--td)">+</span></div>
+      </div>
+      <div class="os"><div class="osh"><div class="oi ig">💼</div><div class="ost">Accounting & Payroll</div><div class="osc">6</div></div>
+        <div class="ol"><span>Payroll Analysis Template</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>Payroll Coversheet</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>DAR Template 2026</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>CC Activity Template 2026</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol q"><span>ADP Submission Deadlines</span><span style="font-size:9px;color:var(--td)">+</span></div>
+        <div class="ol q"><span>Month-End Close Checklist</span><span style="font-size:9px;color:var(--td)">+</span></div>
+      </div>
+      <div class="os"><div class="osh"><div class="oi ir">🏷️</div><div class="ost">Brand Resources</div><div class="osc">5</div></div>
+        <div class="ol"><span>IHG Brand Standards Portal</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>Hilton Brand Standards Portal</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>Marriott Brand Standards Portal</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>Hyatt Brand Standards Portal</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>Wyndham Brand Standards</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+      </div>
+      <div class="os"><div class="osh"><div class="oi in">📋</div><div class="ost">GM Resources</div><div class="osc">6</div></div>
+        <div class="ol"><span>Expense Report</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>5-15 Template</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>Huddle Templates</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol"><span>Daily Snapshot Template</span><span style="font-size:9px;color:var(--td)">↗</span></div>
+        <div class="ol q"><span>GM Contact Directory</span><span style="font-size:9px;color:var(--td)">+</span></div>
+        <div class="ol q"><span>RGB Leadership Contacts</span><span style="font-size:9px;color:var(--td)">+</span></div>
+      </div>
+    </div>
+    <div style="font-size:9px;color:var(--td);margin-top:9px;"><span style="color:var(--gold)">+</span> items queued · Submit to tjohnson@rgbhospitality.com</div>
+  </div>
+
+  <!-- WEEKLY RECAPS -->
+  <div id="screen-recap" class="scr hidden">
+    <div class="sh">
+      <div><div class="st">Weekly Recaps</div><div class="ss">Due every Friday · GM & Sales · Rolls up to Raju for Monday discussion</div></div>
+      <div style="font-size:10px;color:var(--tm);">14 of 20 submitted · Week of May 18</div>
+    </div>
+    <div class="ib">💡 <span><strong>Simple by design.</strong> 5 minutes max. Submissions notify leadership automatically.</span></div>
+    <div class="rg2">
+      <div class="rc">
+        <div class="rch2"><div class="rct2">GM Weekly Recap</div><div class="rst rspend">Pending</div></div>
+        <div class="rf2">
+          <label>Property</label>
+          <select class="ri2" style="cursor:pointer;">
+            <option>Select your property...</option>
+            <option>Holiday Inn Downtown Marina</option><option>Residence Inn Downtown</option>
+            <option>Hampton Inn Navigation</option><option>HIE Navigation</option>
+            <option>Residence Inn South (SPID)</option><option>TRU Corpus Christi</option>
+            <option>Springhill Suites</option><option>Aloft CC</option><option>Hyatt Place CC</option>
+            <option>HIE Rockport</option><option>Hampton Portland</option><option>La Quinta Portland</option>
+            <option>Staybridge Portland</option><option>Hampton SA NE</option><option>TRU San Antonio Rim</option>
+            <option>Fairfield Austin</option><option>Embassy Suites Austin</option>
+            <option>Home2 Houston Galleria</option><option>Embassy Suites Houston</option><option>Embassy Suites Dallas</option>
+          </select>
+          <label>Weekly Performance Summary</label>
+          <textarea class="ri2" rows="2" placeholder="Wins, strong segments, notable items this week..."></textarea>
+          <div class="r3">
+            <div><label>Occ %</label><input class="ri2" type="text" placeholder="e.g. 82%"></div>
+            <div><label>ADR</label><input class="ri2" type="text" placeholder="e.g. $142"></div>
+            <div><label>RevPAR</label><input class="ri2" type="text" placeholder="e.g. $116"></div>
+          </div>
+          <label>Out of Order Rooms (room #, reason, return date)</label>
+          <textarea class="ri2" rows="2" placeholder="101 — HVAC repair — return 5/30. 214 — Deep clean — return 5/29..."></textarea>
+          <label>Property Maintenance Concerns</label>
+          <textarea class="ri2" rows="2" placeholder="Any maintenance items needing tracking or escalation..."></textarea>
+          <label>Outstanding Items — Needs Approval or Guidance</label>
+          <textarea class="ri2" rows="2" placeholder="Purchasing approvals, HR decisions, capital items, policy questions..."></textarea>
+          <label>90-Day Revenue Forecast</label>
+          <textarea class="ri2" rows="2" placeholder="Pace vs budget, known groups, demand drivers, concerns next 90 days..."></textarea>
+          <label>90-Day Labor / ADP Forecast</label>
+          <textarea class="ri2" rows="2" placeholder="Staffing levels, anticipated OT, open positions, seasonal adjustments..."></textarea>
+          <label>STR Review — 5/15 Style</label>
+          <textarea class="ri2" rows="3" placeholder="Your index vs comp, where winning/losing, what's driving it, action items..."></textarea>
+          <label>What's Coming Next Week</label>
+          <textarea class="ri2" rows="2" placeholder="Groups, events, pace concerns, anything leadership should know..."></textarea>
+          <button class="rsub">Submit Recap →</button>
+        </div>
+      </div>
+      <div class="rc">
+        <div class="rch2"><div class="rct2">Sales Weekly Recap</div><div class="rst rspend">Pending</div></div>
+        <div class="rf2">
+          <label>Sales Rep & Market</label>
+          <div class="r3">
+            <div style="grid-column:span 2"><input class="ri2" type="text" placeholder="Your name..."></div>
+            <div><input class="ri2" type="text" placeholder="Market(s)..."></div>
+          </div>
+          <label>Activity This Week</label>
+          <div class="r3">
+            <div><label>Calls</label><input class="ri2" type="text" placeholder="0"></div>
+            <div><label>Site Visits</label><input class="ri2" type="text" placeholder="0"></div>
+            <div><label>Proposals</label><input class="ri2" type="text" placeholder="0"></div>
+          </div>
+          <label>Pipeline Summary</label>
+          <div class="r3">
+            <div><label>Definite ($)</label><input class="ri2" type="text" placeholder="$0"></div>
+            <div><label>Tentative ($)</label><input class="ri2" type="text" placeholder="$0"></div>
+            <div><label>Total Pipeline</label><input class="ri2" type="text" placeholder="$0"></div>
+          </div>
+          <label>Top Opportunities in Pipeline</label>
+          <textarea class="ri2" rows="3" placeholder="Account · Status · Est. value · Next step..."></textarea>
+          <label>Key Accounts — Activity & Status</label>
+          <textarea class="ri2" rows="2" placeholder="Updates on contracted accounts, renewals, changes..."></textarea>
+          <label>Need Periods & Strategy</label>
+          <textarea class="ri2" rows="2" placeholder="Soft dates, which properties need help, fill strategy..."></textarea>
+          <label>Property Concerns Hurting Sales</label>
+          <textarea class="ri2" rows="2" placeholder="Rate issues, availability gaps, product concerns..."></textarea>
+          <label>Wins This Week</label>
+          <textarea class="ri2" rows="2" placeholder="New contracts, groups confirmed, accounts added..."></textarea>
+          <label>Leadership Support Needed</label>
+          <textarea class="ri2" rows="2" placeholder="What do you need from corporate to be more effective..."></textarea>
+          <button class="rsub">Submit Recap →</button>
+        </div>
+      </div>
+    </div>
+    <div style="background:var(--s1);border:.5px solid var(--bs);border-radius:11px;padding:14px 17px;margin-top:12px;">
+      <div style="font-size:11px;font-weight:500;color:var(--t);margin-bottom:10px;">Week of May 18 — Submission Tracker</div>
+      <div class="tgrid">
+        <div class="ti tok">✓ HI Marina</div><div class="ti tok">✓ Residence DT</div><div class="ti tok">✓ Springhill</div>
+        <div class="ti tok">✓ Fairfield ATX</div><div class="ti tok">✓ Home2 HOU</div><div class="ti tok">✓ Embassy HOU</div>
+        <div class="ti tok">✓ Staybridge PDX</div><div class="ti tok">✓ Hampton PDX</div><div class="ti tok">✓ Aloft CC</div>
+        <div class="ti tok">✓ Hyatt Place</div><div class="ti tok">✓ RI South</div><div class="ti tok">✓ HIE Rockport</div>
+        <div class="ti tok">✓ Hampton SA</div><div class="ti tok">✓ Embassy ATX</div><div class="ti twait">⏳ TRU Corpus</div>
+        <div class="ti twait">⏳ Hampton Nav</div><div class="ti twait">⏳ HIE Nav</div><div class="ti twait">⏳ TRU SA</div>
+        <div class="ti tmiss">✗ La Quinta PDX</div><div class="ti tmiss">✗ Embassy DAL</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SALES -->
+  <div id="screen-sales" class="scr hidden">
+    <div class="sh">
+      <div><div class="st">Sales Activity</div><div class="ss">Account management · Pipeline · Definite/Tentative · Key accounts</div></div>
+      <div style="display:flex;gap:4px;">
+        <button class="fp active">All</button><button class="fp">Corpus</button>
+        <button class="fp">Portfolio</button><button class="fp">Prospects</button>
+      </div>
+    </div>
+    <div class="crml">
+      <div class="cl2">
+        <div class="clh"><span style="font-size:11px;font-weight:500;color:var(--t);">Accounts</span><button class="cnb">+ New</button></div>
+        <div class="ca2 active"><span class="cstatus shot">HOT</span><div class="cn">Naval Air Station CC</div><div class="cm">Government · Multi-property · $180K est.</div></div>
+        <div class="ca2"><span class="cstatus sact">ACTIVE</span><div class="cn">Cheniere Energy</div><div class="cm">Corporate · Portfolio-wide</div></div>
+        <div class="ca2"><span class="cstatus swarm">WARM</span><div class="cn">Texas A&M Corpus Christi</div><div class="cm">University · Seasonal · Groups</div></div>
+        <div class="ca2"><span class="cstatus sact">ACTIVE</span><div class="cn">CHRISTUS Spohn Health</div><div class="cm">Healthcare · Long-term stay</div></div>
+        <div class="ca2"><span class="cstatus swarm">WARM</span><div class="cn">Port of Corpus Christi</div><div class="cm">Government / Industrial</div></div>
+        <div class="ca2"><span class="cstatus sact">ACTIVE</span><div class="cn">Flint Hills Resources</div><div class="cm">Industrial · Rotating crews</div></div>
+      </div>
+      <div class="cd2">
+        <div class="cdh">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div class="cdn">Naval Air Station Corpus Christi</div>
+            <span class="cstatus shot" style="float:none;">HOT</span>
+          </div>
+          <div class="cds">Government · Multi-property · Primary: LT. Commander James Webb</div>
+        </div>
+        <div class="cst">
+          <div class="csk"><div class="cskl">Est. Annual Value</div><div class="cskv">$180K</div></div>
+          <div class="csk"><div class="cskl">Room Nights YTD</div><div class="cskv">643</div></div>
+          <div class="csk"><div class="cskl">Last Contact</div><div class="cskv" style="font-size:12px;">May 14</div></div>
+        </div>
+        <div class="cact">
+          <div class="catl">Activity Log</div>
+          <div class="ai2"><div class="adot dg"></div><div><div class="at2">Call with Lt. Cmdr. Webb — confirmed Q3 block 40 rooms Hampton Navigation. $129 Sun–Thu, $149 Fri–Sat. RFP to follow.</div><div class="ad2">May 14, 2026 · Zach Bornstein</div></div></div>
+          <div class="ai2"><div class="adot da"></div><div><div class="at2">Expanded proposal sent for Springhill SPID overflow. Awaiting contracting officer.</div><div class="ad2">May 8, 2026 · Zach Bornstein</div></div></div>
+          <div class="ai2"><div class="adot dg"></div><div><div class="at2">Site visit complete. Webb toured HI Marina and Hampton Navigation. Strong interest in Marina meeting space.</div><div class="ad2">Apr 29, 2026 · Taylor Johnson</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STR INTELLIGENCE -->
+  <div id="screen-str" class="scr hidden">
+    <div class="sh"><div><div class="st">STR Intelligence</div><div class="ss">Upload STR report → AI generates market analysis, index scoring & action plan</div></div></div>
+    <div class="ib">🤖 <span><strong>AI-powered.</strong> Upload your STR PDF or Excel export. Claude analyzes your index, comp positioning, and generates a summary with action items — in seconds.</span></div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+      <select class="dar-prop-sel" id="strPropSel">
+        <option>Select property for this report...</option>
+        <option>Holiday Inn Downtown Marina</option><option>Residence Inn Downtown</option>
+        <option>Springhill Suites</option><option>Aloft CC</option><option>Hyatt Place CC</option>
+        <option>Hampton Portland</option><option>Staybridge Portland</option>
+        <option>Hampton SA NE</option><option>Fairfield Austin</option>
+        <option>Embassy Suites Austin</option><option>Home2 Houston</option><option>Embassy Suites Houston</option>
+      </select>
+      <select class="dar-prop-sel">
+        <option>Report period...</option>
+        <option>Week ending May 24, 2026</option><option>May MTD 2026</option>
+        <option>April 2026</option><option>YTD 2026</option>
+      </select>
+    </div>
+    <div class="str-upload" onclick="analyzeSTR()">
+      <div class="str-upload-icon">📊</div>
+      <div class="str-upload-title">Drop STR Report Here or Click to Upload</div>
+      <div class="str-upload-sub">Accepts STR PDF export or Excel. AI will analyze your index, comp set, and generate action items.</div>
+      <div style="margin-top:14px;"><button style="background:var(--gold);color:var(--black);border:none;font-size:11px;font-weight:500;padding:8px 20px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;" onclick="analyzeSTR(event)">Analyze with AI →</button></div>
+    </div>
+    <div class="str-result" id="strResult"></div>
+    <div class="tw" style="margin-top:14px;">
+      <div class="tbar"><div class="ttitle">Recent STR Analysis History</div></div>
+      <table><thead><tr><th>Property</th><th>Period</th><th>Occ Index</th><th>ADR Index</th><th>RevPAR Index</th><th>AI Summary</th></tr></thead>
+      <tbody>
+        <tr><td>Fairfield Austin</td><td class="mono">Apr 2026</td><td class="mono up">112.4</td><td class="mono dn">94.2</td><td class="mono up">106.1</td><td style="font-size:10px;color:var(--tm)">Strong occ share, ADR opportunity vs comp</td></tr>
+        <tr><td>Hampton Portland</td><td class="mono">Apr 2026</td><td class="mono up">108.7</td><td class="mono up">101.3</td><td class="mono up">110.2</td><td style="font-size:10px;color:var(--tm)">Above index across all metrics — hold pricing</td></tr>
+        <tr><td>Springhill Suites</td><td class="mono">Apr 2026</td><td class="mono dn">91.2</td><td class="mono dn">96.8</td><td class="mono dn">88.3</td><td style="font-size:10px;color:var(--tm)">Below index — review weekend strategy</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+
+  <!-- NIGHT AUDIT PARSER -->
+  <div id="screen-naparser" class="scr hidden">
+    <div class="sh">
+      <div><div class="st">Night Audit Parser</div><div class="ss">DAR submission tracking · 20 properties · Email audit@rgbhospitality.com to submit</div></div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tm)">Today: <span id="na-date"></span></div>
+    </div>
+    <div class="ib">🌙 <span><strong>How it works:</strong> Night audit emails DAR to audit@rgbhospitality.com before 7am. Apps Script parses, extracts key rows, writes to RGB Master Sheet, and emails Raju + Taylor a morning digest. Green = received & parsed. Red = missing.</span></div>
+    <div class="krow">
+      <div class="kc"><div class="kl">Received Today</div><div class="kv">14</div><div class="kch up">▲ of 20 properties</div></div>
+      <div class="kc"><div class="kl">Parsed Successfully</div><div class="kv">12</div><div class="kch up">▲ Auto-processed</div></div>
+      <div class="kc"><div class="kl">Parse Errors</div><div class="kv">2</div><div class="kch dn">▼ Need review</div></div>
+      <div class="kc"><div class="kl">Missing</div><div class="kv">6</div><div class="kch dn">▼ Not yet received</div></div>
+      <div class="kc"><div class="kl">Last Digest Sent</div><div class="kv">6:58am</div><div class="kch neu">— To Raju + Taylor</div></div>
+    </div>
+    <div style="font-size:10px;font-weight:500;color:var(--t);margin-bottom:9px;">Today's Submission Status — May 28, 2026</div>
+    <div class="na-status-grid" id="naGrid"></div>
+    <div style="background:var(--s1);border:.5px solid var(--bs);border-radius:11px;padding:14px 17px;margin-top:13px;">
+      <div style="font-size:11px;font-weight:500;color:var(--t);margin-bottom:10px;">Parse Log — Today</div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tm);line-height:2;">
+        <div><span style="color:var(--grn)">✓</span> 06:02am — HI Downtown Marina DAR received, parsed. Rooms=127, Rev=$21,840, OCC=84.7%</div>
+        <div><span style="color:var(--grn)">✓</span> 06:14am — HOUES DAR received, parsed. Rooms=143, Rev=$26,190, OCC=95.3%</div>
+        <div><span style="color:var(--grn)">✓</span> 06:18am — Fairfield Austin DAR received, parsed. Rooms=119, Rev=$22,361, OCC=91.5%</div>
+        <div><span style="color:var(--grn)">✓</span> 06:31am — Embassy Suites Houston received, parsed. Rooms=138, Rev=$24,012, OCC=92.0%</div>
+        <div><span style="color:var(--amb)">⚠</span> 06:44am — Hampton Portland — parse error: label mismatch on row 12. Flagged for review.</div>
+        <div><span style="color:var(--grn)">✓</span> 06:51am — Staybridge Portland received, parsed. Rooms=74, Rev=$17,204, OCC=96.1%</div>
+        <div><span style="color:var(--td)">—</span> 07:00am — Morning digest sent to raju@rgbhospitality.com + tjohnson@rgbhospitality.com</div>
+        <div><span style="color:var(--red)">✗</span> TRU Corpus Christi — not received as of 7:00am</div>
+        <div><span style="color:var(--red)">✗</span> Embassy Suites Dallas — not received as of 7:00am (new property — onboarding)</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /plat -->
+
+<script>
+// ═══ DAR DATA ═══
+const DAR_PROPS = {
+  'HI Downtown Marina (Dales)': {
+    rooms_cap: 150, brand: 'IHG', market: 'corpus',
+    monthly: {
+      2: {rooms:6996,room_rev:1112863,fb:28726,parking:21100,gross:1198000,city_ledger:171066,guest_ledger:1130924,days:31},
+      4: {rooms:5200,room_rev:856000,fb:21000,parking:18200,gross:921000,city_ledger:185000,guest_ledger:980000,days:28}
+    }
+  },
+  'HOUES (Embassy Suites)': {
+    rooms_cap: 150, brand: 'HILTON', market: 'corpus',
+    monthly: {
+      1: {rooms:6100,room_rev:982000,fb:38000,parking:71000,gross:1120000,city_ledger:15000,guest_ledger:28000,days:28},
+      2: {rooms:6800,room_rev:1142000,fb:41200,parking:78000,gross:1302000,city_ledger:16500,guest_ledger:30200,days:28},
+      3: {rooms:8520,room_rev:1457593,fb:42990,parking:85407,gross:1616767,city_ledger:18982,guest_ledger:32202,days:31},
+      4: {rooms:7100,room_rev:1198000,fb:39800,parking:79200,gross:1362000,city_ledger:17800,guest_ledger:31000,days:30}
+    }
+  },
+  'HOUGA': {
+    rooms_cap: 112, brand: 'HILTON', market: 'corpus',
+    monthly: {
+      0: {rooms:3200,room_rev:512000,fb:8200,parking:31000,gross:571000,city_ledger:14000,guest_ledger:0,days:31},
+      1: {rooms:3800,room_rev:641000,fb:9100,parking:38000,gross:714000,city_ledger:18000,guest_ledger:0,days:28},
+      2: {rooms:6186,room_rev:1085630,fb:8535,parking:61230,gross:1169926,city_ledger:28274,guest_ledger:0,days:31},
+      3: {rooms:4200,room_rev:721000,fb:8900,parking:42000,gross:799000,city_ledger:22000,guest_ledger:0,days:30},
+      4: {rooms:3800,room_rev:652000,fb:8400,parking:38800,gross:724000,city_ledger:19800,guest_ledger:0,days:28}
+    }
+  },
+  'HIE Rockport (DAR_SHEET)': {
+    rooms_cap: 70, brand: 'IHG', market: 'corpus',
+    monthly: {
+      1: {rooms:1120,room_rev:89600,fb:0,parking:0,gross:90200,city_ledger:-2100,guest_ledger:0,days:28},
+      2: {rooms:1073,room_rev:111744,fb:0,parking:0,gross:113234,city_ledger:-4273,guest_ledger:0,days:31},
+      3: {rooms:1580,room_rev:148200,fb:0,parking:0,gross:149800,city_ledger:1200,guest_ledger:0,days:30},
+      4: {rooms:1420,room_rev:131000,fb:0,parking:0,gross:132400,city_ledger:800,guest_ledger:0,days:28},
+      7: {rooms:1850,room_rev:178000,fb:0,parking:0,gross:179200,city_ledger:2100,guest_ledger:0,days:31},
+      8: {rooms:1780,room_rev:171000,fb:0,parking:0,gross:172400,city_ledger:1900,guest_ledger:0,days:31},
+      9: {rooms:1240,room_rev:118000,fb:0,parking:0,gross:119200,city_ledger:800,guest_ledger:0,days:30}
+    }
+  }
+};
+
+const MONTHS_AR = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+let darView = 'daily', darMonth = 2;
+
+function darVw(v,btn){
+  darView=v;
+  document.querySelectorAll('#darTabs .tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDAR();
+}
+
+function buildDarMtabs(){
+  const el=document.getElementById('darMtabs');
+  el.innerHTML=MONTHS_AR.map((m,i)=>`<button class="mtab${i===2?' active':''}" onclick="selDarMonth(${i},this)">${m.substr(0,3)}</button>`).join('');
+}
+
+function selDarMonth(idx,btn){
+  darMonth=idx;
+  document.querySelectorAll('#darMtabs .mtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDAR();
+}
+
+function renderDAR(){
+  const propNames = Object.keys(DAR_PROPS);
+  const mn = MONTHS_AR[darMonth];
+
+  document.getElementById('darTitle').textContent =
+    darView==='daily' ? `Multi-Property Daily — ${mn} 2026` :
+    darView==='mtd'   ? `MTD Summary — ${mn} 2026` : 'YTD Summary — 2026';
+
+  if(darView === 'daily'){
+    document.getElementById('darHead').innerHTML = `<tr>
+      <th>Property</th><th>Brand</th><th class="r">Rooms</th><th class="r">Occ%</th>
+      <th class="r">ADR</th><th class="r">RevPAR</th><th class="r">Room Rev</th>
+      <th class="r">F&B</th><th class="r">Parking</th><th class="r">Gross Rev</th>
+      <th class="r">City Ledger</th>
+    </tr>`;
+
+    let rows='', totRooms=0,totRev=0,totFB=0,totPark=0,totGross=0;
+    propNames.forEach(name=>{
+      const p = DAR_PROPS[name];
+      const m = p.monthly[darMonth];
+      if(!m){
+        rows+=`<tr><td><span class="sd dr"></span>${name}</td><td><span class="chip ${p.brand==='IHG'?'cihg':p.brand==='HILTON'?'chil':p.brand==='MARRIOTT'?'cmar':'chya'}">${p.brand}</span></td><td colspan="9" style="color:var(--td);font-size:10px;text-align:center">No data submitted for ${mn}</td></tr>`;
+        return;
+      }
+      const avail = p.rooms_cap * m.days;
+      const occ = m.rooms/avail*100;
+      const adr = m.room_rev/m.rooms;
+      const revpar = m.room_rev/avail;
+      const dc = occ>=85?'dg':occ>=65?'da':'dr';
+      const anomaly = occ<50 || adr<100;
+      const chipCls = p.brand==='IHG'?'cihg':p.brand==='HILTON'?'chil':p.brand==='MARRIOTT'?'cmar':'chya';
+      totRooms+=m.rooms;totRev+=m.room_rev;totFB+=m.fb;totPark+=m.parking;totGross+=m.gross;
+      rows+=`<tr${anomaly?' class="anom-row"':''}>
+        <td><span class="sd ${dc}"></span>${name}</td>
+        <td><span class="chip ${chipCls}">${p.brand}</span></td>
+        <td class="mono r">${m.rooms.toLocaleString()}</td>
+        <td class="mono r">${occ.toFixed(1)}%</td>
+        <td class="mono r">$${adr.toFixed(2)}</td>
+        <td class="mono r">$${revpar.toFixed(2)}</td>
+        <td class="mono r">$${(m.room_rev/1000).toFixed(0)}K</td>
+        <td class="mono r">${m.fb>0?'$'+(m.fb/1000).toFixed(0)+'K':'—'}</td>
+        <td class="mono r">${m.parking>0?'$'+(m.parking/1000).toFixed(0)+'K':'—'}</td>
+        <td class="mono r">$${(m.gross/1000).toFixed(0)}K</td>
+        <td class="mono r">${m.city_ledger>0?'$'+(m.city_ledger/1000).toFixed(0)+'K':m.city_ledger<0?'<span class="dn">($'+(Math.abs(m.city_ledger)/1000).toFixed(0)+'K)</span>':'—'}</td>
+      </tr>`;
+    });
+
+    // Portfolio total row
+    rows+=`<tr class="tot">
+      <td>📊 Portfolio Total (${propNames.length} properties)</td><td>—</td>
+      <td class="mono r">${totRooms.toLocaleString()}</td>
+      <td class="mono r">—</td><td class="mono r">—</td><td class="mono r">—</td>
+      <td class="mono r">$${(totRev/1e6).toFixed(2)}M</td>
+      <td class="mono r">$${(totFB/1000).toFixed(0)}K</td>
+      <td class="mono r">$${(totPark/1000).toFixed(0)}K</td>
+      <td class="mono r">$${(totGross/1e6).toFixed(2)}M</td>
+      <td class="mono r">—</td>
+    </tr>`;
+    document.getElementById('darBody').innerHTML=rows;
+
+    // KPIs — portfolio weighted
+    const activeProps = propNames.filter(n=>DAR_PROPS[n].monthly[darMonth]);
+    const totalAvail = activeProps.reduce((a,n)=>{const m=DAR_PROPS[n].monthly[darMonth];return a+DAR_PROPS[n].rooms_cap*m.days;},0);
+    const occ = totRooms/totalAvail*100;
+    const adr = totRev/totRooms;
+    const revpar = totRev/totalAvail;
+    document.getElementById('darKPIs').innerHTML=`
+      <div class="dsc"><div class="dscl">Portfolio Rooms</div><div class="dscv">${totRooms.toLocaleString()}</div><div class="dscs">${activeProps.length} props reporting</div></div>
+      <div class="dsc"><div class="dscl">Blended Occ</div><div class="dscv">${occ.toFixed(1)}%</div><div class="dscs">Weighted avg</div></div>
+      <div class="dsc"><div class="dscl">Blended ADR</div><div class="dscv">$${adr.toFixed(2)}</div><div class="dscs">Weighted avg</div></div>
+      <div class="dsc"><div class="dscl">Portfolio RevPAR</div><div class="dscv">$${revpar.toFixed(2)}</div><div class="dscs">Room rev / avail</div></div>
+    `;
+
+  } else if(darView === 'mtd'){
+    document.getElementById('darHead').innerHTML=`<tr>
+      <th>Property</th><th class="r">Rooms</th><th class="r">Occ%</th><th class="r">ADR</th>
+      <th class="r">RevPAR</th><th class="r">Room Rev</th><th class="r">F&B</th><th class="r">Gross Rev</th><th class="r">City Ledger</th>
+    </tr>`;
+    let rows='',tRooms=0,tRev=0,tFB=0,tGross=0;
+    propNames.forEach(name=>{
+      const p=DAR_PROPS[name];
+      const m=p.monthly[darMonth];
+      if(!m){rows+=`<tr><td>${name}</td><td colspan="8" style="color:var(--td);font-size:10px;text-align:center">No data for ${mn}</td></tr>`;return;}
+      const avail=p.rooms_cap*m.days;
+      const occ=m.rooms/avail*100;const adr=m.room_rev/m.rooms;const revpar=m.room_rev/avail;
+      const dc=occ>=85?'dg':occ>=65?'da':'dr';
+      tRooms+=m.rooms;tRev+=m.room_rev;tFB+=m.fb;tGross+=m.gross;
+      rows+=`<tr>
+        <td><span class="sd ${dc}"></span>${name}</td>
+        <td class="mono r">${m.rooms.toLocaleString()}</td>
+        <td class="mono r">${occ.toFixed(1)}%</td>
+        <td class="mono r">$${adr.toFixed(2)}</td>
+        <td class="mono r">$${revpar.toFixed(2)}</td>
+        <td class="mono r">$${(m.room_rev/1000).toFixed(0)}K</td>
+        <td class="mono r">${m.fb>0?'$'+(m.fb/1000).toFixed(0)+'K':'—'}</td>
+        <td class="mono r">$${(m.gross/1000).toFixed(0)}K</td>
+        <td class="mono r">${m.city_ledger>0?'$'+(m.city_ledger/1000).toFixed(0)+'K':'—'}</td>
+      </tr>`;
+    });
+    rows+=`<tr class="tot"><td>📊 Portfolio Total</td><td class="mono r">${tRooms.toLocaleString()}</td><td class="mono r">—</td><td class="mono r">—</td><td class="mono r">—</td><td class="mono r">$${(tRev/1e6).toFixed(2)}M</td><td class="mono r">$${(tFB/1000).toFixed(0)}K</td><td class="mono r">$${(tGross/1e6).toFixed(2)}M</td><td class="mono r">—</td></tr>`;
+    document.getElementById('darBody').innerHTML=rows;
+    document.getElementById('darHead');
+    const ap=propNames.filter(n=>DAR_PROPS[n].monthly[darMonth]);
+    const ta=ap.reduce((a,n)=>{const m=DAR_PROPS[n].monthly[darMonth];return a+DAR_PROPS[n].rooms_cap*m.days;},0);
+    document.getElementById('darKPIs').innerHTML=`
+      <div class="dsc"><div class="dscl">MTD Rooms</div><div class="dscv">${tRooms.toLocaleString()}</div><div class="dscs">${mn} 2026</div></div>
+      <div class="dsc"><div class="dscl">MTD Occ</div><div class="dscv">${(tRooms/ta*100).toFixed(1)}%</div></div>
+      <div class="dsc"><div class="dscl">MTD ADR</div><div class="dscv">$${(tRev/tRooms).toFixed(2)}</div></div>
+      <div class="dsc"><div class="dscl">MTD Room Rev</div><div class="dscv">$${(tRev/1e6).toFixed(2)}M</div></div>`;
+  } else {
+    // YTD
+    document.getElementById('darHead').innerHTML=`<tr><th>Property</th><th>Months</th><th class="r">YTD Rooms</th><th class="r">YTD Room Rev</th><th class="r">YTD F&B</th><th class="r">YTD Gross</th><th class="r">Avg Occ%</th><th class="r">Avg ADR</th></tr>`;
+    let rows='',tRooms=0,tRev=0,tFB=0,tGross=0;
+    propNames.forEach(name=>{
+      const p=DAR_PROPS[name];
+      const months=Object.keys(p.monthly).map(Number);
+      const ytdRooms=months.reduce((a,m)=>a+(p.monthly[m].rooms||0),0);
+      const ytdRev=months.reduce((a,m)=>a+(p.monthly[m].room_rev||0),0);
+      const ytdFB=months.reduce((a,m)=>a+(p.monthly[m].fb||0),0);
+      const ytdGross=months.reduce((a,m)=>a+(p.monthly[m].gross||0),0);
+      const ytdAvail=months.reduce((a,m)=>a+p.rooms_cap*(p.monthly[m].days||0),0);
+      const occ=ytdRooms/ytdAvail*100;const adr=ytdRev/ytdRooms;
+      const dc=occ>=80?'dg':occ>=65?'da':'dr';
+      tRooms+=ytdRooms;tRev+=ytdRev;tFB+=ytdFB;tGross+=ytdGross;
+      rows+=`<tr>
+        <td><span class="sd ${dc}"></span>${name}</td>
+        <td class="mono" style="color:var(--tm)">${months.map(m=>MONTHS_AR[m].substr(0,3)).join(', ')}</td>
+        <td class="mono r">${ytdRooms.toLocaleString()}</td>
+        <td class="mono r">$${(ytdRev/1e6).toFixed(2)}M</td>
+        <td class="mono r">${ytdFB>0?'$'+(ytdFB/1000).toFixed(0)+'K':'—'}</td>
+        <td class="mono r">$${(ytdGross/1e6).toFixed(2)}M</td>
+        <td class="mono r">${occ.toFixed(1)}%</td>
+        <td class="mono r">$${adr.toFixed(2)}</td>
+      </tr>`;
+    });
+    rows+=`<tr class="tot"><td>📊 Portfolio YTD</td><td class="mono">All months</td><td class="mono r">${tRooms.toLocaleString()}</td><td class="mono r">$${(tRev/1e6).toFixed(2)}M</td><td class="mono r">$${(tFB/1000).toFixed(0)}K</td><td class="mono r">$${(tGross/1e6).toFixed(2)}M</td><td class="mono r">—</td><td class="mono r">—</td></tr>`;
+    document.getElementById('darBody').innerHTML=rows;
+    document.getElementById('darKPIs').innerHTML=`
+      <div class="dsc"><div class="dscl">YTD Room Rev</div><div class="dscv">$${(tRev/1e6).toFixed(2)}M</div></div>
+      <div class="dsc"><div class="dscl">YTD Gross Rev</div><div class="dscv">$${(tGross/1e6).toFixed(2)}M</div></div>
+      <div class="dsc"><div class="dscl">YTD F&B</div><div class="dscv">$${(tFB/1000).toFixed(0)}K</div></div>
+      <div class="dsc"><div class="dscl">Properties Reporting</div><div class="dscv">${propNames.length}</div></div>`;
+  }
+}
+
+// ═══ PORTFOLIO DATA ═══
+const MF=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const PROPS=[
+  {n:'Residence Inn Downtown',b:'MARRIOTT',c:'cmar',r:110,mk:'corpus',rv:[527180,535304,578907,582962,487199,0,0,0,0,0,0,0],oc:[3020,2853,2960,2800,2594,0,0,0,0,0,0,0],tr:[575397,583852,644878,631981,0,0,0,0,0,0,0,0]},
+  {n:'Holiday Inn Downtown',b:'IHG',c:'cihg',r:345,mk:'corpus',rv:[542902,691343,808801,938111,640646,0,0,0,0,0,0,0],oc:[5036,5831,6415,6902,5200,0,0,0,0,0,0,0],tr:[712867,846002,1007430,1158603,0,0,0,0,0,0,0,0]},
+  {n:'HIE Navigation',b:'IHG',c:'cihg',r:64,mk:'corpus',rv:[99496,121712,155191,136381,126332,0,0,0,0,0,0,0],oc:[990,1201,1402,1173,1100,0,0,0,0,0,0,0],tr:[100471,123003,157790,138130,0,0,0,0,0,0,0,0]},
+  {n:'Hampton Inn Navigation',b:'HILTON',c:'chil',r:80,mk:'corpus',rv:[112005,136092,179098,229727,176331,0,0,0,0,0,0,0],oc:[1056,1304,1508,1750,1480,0,0,0,0,0,0,0],tr:[113951,139053,183016,233770,0,0,0,0,0,0,0,0]},
+  {n:'Residence Inn South',b:'MARRIOTT',c:'cmar',r:120,mk:'corpus',rv:[349568,415910,455151,449292,373092,0,0,0,0,0,0,0],oc:[2513,2834,2893,2716,2680,0,0,0,0,0,0,0],tr:[359605,429122,472388,461698,0,0,0,0,0,0,0,0]},
+  {n:'TRU Corpus Christi',b:'HILTON',c:'chil',r:100,mk:'corpus',rv:[202158,220948,279537,278401,222309,0,0,0,0,0,0,0],oc:[2238,2277,2614,2567,2100,0,0,0,0,0,0,0],tr:[207563,226082,286807,284205,0,0,0,0,0,0,0,0]},
+  {n:'Springhill Suites',b:'MARRIOTT',c:'cmar',r:119,mk:'corpus',rv:[262407,272338,341424,299777,205168,0,0,0,0,0,0,0],oc:[2414,2439,2790,2463,1980,0,0,0,0,0,0,0],tr:[269210,276476,347645,308086,0,0,0,0,0,0,0,0]},
+  {n:'Aloft CC',b:'MARRIOTT',c:'cmar',r:105,mk:'corpus',rv:[129667,206810,265507,240067,198000,0,0,0,0,0,0,0],oc:[1241,1817,2118,1799,1680,0,0,0,0,0,0,0],tr:[141325,221475,279618,253018,0,0,0,0,0,0,0,0]},
+  {n:'Hyatt Place CC',b:'HYATT',c:'chya',r:103,mk:'corpus',rv:[117709,148894,204595,181868,162000,0,0,0,0,0,0,0],oc:[1338,1565,1854,1516,1420,0,0,0,0,0,0,0],tr:[119320,152797,209741,186304,0,0,0,0,0,0,0,0]},
+  {n:'HIE Rockport',b:'IHG',c:'cihg',r:69,mk:'corpus',rv:[52983,68458,141504,92389,89360,0,0,0,0,0,0,0],oc:[566,712,1110,890,820,0,0,0,0,0,0,0],tr:[54588,70439,144253,96532,0,0,0,0,0,0,0,0]},
+  {n:'Staybridge Portland',b:'IHG',c:'cihg',r:77,mk:'portland',rv:[209234,231476,263706,257095,210849,0,0,0,0,0,0,0],oc:[1456,1656,1788,1700,1540,0,0,0,0,0,0,0],tr:[210948,232290,275268,258248,0,0,0,0,0,0,0,0]},
+  {n:'Hampton Inn Portland',b:'HILTON',c:'chil',r:91,mk:'portland',rv:[207001,228158,272434,267322,212900,0,0,0,0,0,0,0],oc:[1804,1901,2163,2099,1820,0,0,0,0,0,0,0],tr:[210566,230956,280122,273042,0,0,0,0,0,0,0,0]},
+  {n:'La Quinta Portland',b:'WYNDHAM',c:'cwyn',r:70,mk:'portland',rv:[59755,83376,112101,150842,126419,0,0,0,0,0,0,0],oc:[639,903,1073,1464,1240,0,0,0,0,0,0,0],tr:[60736,83943,113131,152139,0,0,0,0,0,0,0,0]},
+  {n:'Hampton SA NE',b:'HILTON',c:'chil',r:76,mk:'sa',rv:[131193,210368,241453,204990,162604,0,0,0,0,0,0,0],oc:[1206,1529,1962,1798,1480,0,0,0,0,0,0,0],tr:[133723,213819,245142,207803,0,0,0,0,0,0,0,0]},
+  {n:'TRU San Antonio Rim',b:'HILTON',c:'chil',r:106,mk:'sa',rv:[137083,180320,288401,243236,203115,0,0,0,0,0,0,0],oc:[1356,1656,2302,2028,1780,0,0,0,0,0,0,0],tr:[146048,187294,294413,248692,0,0,0,0,0,0,0,0]},
+  {n:'Fairfield Austin',b:'MARRIOTT',c:'cmar',r:130,mk:'austin',rv:[322847,482190,652228,595524,483418,0,0,0,0,0,0,0],oc:[2166,2701,3161,3325,2980,0,0,0,0,0,0,0],tr:[370254,543414,750991,670641,0,0,0,0,0,0,0,0]},
+  {n:'Embassy Suites Austin',b:'HILTON',c:'chil',r:150,mk:'austin',rv:[0,241736,556431,526176,470204,0,0,0,0,0,0,0],oc:[0,1604,3498,3303,2980,0,0,0,0,0,0,0],tr:[0,247193,592874,571737,0,0,0,0,0,0,0,0]},
+  {n:'Home2 Suites Houston',b:'HILTON',c:'chil',r:112,mk:'houston',rv:[281282,377490,544339,373421,315457,0,0,0,0,0,0,0],oc:[2308,2559,3093,2570,2360,0,0,0,0,0,0,0],tr:[309533,408985,582487,409732,0,0,0,0,0,0,0,0]},
+  {n:'Embassy Suites Houston',b:'HILTON',c:'chil',r:150,mk:'houston',rv:[0,384855,728008,517562,427293,0,0,0,0,0,0,0],oc:[0,2469,4260,3272,2980,0,0,0,0,0,0,0],tr:[0,435561,800364,561978,0,0,0,0,0,0,0,0]},
+  {n:'Embassy Suites Dallas',b:'HILTON',c:'chil',r:150,mk:'dallas',rv:[0,0,0,0,0,0,0,0,0,0,0,0],oc:[0,0,0,0,0,0,0,0,0,0,0,0],tr:[0,0,0,0,0,0,0,0,0,0,0,0]},
+];
+
+let curM=-1,curMkt='all';
+function buildMTabs(){
+  const el=document.getElementById('monthTabs');
+  el.innerHTML='<button class="mtab active" onclick="selM(-1,this)">YTD</button>'+MF.map((m,i)=>`<button class="mtab" onclick="selM(${i},this)">${m.substr(0,3)}</button>`).join('');
+}
+function selM(i,btn){curM=i;document.querySelectorAll('#monthTabs .mtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('tableTitle').textContent=i===-1?'Year to Date 2026':MF[i]+' 2026';renderFlash();}
+function fmkt(m,btn){curMkt=m;document.querySelectorAll('.fp').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderFlash();}
+function renderFlash(){
+  const days=[31,28,31,30,31,30,31,31,30,31,30,31];
+  const filt=curMkt==='all'?PROPS:PROPS.filter(p=>p.mk===curMkt);
+  let tR=0,tO=0,tN=0,tRv=0,tTr=0;
+  const rows=filt.map(p=>{
+    const rv=curM===-1?p.rv.reduce((a,b)=>a+b,0):p.rv[curM]||0;
+    const oc=curM===-1?p.oc.reduce((a,b)=>a+b,0):p.oc[curM]||0;
+    const tr=curM===-1?p.tr.reduce((a,b)=>a+b,0):p.tr[curM]||0;
+    const d=curM===-1?140:days[curM];
+    const av=p.r*d;const op=oc>0?oc/av*100:0;const adr=oc>0?rv/oc:0;const rp=av>0?rv/av:0;
+    const dc=op>80?'dg':op>65?'da':'dr';
+    if(rv>0){tR+=p.r;tO+=oc;tN+=oc;tRv+=rv;tTr+=tr;}
+    return`<tr><td><span class="sd ${dc}"></span>${p.n}</td><td><span class="chip ${p.c}">${p.b}</span></td><td class="mono">${p.r}</td><td class="mono r">${op>0?op.toFixed(1)+'%':'—'}</td><td class="mono r">${adr>0?'$'+adr.toFixed(2):'—'}</td><td class="mono r">${rp>0?'$'+rp.toFixed(2):'—'}</td><td class="mono r">${rv>0?'$'+(rv/1000).toFixed(0)+'K':'—'}</td><td class="mono r">${tr>0?'$'+(tr/1000).toFixed(0)+'K':'—'}</td></tr>`;
+  }).join('');
+  const td=curM===-1?140:days[curM],ta=tR*td,po=tN/ta*100;
+  document.getElementById('flashBody').innerHTML=rows+`<tr class="tot"><td>📊 Portfolio Total</td><td>20 PROPS</td><td class="mono">${tR}</td><td class="mono r">${po.toFixed(1)}%</td><td class="mono r">$${(tRv/tN).toFixed(2)}</td><td class="mono r">$${(tRv/ta).toFixed(2)}</td><td class="mono r">$${(tRv/1e6).toFixed(2)}M</td><td class="mono r">$${(tTr/1e6).toFixed(2)}M</td></tr>`;
+  document.getElementById('kpiRow').innerHTML=`
+    <div class="kc"><div class="kl">Portfolio RevPAR</div><div class="kv">$${(tRv/ta).toFixed(0)}</div><div class="kch up">▲ Live</div></div>
+    <div class="kc"><div class="kl">Occupancy</div><div class="kv">${po.toFixed(1)}%</div><div class="kch neu">— Avg</div></div>
+    <div class="kc"><div class="kl">ADR</div><div class="kv">$${(tRv/tN).toFixed(0)}</div><div class="kch up">▲</div></div>
+    <div class="kc"><div class="kl">Room Rev</div><div class="kv">$${(tRv/1e6).toFixed(2)}M</div><div class="kch up">▲</div></div>
+    <div class="kc"><div class="kl">Total Rev</div><div class="kv">$${(tTr/1e6).toFixed(2)}M</div><div class="kch neu">—</div></div>`;
+}
+
+// ═══ RATE SHOP ═══
+const DATES=['5/28','5/29','5/30','5/31','6/1','6/2','6/3','6/4','6/5','6/6','6/7','6/8'];
+const DOWS=['THU','FRI','SAT','SUN','MON','TUE','WED','THU','FRI','SAT','SUN','MON'];
+const CL={
+  spid:{rgb:[{n:'Aloft CC',r:[109,149,159,169,109,109,119,119,129,149,159,119]},{n:'Hyatt Place CC',r:[118,142,196,162,118,118,119,119,129,149,149,119]},{n:'Springhill Suites',r:[119,149,149,159,119,119,119,119,129,149,149,119]},{n:'TRU Corpus',r:[109,136,156,149,109,109,109,109,119,136,141,109]},{n:'Residence Inn South',r:[179,189,189,199,179,179,189,189,199,199,209,169]}],comp:[{n:'Hilton Garden Inn CC',r:[119,139,139,149,109,109,119,119,129,139,139,109]},{n:'Staybridge CC',r:[124,144,144,154,119,119,124,129,134,154,139,119]},{n:'Residence Inn CC',r:[104,149,149,149,104,104,109,109,119,149,149,104]},{n:'Home2 CC SE',r:[143,174,174,184,124,124,134,139,144,174,189,129]},{n:'Courtyard',r:[104,134,134,139,104,104,109,114,119,134,144,99]},{n:'Hampton SPID',r:['Sold out',149,'Sold out',159,129,129,129,129,139,149,149,119]}]},
+  portland:{rgb:[{n:'Hampton Portland',r:[139,154,173,168,139,139,144,144,154,173,173,139]},{n:'La Quinta Portland',r:[116,143,143,138,116,116,121,121,131,143,143,116]},{n:'Staybridge Portland',r:[184,254,274,264,184,184,194,194,204,254,274,189]}],comp:[{n:'Comfort Inn Portland',r:[89,154,154,149,89,89,99,99,109,154,154,89]},{n:'Best Western',r:[99,154,159,154,99,99,104,104,114,154,159,99]},{n:'Home2 Portland',r:[119,150,163,158,119,119,124,124,134,150,163,119]},{n:'AVID Portland',r:[99,144,144,139,99,99,104,104,114,144,144,99]}]},
+  navigation:{rgb:[{n:'Hampton Navigation',r:[119,139,139,144,119,119,124,124,134,139,139,119]},{n:'HIE Navigation',r:[109,139,139,144,109,109,114,114,124,139,139,109]}],comp:[{n:'Hampton CC NW',r:[115,169,169,164,115,115,120,120,130,169,169,115]},{n:'HI Airport CC',r:[109,114,119,114,109,109,114,114,119,114,119,109]},{n:'La Quinta Airport',r:[83,108,116,111,83,83,88,88,98,108,116,83]},{n:'HIE Calallen',r:[109,129,129,134,109,109,114,114,124,129,129,109]}]},
+  downtown:{rgb:[{n:'HI Marina',r:[129,194,199,214,139,134,144,149,159,199,214,134]},{n:'Residence Inn DT',r:[219,'Sold out',249,259,219,214,224,229,239,'Sold out',259,219]}],comp:[{n:'Emerald Beach',r:['Sold out','Sold out','Sold out','Sold out',199,189,199,204,219,'Sold out','Sold out',189]},{n:'Omni',r:[219,209,209,219,219,214,219,224,229,209,209,209]},{n:'DoubleTree',r:[156,198,226,221,156,151,161,166,176,198,226,151]},{n:'Best Western Marina',r:[119,179,169,164,119,114,124,129,139,179,169,114]}]},
+  rockport:{rgb:[{n:'HIE Rockport',r:[109,129,169,159,109,109,119,119,129,169,159,109]}],comp:[{n:'La Quinta Rockport',r:[114,169,164,159,114,114,119,119,129,169,164,114]},{n:'Hampton Rockport',r:[109,144,144,149,109,109,114,114,124,144,144,109]},{n:'Fairfield Rockport',r:[109,149,149,154,109,109,114,114,124,149,149,109]}]},
+  sa:{rgb:[{n:'Hampton SA NE',r:[119,119,119,129,119,119,119,119,129,119,119,119]},{n:'TRU at Rim',r:[109,139,145,149,109,109,114,114,124,139,145,109]}],comp:[{n:'Drury Inn',r:[105,110,110,115,105,105,110,110,115,110,110,105]},{n:'HIE North-Windcrest',r:[129,119,119,124,129,119,124,129,129,119,119,119]},{n:'Home2 at the Rim',r:[169,'Sold out',179,184,124,124,129,134,144,'Sold out',179,124]},{n:'Aloft UTSA',r:[104,144,134,139,104,104,109,109,119,144,134,104]}]},
+  austin:{rgb:[{n:'Fairfield Austin',r:[169,169,159,164,169,169,174,179,184,169,159,169]},{n:'Embassy Suites Austin',r:[139,144,144,149,139,144,149,154,159,144,144,139]}],comp:[{n:'Aloft Austin DT',r:[209,199,199,204,209,204,214,219,224,199,199,209]},{n:'Hampton Austin DT',r:[181,175,154,159,181,176,181,186,191,175,154,181]},{n:'Courtyard Austin DT',r:[209,199,199,204,209,204,214,219,224,199,199,204]},{n:'Hyatt Place Domain',r:[109,121,124,129,109,109,114,119,124,121,124,109]}]},
+  houston:{rgb:[{n:'Home2 Houston',r:[139,139,139,144,139,139,144,149,154,139,139,139]},{n:'Embassy Suites Galleria',r:[144,144,144,149,144,144,149,154,159,144,144,144]}],comp:[{n:'HGI Galleria',r:[134,134,134,139,134,134,139,144,149,134,134,134]},{n:'DoubleTree Galleria',r:[169,169,169,174,169,164,174,179,184,169,169,164]},{n:'Hyatt House Galleria',r:[129,139,139,144,129,129,134,139,144,139,139,129]},{n:'Courtyard Houston Galleria',r:[139,139,139,144,139,134,144,149,154,139,139,134]}]},
+  dallas:{rgb:[{n:'Embassy Suites Dallas',r:[129,139,129,134,129,129,134,139,144,139,129,129]}],comp:[{n:'AC Hotel Dallas Galleria',r:[144,139,139,144,144,139,144,149,154,139,139,144]},{n:'Le Meridien Galleria',r:[179,149,149,154,179,174,179,184,189,149,149,179]},{n:'Hyatt Place Dallas N',r:[109,129,110,114,109,104,114,119,124,129,110,109]},{n:'Westin Galleria Dallas',r:[215,215,215,219,215,210,215,220,225,215,215,210]}]}
+};
+
+function rcls(v,all){if(typeof v!=='number')return'';const n=all.filter(x=>typeof x==='number');if(!n.length)return'';return v===Math.min(...n)&&Math.min(...n)<Math.max(...n)?'rl':v>=Math.max(...n)*0.95?'rh':'';}
+function showCluster(k,btn){
+  document.querySelectorAll('.rct').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  const d=CL[k];if(!d){document.getElementById('rateTable').innerHTML='';return;}
+  let h=`<thead><tr><th class="pc">Property</th>${DATES.map((dt,i)=>`<th><div style="font-size:7px;color:var(--td)">${DOWS[i]}</div><div>${dt}</div></th>`).join('')}</tr></thead><tbody>`;
+  h+=`<tr class="sh"><td colspan="${DATES.length+1}">RGB Properties</td></tr>`;
+  d.rgb.forEach(row=>{
+    h+=`<tr class="rr"><td class="pc">${row.n}</td>`;
+    row.r.forEach((v,i)=>{
+      const all=[...d.rgb,...d.comp].map(p=>p.r[i]);
+      const s=typeof v!=='number'?(String(v||'').toLowerCase().includes('sold')?'rs':'rlo'):'';
+      h+=`<td class="${s||rcls(v,all)}">${v===null?'—':v}</td>`;
+    });h+='</tr>';
+  });
+  h+=`<tr class="sh"><td colspan="${DATES.length+1}">Compset</td></tr>`;
+  d.comp.forEach(row=>{
+    h+=`<tr><td class="pc">${row.n}</td>`;
+    row.r.forEach((v,i)=>{
+      const all=[...d.rgb,...d.comp].map(p=>p.r[i]);
+      const s=typeof v!=='number'?(String(v||'').toLowerCase().includes('sold')?'rs':'rlo'):'';
+      h+=`<td class="${s||rcls(v,all)}">${v===null?'—':v}</td>`;
+    });h+='</tr>';
+  });
+  h+='</tbody>';document.getElementById('rateTable').innerHTML=h;
+}
+
+// ═══ HOTEL EFFECTIVENESS ═══
+function buildHE(){
+  const props=[
+    {n:'HI Downtown Marina',occ:84.7,sched:312,actual:328,mpor:0.38,ot:420,dept:'Housekeeping'},
+    {n:'HOUES Embassy',occ:95.3,sched:298,actual:312,mpor:0.41,ot:380,dept:'Housekeeping'},
+    {n:'Fairfield Austin',occ:91.5,sched:241,actual:249,mpor:0.39,ot:310,dept:'Front Desk'},
+    {n:'Hampton Portland',occ:78.8,sched:198,actual:201,mpor:0.44,ot:180,dept:'Housekeeping'},
+    {n:'Springhill Suites',occ:82.4,sched:224,actual:238,mpor:0.45,ot:520,dept:'Housekeeping'},
+    {n:'TRU Corpus',occ:72.4,sched:187,actual:195,mpor:0.43,ot:290,dept:'Front Desk'},
+  ];
+  document.getElementById('heGrid').innerHTML=props.map(p=>{
+    const scoreRaw=(p.sched/p.actual*100);
+    const scoreColor=scoreRaw>=98?'var(--grn)':scoreRaw>=94?'var(--amb)':'var(--red)';
+    const barPct=Math.min(scoreRaw,100);
+    const barCls=scoreRaw>=98?'progress-good':scoreRaw>=94?'progress-warn':'progress-bad';
+    return`<div class="he-card">
+      <div class="he-header">
+        <div class="he-prop">${p.n}</div>
+        <div class="he-score" style="color:${scoreColor}">${scoreRaw.toFixed(1)}%</div>
+      </div>
+      <div class="he-rows">
+        <div class="he-row"><span class="he-label">Occ %</span><span class="he-val">${p.occ}%</span></div>
+        <div class="he-row"><span class="he-label">Scheduled Hrs</span><span class="he-val">${p.sched}</span></div>
+        <div class="he-row"><span class="he-label">Actual Hrs</span><span class="he-val" style="color:${p.actual>p.sched?'var(--red)':'var(--grn)'}">${p.actual}</span></div>
+        <div class="he-row"><span class="he-label">MPOR</span><span class="he-val">${p.mpor}</span></div>
+        <div class="he-row"><span class="he-label">OT Exposure</span><span class="he-val" style="color:var(--amb)">$${p.ot}</span></div>
+        <div class="he-row"><span class="he-label">Flag Dept</span><span class="he-val" style="color:var(--td)">${p.dept}</span></div>
+        <div class="he-row"><span class="he-label">Productivity</span>
+          <div class="he-bar-wrap"><div class="he-bar ${barCls}" style="width:${barPct}%"></div></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══ NA GRID ═══
+function buildNAGrid(){
+  const props=[
+    {n:'HI Marina',s:'recv'},{n:'HOUES',s:'recv'},{n:'Fairfield ATX',s:'recv'},
+    {n:'Embassy HOU',s:'recv'},{n:'Staybridge PDX',s:'recv'},{n:'Home2 HOU',s:'recv'},
+    {n:'Hampton PDX',s:'recv'},{n:'Aloft CC',s:'recv'},{n:'Hyatt Place',s:'recv'},
+    {n:'RI South',s:'recv'},{n:'Embassy ATX',s:'recv'},{n:'Hampton SA',s:'recv'},
+    {n:'Hampton Nav',s:'late'},{n:'HIE Nav',s:'late'},{n:'TRU Corpus',s:'miss'},
+    {n:'TRU SA Rim',s:'miss'},{n:'Springhill',s:'recv'},{n:'La Quinta PDX',s:'miss'},
+    {n:'RI Downtown',s:'recv'},{n:'Embassy DAL',s:'miss'},
+  ];
+  document.getElementById('naGrid').innerHTML=props.map(p=>{
+    const dotCls=p.s==='recv'?'na-recv':p.s==='late'?'na-late':'na-miss';
+    const time=p.s==='recv'?'Rcvd 6:0'+Math.floor(Math.random()*5)+'am':p.s==='late'?'Pending':'Not received';
+    return`<div class="na-card"><div class="na-prop"><span class="na-dot ${dotCls}"></span>${p.n}</div><div class="na-time">${time}</div></div>`;
+  }).join('');
+}
+
+// ═══ STR DEMO ═══
+function analyzeSTR(e){
+  if(e) e.stopPropagation();
+  const prop=document.getElementById('strPropSel').value;
+  const name=prop==='Select property for this report...'?'this property':prop;
+  const el=document.getElementById('strResult');
+  el.innerHTML=`<div style="font-size:10px;color:var(--tm);margin-bottom:12px;">AI Analysis — ${name} · Generated ${new Date().toLocaleDateString()}</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px;">
+    <div class="kc"><div class="kl">Occ Index (MPI)</div><div class="kv" style="color:var(--grn)">108.4</div><div class="kch up">▲ Above fair share</div></div>
+    <div class="kc"><div class="kl">ADR Index (ARI)</div><div class="kv" style="color:var(--amb)">96.2</div><div class="kch dn">▼ Below comp avg</div></div>
+    <div class="kc"><div class="kl">RevPAR Index (RGI)</div><div class="kv" style="color:var(--grn)">104.3</div><div class="kch up">▲ Market winner</div></div>
+  </div>
+  <div style="font-size:11px;color:var(--t);font-weight:500;margin-bottom:8px;">AI Summary</div>
+  <div style="font-size:11px;color:var(--tm);line-height:1.8;margin-bottom:12px;">
+    ${name} is capturing occupancy share above fair share (MPI 108.4) but leaving rate on the table — ADR index of 96.2 suggests you're buying occupancy with price rather than earning it with demand. The compset is pricing $8-12 higher on weekends and capturing similar occupancy. <strong style="color:var(--gold)">Opportunity: push Friday/Saturday rates $10-15 — current demand supports it without risking displacement.</strong>
+  </div>
+  <div style="font-size:10px;color:var(--t);font-weight:500;margin-bottom:6px;">Action Items</div>
+  <div style="font-size:11px;color:var(--tm);line-height:2;">
+    1. Review weekend rate strategy — test $10-15 premium Fri/Sat vs current positioning<br>
+    2. Monitor Friday pickup pace — if you're filling more than 3 weeks out, rate is too low<br>
+    3. Check OTA positioning vs direct rate parity — MPI strength may indicate OTA dependency<br>
+    4. Compare corporate contract rates to new walk-in ADR — renegotiate if gap is large
+  </div>`;
+  el.classList.add('show');
+}
+
+// ═══ NAV ═══
+const SCREENS=['dar','portfolio','rateshop','he','ops','recap','sales','str','naparser'];
+function go(s){document.getElementById('land').style.display='none';document.getElementById('plat').style.display='block';document.body.style.background='var(--off)';sw(s);}
+function back(){document.getElementById('land').style.display='flex';document.getElementById('plat').style.display='none';document.body.style.background='var(--black)';}
+function sw(n){
+  SCREENS.forEach(s=>{document.getElementById('screen-'+s).classList.add('hidden');const b=document.getElementById('nav-'+s);if(b)b.classList.remove('active');});
+  document.getElementById('screen-'+n).classList.remove('hidden');
+  const b=document.getElementById('nav-'+n);if(b)b.classList.add('active');
+  if(n==='portfolio'){buildMTabs();renderFlash();}
+  if(n==='rateshop'){showCluster('spid',document.querySelector('.rct'));}
+  if(n==='dar'){buildDarMtabs();renderDAR();}
+  if(n==='he'){buildHE();}
+  if(n==='naparser'){buildNAGrid();}
+}
+const now=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+document.getElementById('dar-date').textContent=now;
+document.getElementById('flash-date').textContent=now;
+document.getElementById('na-date').textContent=now;
+</script>
+</body>
+</html>
