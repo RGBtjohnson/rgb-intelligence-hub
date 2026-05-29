@@ -315,7 +315,7 @@ tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
     <button class="nb" onclick="sw('ops')" id="nav-ops">Ops Portal</button>
     <button class="nb" onclick="sw('sales')" id="nav-sales">Sales</button>
   </div>
-  <a class="back-btn" href="rgb-intelligence-hub-v4.html">← RGB Hub</a>
+
 </div>
 
 <!-- PROPERTY BANNER -->
@@ -786,7 +786,7 @@ document.getElementById('propRooms').textContent = PROP.rooms + ' Rooms';
 document.getElementById('propNameShort').textContent = PROP.shortName;
 document.getElementById('recapPropName').textContent = PROP.name;
 document.getElementById('darSub').textContent = PROP.name + ' · Night auditor submits · GM reviews AM · Entries locked on submission';
-document.getElementById('laborSub').textContent = PROP.name + ' · Schedule vs actual · MPOR · Department breakdown';
+// laborSub removed — scheduler is now embedded with its own header
 document.title = PROP.shortName + ' · RGB Property Portal';
 
 // Set today's date
