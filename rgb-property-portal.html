@@ -198,29 +198,102 @@ tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
 @keyframes fu{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 .hidden{display:none!important;}
 
-/* SCHEDULER EMBEDDED */
-.stbn{background:none;border:none;border-bottom:2px solid transparent;color:var(--tm);font-size:10px;padding:9px 13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;}
+/* SCHEDULER */
+.tab-bar-inner{display:flex;gap:0;border-bottom:.5px solid var(--bs);background:var(--s2);margin-bottom:0;}
+.stbn{background:none;border:none;border-bottom:2px solid transparent;color:var(--tm);font-size:10px;padding:8px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;}
 .stbn:hover{color:var(--t);}
 .stbn.active{color:var(--gold);border-bottom-color:var(--gold);}
-.wt-btn{background:none;border:none;color:var(--tm);font-size:10px;padding:4px 9px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
-.wt-btn.active{background:var(--gold);color:var(--black);font-weight:600;}
-.week-nav-btn{background:var(--s2);border:.5px solid var(--bs);color:var(--tm);font-size:13px;width:24px;height:24px;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.week-nav-btn:hover{border-color:var(--gold);color:var(--gold);}
+.week-nav{display:flex;align-items:center;gap:7px;}
+.week-btn{background:var(--s2);border:.5px solid var(--bs);color:var(--tm);font-size:12px;width:24px;height:24px;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.week-btn:hover{border-color:var(--gold);color:var(--gold);}
 .week-lbl{font-family:'DM Mono',monospace;font-size:10px;color:var(--t);min-width:140px;text-align:center;}
-.kpi-strip-item{padding:10px 14px;border-right:.5px solid var(--bs);}
-.kpi-strip-item:last-child{border-right:none;}
-.fg-label-cell{padding:6px 12px;font-size:10px;color:var(--tm);border-bottom:.5px solid var(--bs);border-right:.5px solid var(--bs);background:var(--s2);display:flex;align-items:center;white-space:nowrap;}
-.fg-hdr-cell{padding:5px 3px;text-align:center;border-bottom:.5px solid var(--bs);border-right:.5px solid var(--bs);background:var(--s2);}
-.fg-input-cell{width:100%;border:none;background:transparent;text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--t);padding:5px 2px;outline:none;border-bottom:.5px solid var(--bs);border-right:.5px solid var(--bs);}
-.fg-input-cell:focus{background:rgba(201,168,76,.06);color:var(--gold);}
-.fg-calc-cell{text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--tm);padding:5px 2px;border-bottom:.5px solid var(--bs);border-right:.5px solid var(--bs);}
-.dept-hdr{padding:9px 14px;background:var(--s2);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;border-bottom:.5px solid var(--bs);}
-.shift-cell-s{border-right:.5px solid var(--bs);display:flex;align-items:center;justify-content:center;padding:3px 2px;cursor:pointer;transition:background .12s;min-height:40px;min-width:72px;}
-.shift-cell-s:hover{background:rgba(201,168,76,.06);}
-.shift-cell-s.scheduled-s{background:rgba(76,175,128,.07);}
-.shift-cell-s.ot-s{background:rgba(201,76,76,.07);}
-.setup-field{background:var(--s3);border:.5px solid var(--bs);border-radius:5px;padding:6px 9px;font-size:11px;color:var(--t);font-family:'DM Sans',sans-serif;outline:none;width:100%;}
-.setup-field:focus{border-color:var(--gold);}
+.wt-wrap{display:flex;background:var(--s2);border:.5px solid var(--bs);border-radius:4px;overflow:hidden;}
+.wt-btn{background:none;border:none;color:var(--tm);font-size:9px;padding:3px 9px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.wt-btn.active{background:var(--gold);color:var(--black);font-weight:600;}
+.sched-krow{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-bottom:.5px solid var(--bs);}
+@media(max-width:700px){.sched-krow{grid-template-columns:repeat(3,1fr);}}
+.skc{padding:10px 14px;border-right:.5px solid var(--bs);}
+.skc:last-child{border-right:none;}
+.skl{font-size:8px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--td);margin-bottom:4px;}
+.skv{font-family:'DM Mono',monospace;font-size:16px;color:var(--t);line-height:1;}
+.sks{font-size:9px;margin-top:2px;}
+.spanel{background:var(--s1);border:.5px solid var(--bs);border-radius:10px;overflow:hidden;margin:14px;}
+.sph{padding:10px 14px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;justify-content:space-between;}
+.spt{font-size:11px;font-weight:500;color:var(--t);}
+.sps{font-size:9px;color:var(--td);}
+.fg{display:grid;overflow-x:auto;}
+.fg-lbl{padding:6px 10px;font-size:9px;color:var(--tm);border-bottom:.5px solid var(--bs);border-right:.5px solid var(--bs);background:var(--s2);display:flex;align-items:center;white-space:nowrap;}
+.fg-hdr{padding:5px 3px;text-align:center;border-bottom:.5px solid var(--bs);border-right:.5px solid var(--bs);background:var(--s2);}
+.fg-dow{font-size:7px;color:var(--td);letter-spacing:.08em;text-transform:uppercase;}
+.fg-dt{font-family:'DM Mono',monospace;font-size:9px;color:var(--tm);margin-top:1px;}
+.fg-hdr.today2{background:rgba(201,168,76,.08);}
+.fg-hdr.today2 .fg-dt{color:var(--gold);}
+.fgi{width:100%;border:none;background:transparent;text-align:center;font-family:'DM Mono',monospace;font-size:10px;color:var(--t);padding:5px 2px;outline:none;border-bottom:.5px solid var(--bs);border-right:.5px solid var(--bs);}
+.fgi:focus{background:rgba(201,168,76,.06);color:var(--gold);}
+.fgc{text-align:center;font-family:'DM Mono',monospace;font-size:9px;color:var(--tm);padding:5px 2px;border-bottom:.5px solid var(--bs);border-right:.5px solid var(--bs);}
+.fgc.hi{color:var(--t);}
+.fgrl{padding:6px 10px;font-size:9px;color:var(--tm);border-bottom:.5px solid var(--bs);border-right:.5px solid var(--bs);background:var(--s1);display:flex;align-items:center;}
+.dsect{border-bottom:.5px solid var(--bs);}
+.dhdr{padding:9px 14px;background:var(--s2);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+.dname{font-size:10px;font-weight:500;color:var(--t);}
+.dstats{display:flex;gap:12px;align-items:center;}
+.dstat{font-size:9px;color:var(--tm);font-family:'DM Mono',monospace;}
+.erow{display:grid;gap:0;border-bottom:.5px solid var(--bs);}
+.erow:last-child{border-bottom:none;}
+.einfo{padding:7px 14px;background:var(--s1);border-right:.5px solid var(--bs);display:flex;align-items:center;gap:7px;min-width:185px;}
+.ename{font-size:10px;color:var(--t);}
+.epos{font-size:8px;color:var(--td);margin-top:1px;}
+.scell{border-right:.5px solid var(--bs);display:flex;align-items:center;justify-content:center;padding:3px 2px;cursor:pointer;transition:background .12s;min-height:38px;}
+.scell:hover{background:rgba(201,168,76,.06);}
+.scell.sched2{background:rgba(76,175,128,.07);}
+.scell.ot2{background:rgba(201,76,76,.07);}
+.sbadge{font-size:8px;font-family:'DM Mono',monospace;color:var(--grn);text-align:center;line-height:1.3;}
+.sbadge.ot{color:var(--red);}
+.sbadge.offb{color:var(--td);font-size:7px;}
+.sadd{font-size:14px;color:var(--td);}
+.etot{padding:7px 8px;background:var(--s2);border-right:.5px solid var(--bs);display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:62px;}
+.etoth{font-family:'DM Mono',monospace;font-size:11px;color:var(--t);}
+.etotsub{font-family:'DM Mono',monospace;font-size:8px;color:var(--tm);}
+.smoverlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;animation:fu .2s ease;}
+.smodal{background:var(--s1);border:.5px solid var(--bd);border-radius:11px;width:320px;overflow:hidden;}
+.smhdr{padding:12px 15px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;justify-content:space-between;}
+.smtitle{font-size:12px;font-weight:500;color:var(--t);}
+.smclose{background:none;border:none;color:var(--tm);font-size:15px;cursor:pointer;padding:0 3px;line-height:1;}
+.smbody{padding:14px;}
+.smlbl{font-size:8px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--td);margin-bottom:5px;margin-top:10px;display:block;}
+.smlbl:first-child{margin-top:0;}
+.tpls{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:4px;}
+.tpl{background:var(--s3);border:.5px solid var(--bs);border-radius:5px;padding:6px 9px;cursor:pointer;transition:all .15s;text-align:center;}
+.tpl:hover,.tpl.active{border-color:var(--gold);background:rgba(201,168,76,.1);}
+.tpl-name{font-size:10px;color:var(--t);font-weight:500;}
+.tpl-time{font-size:8px;color:var(--tm);font-family:'DM Mono',monospace;margin-top:1px;}
+.sminput{width:100%;background:var(--s3);border:.5px solid var(--bs);border-radius:5px;padding:6px 9px;font-size:11px;color:var(--t);font-family:'DM Mono',monospace;outline:none;}
+.sminput:focus{border-color:var(--gold);}
+.smfooter{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:14px;}
+.smbtn{padding:7px;border-radius:5px;font-size:10px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;transition:all .15s;}
+.smbtn.pri{background:var(--gold);color:var(--black);}
+.smbtn.sec{background:var(--s3);color:var(--tm);border:.5px solid var(--bs);}
+.smbtn.dan{background:rgba(201,76,76,.15);color:var(--red);border:.5px solid rgba(201,76,76,.3);}
+.smbtn:hover{opacity:.85;}
+.setup-g{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+@media(max-width:660px){.setup-g{grid-template-columns:1fr;}}
+.empli{list-style:none;}
+.empitem{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:.5px solid var(--bs);transition:background .15s;}
+.empitem:hover{background:rgba(255,255,255,.02);}
+.empiname{font-size:10px;color:var(--t);}
+.empimeta{font-size:8px;color:var(--td);margin-top:2px;}
+.empdel{background:none;border:none;color:var(--td);cursor:pointer;font-size:13px;padding:0 3px;transition:color .15s;}
+.empdel:hover{color:var(--red);}
+.addform{padding:12px 14px;border-top:.5px solid var(--bs);display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.addf{background:var(--s3);border:.5px solid var(--bs);border-radius:4px;padding:5px 8px;font-size:10px;color:var(--t);font-family:'DM Sans',sans-serif;outline:none;width:100%;}
+.addf:focus{border-color:var(--gold);}
+.addbtn{background:var(--gold);color:var(--black);border:none;font-size:9px;font-weight:600;padding:5px 12px;border-radius:4px;cursor:pointer;font-family:'DM Sans',sans-serif;grid-column:span 2;}
+.throw{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:.5px solid var(--bs);}
+.thlab{font-size:10px;color:var(--t);}
+.thsub{font-size:8px;color:var(--td);}
+.thinput{width:60px;background:var(--s3);border:.5px solid var(--bs);border-radius:4px;padding:4px 7px;font-size:10px;color:var(--t);font-family:'DM Mono',monospace;text-align:center;outline:none;}
+.thinput:focus{border-color:var(--gold);}
+.ssum-row{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:.5px solid var(--bs);}
 
 </style>
 </head>
@@ -436,149 +509,114 @@ tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
 
 <!-- RGB LABOR INTELLIGENCE -->
 <div id="screen-labor" class="scr hidden" style="padding:0;">
-
-<!-- SCHEDULER SUB-TAB BAR -->
-<div style="background:var(--black);border-bottom:.5px solid var(--bs);padding:0 22px;display:flex;gap:0;position:sticky;top:50px;z-index:90;">
-  <button class="stbn active" onclick="swSched('forecast',this)">📅 Forecast</button>
-  <button class="stbn" onclick="swSched('schedule',this)">👥 Schedule</button>
-  <button class="stbn" onclick="swSched('summary',this)">📊 Summary</button>
-  <button class="stbn" onclick="swSched('ssetup',this)">⚙️ Setup</button>
-</div>
-
-<!-- SCHEDULER KPI STRIP -->
-<div class="kpi-strip" id="schedKPIs" style="border-bottom:.5px solid var(--bs);display:grid;grid-template-columns:repeat(6,1fr);"></div>
-
-<!-- WEEK NAV -->
-<div style="background:var(--s1);border-bottom:.5px solid var(--bs);padding:10px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-  <div style="font-size:11px;color:var(--tm);">Two-week schedule · Labor cost % of revenue · Yellow &gt;15% · Red &gt;19%</div>
-  <div style="display:flex;align-items:center;gap:8px;">
-    <div style="display:flex;background:var(--s2);border:.5px solid var(--bs);border-radius:5px;overflow:hidden;">
-      <button class="wt-btn active" id="wk1btn" onclick="setSchedWeek(1)">Week 1</button>
-      <button class="wt-btn" id="wk2btn" onclick="setSchedWeek(2)">Week 2</button>
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;">
-      <button class="week-nav-btn" onclick="prevSchedWeek()">‹</button>
-      <span class="week-lbl" id="schedWeekLabel">—</span>
-      <button class="week-nav-btn" onclick="nextSchedWeek()">›</button>
-    </div>
-    <button onclick="saveSchedule()" style="background:var(--gold);color:var(--black);border:none;font-size:10px;font-weight:600;padding:5px 13px;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">💾 Save</button>
+  <!-- Inner tab bar -->
+  <div class="tab-bar-inner">
+    <button class="stbn active" onclick="swSched('forecast',this)">📅 Forecast</button>
+    <button class="stbn" onclick="swSched('schedule',this)">👥 Schedule</button>
+    <button class="stbn" onclick="swSched('summary',this)">📊 Summary</button>
+    <button class="stbn" onclick="swSched('ssetup',this)">⚙️ Setup</button>
   </div>
-</div>
-
-<!-- FORECAST SUB-SCREEN -->
-<div id="sched-forecast" style="padding:18px 22px;animation:fu .3s ease both;">
-  <div style="background:var(--s1);border:.5px solid var(--bs);border-radius:10px;overflow:hidden;">
-    <div style="padding:11px 15px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:11px;font-weight:500;color:var(--t);">Two-Week Forecast Entry</div>
-      <div style="font-size:9px;color:var(--td);">Enter projected rooms, stayover, checkout, ADR · Labor % auto-calculates</div>
-    </div>
-    <div style="overflow-x:auto;"><div id="forecastGrid" style="display:grid;"></div></div>
-  </div>
-</div>
-
-<!-- SCHEDULE SUB-SCREEN -->
-<div id="sched-schedule" class="hidden" style="padding:18px 22px;animation:fu .3s ease both;">
-  <div style="background:var(--s1);border:.5px solid var(--bs);border-radius:10px;overflow:hidden;">
-    <div style="padding:11px 15px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-      <div style="font-size:11px;font-weight:500;color:var(--t);">Staff Schedule — Click any cell to assign shift</div>
-      <div style="display:flex;gap:10px;">
-        <span style="font-size:9px;color:var(--tm);display:flex;align-items:center;gap:4px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--grn);display:inline-block;"></span>Scheduled</span>
-        <span style="font-size:9px;color:var(--tm);display:flex;align-items:center;gap:4px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block;"></span>OT Risk</span>
-        <span style="font-size:9px;color:var(--tm);display:flex;align-items:center;gap:4px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--td);display:inline-block;"></span>Off</span>
+  <!-- Week controls -->
+  <div style="padding:10px 16px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;background:var(--s1);">
+    <div style="font-size:11px;color:var(--tm);">RGB Labor Intelligence — <span id="schedPropName" style="color:var(--gold)"></span></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="wt-wrap">
+        <button class="wt-btn active" id="swk1" onclick="setSchedWeek(1)">Week 1</button>
+        <button class="wt-btn" id="swk2" onclick="setSchedWeek(2)">Week 2</button>
+      </div>
+      <div class="week-nav">
+        <button class="week-btn" onclick="prevSchedWeek()">‹</button>
+        <div class="week-lbl" id="schedWeekLbl">—</div>
+        <button class="week-btn" onclick="nextSchedWeek()">›</button>
       </div>
     </div>
-    <div id="ouBar" style="padding:9px 15px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:.5px solid var(--bs);"></div>
-    <div id="scheduleGrid" style="overflow-x:auto;"></div>
   </div>
-</div>
-
-<!-- SUMMARY SUB-SCREEN -->
-<div id="sched-summary" class="hidden" style="padding:18px 22px;animation:fu .3s ease both;">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
-    <div style="background:var(--s1);border:.5px solid var(--bs);border-radius:10px;overflow:hidden;">
-      <div style="padding:11px 15px;border-bottom:.5px solid var(--bs);font-size:11px;font-weight:500;color:var(--t);">Labor Cost % by Department</div>
-      <div id="summaryDepts"></div>
-    </div>
-    <div style="background:var(--s1);border:.5px solid var(--bs);border-radius:10px;overflow:hidden;">
-      <div style="padding:11px 15px;border-bottom:.5px solid var(--bs);font-size:11px;font-weight:500;color:var(--t);">Two-Week Totals</div>
-      <div id="summaryTotals"></div>
+  <!-- KPI strip -->
+  <div class="sched-krow" id="schedKPIs"></div>
+  <!-- Forecast -->
+  <div id="stab-forecast">
+    <div class="spanel">
+      <div class="sph"><div><div class="spt">Two-Week Forecast</div><div class="sps">Rooms occupied, stayover, checkout, ADR per day. Labor % updates live.</div></div></div>
+      <div style="overflow-x:auto;"><div class="fg" id="schedForecastGrid"></div></div>
     </div>
   </div>
-  <div style="background:var(--s1);border:.5px solid var(--bs);border-radius:10px;overflow:hidden;">
-    <div style="padding:11px 15px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:11px;font-weight:500;color:var(--t);">Day-by-Day Labor Cost %</div>
-      <div style="font-size:9px;color:var(--td);">Yellow = over <span id="warnDisplay">15</span>% · Red = over <span id="dangerDisplay">19</span>%</div>
-    </div>
-    <div id="summaryDaily" style="overflow-x:auto;"></div>
-  </div>
-</div>
-
-<!-- SETUP SUB-SCREEN -->
-<div id="sched-ssetup" class="hidden" style="padding:18px 22px;animation:fu .3s ease both;">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-    <div style="background:var(--s1);border:.5px solid var(--bs);border-radius:10px;overflow:hidden;">
-      <div style="padding:11px 15px;border-bottom:.5px solid var(--bs);font-size:11px;font-weight:500;color:var(--t);">Employee Roster <span style="font-size:9px;color:var(--td);font-weight:400;">· Same staff loads every week</span></div>
-      <ul id="empList" style="list-style:none;"></ul>
-      <div style="padding:12px 15px;border-top:.5px solid var(--bs);display:grid;grid-template-columns:1fr 1fr;gap:7px;">
-        <input class="setup-field" id="newEmpName" placeholder="Employee name..." style="grid-column:span 2;">
-        <select class="setup-field" id="newEmpDept">
-          <option value="">Department...</option>
-          <option value="housekeeping">Housekeeping</option>
-          <option value="frontdesk">Front Desk</option>
-          <option value="maintenance">Maintenance</option>
-          <option value="management">Management</option>
-          <option value="fnb">F&B</option>
-        </select>
-        <input class="setup-field" id="newEmpRate" placeholder="$/hr" type="number">
-        <button onclick="addEmployee()" style="grid-column:span 2;background:var(--gold);color:var(--black);border:none;font-size:10px;font-weight:600;padding:7px;border-radius:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">+ Add Employee</button>
-      </div>
-    </div>
-    <div>
-      <div style="background:var(--s1);border:.5px solid var(--bs);border-radius:10px;overflow:hidden;margin-bottom:14px;">
-        <div style="padding:11px 15px;border-bottom:.5px solid var(--bs);font-size:11px;font-weight:500;color:var(--t);">Labor Cost Thresholds</div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 15px;border-bottom:.5px solid var(--bs);">
-          <div><div style="font-size:11px;color:var(--t);">Warning (yellow)</div><div style="font-size:9px;color:var(--td);">Labor % turns yellow above this</div></div>
-          <div style="display:flex;align-items:center;gap:5px;"><input class="setup-field" id="warnThresh" type="number" value="15" onchange="schedRecalc()" style="width:60px;text-align:center;font-family:'DM Mono',monospace;"><span style="font-size:11px;color:var(--tm)">%</span></div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 15px;">
-          <div><div style="font-size:11px;color:var(--t);">Danger (red)</div><div style="font-size:9px;color:var(--td);">Labor % turns red above this</div></div>
-          <div style="display:flex;align-items:center;gap:5px;"><input class="setup-field" id="dangerThresh" type="number" value="19" onchange="schedRecalc()" style="width:60px;text-align:center;font-family:'DM Mono',monospace;"><span style="font-size:11px;color:var(--tm)">%</span></div>
+  <!-- Schedule -->
+  <div id="stab-schedule" class="hidden">
+    <div class="spanel">
+      <div class="sph">
+        <div><div class="spt">Staff Schedule</div><div class="sps">Click any cell to assign shift. Templates auto-fill common shifts.</div></div>
+        <div style="display:flex;gap:8px;font-size:9px;color:var(--td);">
+          <span style="color:var(--grn)">■</span> Scheduled &nbsp;
+          <span style="color:var(--red)">■</span> OT risk &nbsp;
+          <span style="color:var(--td)">■</span> Off
         </div>
       </div>
-      <div style="background:var(--s1);border:.5px solid var(--bs);border-radius:10px;overflow:hidden;">
-        <div style="padding:11px 15px;border-bottom:.5px solid var(--bs);font-size:11px;font-weight:500;color:var(--t);">Shift Templates</div>
-        <div style="padding:10px 15px;display:grid;grid-template-columns:1fr 1fr;gap:6px;" id="tplList"></div>
+      <div id="schedGrid" style="overflow-x:auto;"></div>
+    </div>
+  </div>
+  <!-- Summary -->
+  <div id="stab-summary" class="hidden">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;">
+      <div class="spanel" style="margin:0;">
+        <div class="sph"><div class="spt">By Department</div></div>
+        <div id="schedSumDepts"></div>
+      </div>
+      <div class="spanel" style="margin:0;">
+        <div class="sph"><div class="spt">Weekly Totals</div></div>
+        <div id="schedSumTotals"></div>
+      </div>
+    </div>
+    <div class="spanel" style="margin:0 14px 14px;">
+      <div class="sph"><div class="spt">Day-by-Day Labor %</div><div class="sps">Yellow ≥ warn threshold · Red ≥ danger threshold</div></div>
+      <div id="schedSumDaily" style="overflow-x:auto;"></div>
+    </div>
+  </div>
+  <!-- Setup -->
+  <div id="stab-ssetup" class="hidden">
+    <div class="setup-g">
+      <div class="spanel" style="margin:0;">
+        <div class="sph"><div><div class="spt">Employee Roster</div><div class="sps">Same employees load every week</div></div></div>
+        <ul class="empli" id="schedEmpList"></ul>
+        <div class="addform">
+          <input class="addf" id="snewName" placeholder="Employee name..." style="grid-column:span 2;">
+          <select class="addf" id="snewDept">
+            <option value="">Department...</option>
+            <option value="housekeeping">Housekeeping</option>
+            <option value="frontdesk">Front Desk</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="management">Management</option>
+            <option value="fnb">F&B</option>
+          </select>
+          <input class="addf" id="snewRate" placeholder="Hourly rate" type="number">
+          <button class="addbtn" onclick="schedAddEmp()">+ Add Employee</button>
+        </div>
+      </div>
+      <div>
+        <div class="spanel" style="margin:0 0 12px;">
+          <div class="sph"><div class="spt">Labor Cost Thresholds</div></div>
+          <div class="throw">
+            <div><div class="thlab">Warning</div><div class="thsub">Turns yellow above this %</div></div>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <input class="thinput" id="schedWarn" type="number" value="15" onchange="schedRecalc()">
+              <span style="font-size:10px;color:var(--tm)">%</span>
+            </div>
+          </div>
+          <div class="throw">
+            <div><div class="thlab">Danger</div><div class="thsub">Turns red above this %</div></div>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <input class="thinput" id="schedDanger" type="number" value="19" onchange="schedRecalc()">
+              <span style="font-size:10px;color:var(--tm)">%</span>
+            </div>
+          </div>
+        </div>
+        <div class="spanel" style="margin:0;">
+          <div class="sph"><div class="spt">Shift Templates</div></div>
+          <div style="padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:5px;" id="schedTplList"></div>
+        </div>
       </div>
     </div>
   </div>
 </div>
-
-<!-- SHIFT MODAL -->
-<div id="shiftModal" style="position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:none;align-items:center;justify-content:center;">
-  <div style="background:var(--s1);border:.5px solid var(--bd);border-radius:12px;width:330px;overflow:hidden;">
-    <div style="padding:13px 15px;border-bottom:.5px solid var(--bs);display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:13px;font-weight:500;color:var(--t);" id="modalTitle">Assign Shift</div>
-      <button onclick="closeModal()" style="background:none;border:none;color:var(--tm);font-size:16px;cursor:pointer;">✕</button>
-    </div>
-    <div style="padding:15px;">
-      <div style="font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--td);margin-bottom:6px;">Shift Template</div>
-      <div id="modalTemplates" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px;"></div>
-      <div style="font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--td);margin-bottom:5px;margin-top:10px;">Start Time</div>
-      <input class="setup-field" type="time" id="modalStart" style="width:100%;">
-      <div style="font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--td);margin-bottom:5px;margin-top:10px;">End Time <span style="color:var(--td);font-weight:400;">(leave blank for Housekeeping)</span></div>
-      <input class="setup-field" type="time" id="modalEnd" style="width:100%;">
-      <div style="font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--td);margin-bottom:5px;margin-top:10px;">Hours</div>
-      <input class="setup-field" type="number" id="modalHours" placeholder="e.g. 8" step="0.5" style="width:100%;font-family:'DM Mono',monospace;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:14px;">
-        <button id="modalRemove" onclick="removeShift()" style="background:rgba(201,76,76,.12);color:var(--red);border:.5px solid rgba(201,76,76,.3);font-size:10px;font-weight:500;padding:8px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;">Remove Shift</button>
-        <button onclick="saveShift()" style="background:var(--gold);color:var(--black);border:none;font-size:10px;font-weight:600;padding:8px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;">Save Shift</button>
-      </div>
-      <button onclick="markOff()" style="width:100%;margin-top:7px;background:rgba(90,87,84,.3);color:var(--tm);border:.5px solid var(--bs);font-size:10px;padding:7px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;">Mark as Day Off</button>
-    </div>
-  </div>
-</div>
-
-</div><!-- /screen-labor -->
 
 
 <!-- WEEKLY RECAP -->
@@ -851,36 +889,313 @@ function buildDARHistory(){
   document.getElementById('darHistoryBody').innerHTML=rows;
 }
 
-// ═══ LABOR ═══
-function buildLabor(){
-  const d = PROP.labor;
-  const totSched = d.depts.reduce((a,b)=>a+b.sched,0);
-  const totActual = d.depts.reduce((a,b)=>a+b.actual,0);
-  const totOT = d.depts.reduce((a,b)=>a+b.ot,0);
-  const hkDept = d.depts.find(x=>x.name==='Housekeeping');
-  const score = (totSched/totActual*100).toFixed(1);
-  const scoreColor = score>=98?'var(--grn)':score>=94?'var(--amb)':'var(--red)';
+// ═══ SCHEDULER STATE ═══
+const SCHED_DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const SCHED_DEPTS = [
+  {id:'housekeeping',name:'Housekeeping',color:'var(--grn)'},
+  {id:'frontdesk',name:'Front Desk',color:'var(--blu)'},
+  {id:'maintenance',name:'Maintenance',color:'var(--amb)'},
+  {id:'management',name:'Management',color:'var(--pur)'},
+  {id:'fnb',name:'F&B',color:'var(--red)'},
+];
+const SCHED_TEMPLATES = [
+  {id:'t1',name:'Morning',start:'07:00',end:'15:00',hours:8},
+  {id:'t2',name:'Evening',start:'15:00',end:'23:00',hours:8},
+  {id:'t3',name:'Mid',start:'11:00',end:'19:00',hours:8},
+  {id:'t4',name:'Night',start:'23:00',end:'07:00',hours:8},
+  {id:'t5',name:'Split',start:'06:00',end:'14:00',hours:8},
+  {id:'t6',name:'Part-Time',start:'09:00',end:'13:00',hours:4},
+];
 
-  document.getElementById('laborKPIs').innerHTML=`
-    <div class="kc"><div class="kl">Scheduled Hours</div><div class="kv">${totSched}</div><div class="kch neu">Week of May 18</div></div>
-    <div class="kc"><div class="kl">Actual Hours</div><div class="kv" style="color:${totActual>totSched?'var(--red)':'var(--grn)'}">${totActual}</div><div class="kch ${totActual>totSched?'dn':'up'}">${totActual>totSched?'▼ +':'▲ -'}${Math.abs(totActual-totSched)} hrs vs schedule</div></div>
-    <div class="kc"><div class="kl">OT Exposure</div><div class="kv" style="color:var(--amb)">$${totOT.toLocaleString()}</div><div class="kch dn">▼ Review</div></div>
-    <div class="kc"><div class="kl">MPOR</div><div class="kv" style="color:${scoreColor}">${hkDept?hkDept.mpor:'—'}</div><div class="kch neu">Housekeeping</div></div>`;
+let sched = {
+  weekOffset:0, activeWeek:1, warnT:15, dangerT:19,
+  forecast:{}, shifts:{}, schedTab:'forecast',
+  collapsed:{}, modalCtx:null,
+  employees:[
+    {id:'s1',name:'Maria Garcia',dept:'housekeeping',rate:14.50},
+    {id:'s2',name:'Rosa Lopez',dept:'housekeeping',rate:14.00},
+    {id:'s3',name:'Ana Martinez',dept:'housekeeping',rate:13.75},
+    {id:'s4',name:'Carmen Torres',dept:'housekeeping',rate:14.00},
+    {id:'s5',name:'James Wilson',dept:'frontdesk',rate:16.00},
+    {id:'s6',name:'Sarah Johnson',dept:'frontdesk',rate:15.50},
+    {id:'s7',name:'Tom Rivera',dept:'maintenance',rate:18.00},
+    {id:'s8',name:'Jennifer Nash',dept:'management',rate:25.00},
+  ]
+};
 
-  const rows = d.depts.map(dept=>{
-    const varAmt = dept.actual-dept.sched;
-    const varColor = varAmt>0?'var(--red)':varAmt<0?'var(--grn)':'var(--tm)';
-    return`<tr>
-      <td>${dept.name}</td>
-      <td class="mono r">${dept.sched}</td>
-      <td class="mono r">${dept.actual}</td>
-      <td class="mono r" style="color:${varColor}">${varAmt>0?'+':''}${varAmt} hrs</td>
-      <td class="mono r" style="color:${dept.ot>0?'var(--amb)':'var(--grn)'}">${dept.ot>0?'$'+dept.ot.toLocaleString():'—'}</td>
-      <td class="mono r">${dept.mpor||'—'}</td>
-    </tr>`;
-  }).join('');
-  document.getElementById('laborBody').innerHTML=rows;
+function sGetSunday(){const d=new Date();const day=d.getDay();d.setDate(d.getDate()-day+(sched.weekOffset*7));d.setHours(0,0,0,0);return d;}
+function sGetISOs(){const sun=sGetSunday();return Array.from({length:14},(_,i)=>{const d=new Date(sun);d.setDate(d.getDate()+i);return d.toISOString().split('T')[0];});}
+function sIsoDisp(iso){const d=new Date(iso+'T12:00:00');return{dow:SCHED_DAYS[d.getDay()],date:`${d.getMonth()+1}/${d.getDate()}`};}
+
+// Seed forecast
+(function(){
+  const isos=sGetISOs();
+  const br=[72,88,105,118,114,120,108,69,85,102,115,110,118,106];
+  const ba=[162,179,199,209,189,209,189,159,175,195,205,185,205,185];
+  isos.forEach((iso,i)=>{if(!sched.forecast[iso])sched.forecast[iso]={rooms:br[i]||80,stayover:Math.round((br[i]||80)*.6),checkout:Math.round((br[i]||80)*.35),adr:ba[i]||175};});
+})();
+
+// Seed shifts
+(function(){
+  const isos=sGetISOs();
+  sched.employees.filter(e=>e.dept==='housekeeping').forEach((emp,ei)=>{
+    isos.forEach((iso,di)=>{if(di%7!==ei%7)sched.shifts[`${emp.id}_${iso}`]={start:'08:00',end:null,hours:8,type:'scheduled'};});
+  });
+  sched.employees.filter(e=>e.dept==='frontdesk').forEach((emp,i)=>{
+    isos.forEach(iso=>{const t=i%2===0?{start:'07:00',end:'15:00',hours:8}:{start:'15:00',end:'23:00',hours:8};sched.shifts[`${emp.id}_${iso}`]={...t,type:'scheduled'};});
+  });
+  sched.employees.filter(e=>e.dept==='maintenance').forEach(emp=>{
+    isos.forEach((iso,i)=>{if(i%7>0&&i%7<6)sched.shifts[`${emp.id}_${iso}`]={start:'08:00',end:'17:00',hours:8,type:'scheduled'};});
+  });
+})();
+
+function sLaborCost(isos){let t=0;sched.employees.forEach(emp=>{isos.forEach(iso=>{const sh=sched.shifts[`${emp.id}_${iso}`];if(sh&&sh.type==='scheduled')t+=(sh.hours||0)*emp.rate;});});return t;}
+function sRevenue(isos){return isos.reduce((a,iso)=>{const f=sched.forecast[iso];return a+(f?f.rooms*(f.adr||0):0);},0);}
+function sLaborPct(isos){const r=sRevenue(isos);return r?sLaborCost(isos)/r*100:0;}
+function sTotalHrs(isos,ids){let h=0;(ids||sched.employees.map(e=>e.id)).forEach(id=>{isos.forEach(iso=>{const sh=sched.shifts[`${id}_${iso}`];if(sh&&sh.type==='scheduled')h+=sh.hours||0;});});return h;}
+function sMPOR(isos){const ids=sched.employees.filter(e=>e.dept==='housekeeping').map(e=>e.id);const hrs=sTotalHrs(isos,ids);const rooms=isos.reduce((a,iso)=>a+(sched.forecast[iso]?.rooms||0),0);return rooms?(hrs*60/rooms).toFixed(2):0;}
+function sPctCls(p){const w=parseFloat(document.getElementById('schedWarn')?.value)||15;const d=parseFloat(document.getElementById('schedDanger')?.value)||19;return p>=d?'danger':p>=w?'warn':'ok';}
+
+function schedRenderKPIs(){
+  const isos=sGetISOs();
+  const wIsos=sched.activeWeek===1?isos.slice(0,7):isos.slice(7);
+  const tp=sLaborPct(isos),wp=sLaborPct(wIsos),tc=sLaborCost(isos),tr=sRevenue(isos),th=sTotalHrs(isos),mp=sMPOR(isos);
+  document.getElementById('schedKPIs').innerHTML=`
+    <div class="skc"><div class="skl">2-Wk Labor %</div><div class="skv ${sPctCls(tp)}">${tp.toFixed(1)}%</div><div class="sks ${sPctCls(tp)}">of $${(tr/1000).toFixed(0)}K rev</div></div>
+    <div class="skc"><div class="skl">Wk ${sched.activeWeek} Labor %</div><div class="skv ${sPctCls(wp)}">${wp.toFixed(1)}%</div><div class="sks neu">Target &lt;${document.getElementById('schedWarn')?.value||15}%</div></div>
+    <div class="skc"><div class="skl">Labor Cost</div><div class="skv">$${(tc/1000).toFixed(1)}K</div><div class="sks neu">2-week total</div></div>
+    <div class="skc"><div class="skl">Total Hours</div><div class="skv">${th}</div><div class="sks neu">All depts</div></div>
+    <div class="skc"><div class="skl">HSK MPOR</div><div class="skv">${mp}</div><div class="sks neu">Min/occ room</div></div>`;
 }
+
+function schedWeekLabel(){
+  const isos=sGetISOs();
+  const s=sIsoDisp(isos[0]),e=sIsoDisp(isos[13]);
+  document.getElementById('schedWeekLbl').textContent=`${s.date} – ${e.date}`;
+  document.getElementById('schedPropName').textContent=PROP.shortName||'Property';
+}
+
+function schedRenderForecast(){
+  const isos=sGetISOs();
+  const rowDefs=[
+    {key:'rooms',label:'Rooms Occupied',type:'input'},
+    {key:'stayover',label:'Stayovers',type:'input'},
+    {key:'checkout',label:'Checkouts',type:'input'},
+    {key:'adr',label:'ADR ($)',type:'input'},
+    {key:'_rev',label:'Room Revenue',type:'calc'},
+    {key:'_occ',label:'Occupancy %',type:'calc'},
+    {key:'_lp',label:'Labor Cost %',type:'calc'},
+  ];
+  const cols=`150px repeat(14,minmax(55px,1fr))`;
+  let h=`<div style="display:grid;grid-template-columns:${cols};">`;
+  h+=`<div class="fg-lbl">Metric</div>`;
+  isos.forEach((iso,i)=>{
+    const {dow,date}=sIsoDisp(iso);
+    const isT=iso===new Date().toISOString().split('T')[0];
+    const wb=i<7?'':'background:rgba(201,168,76,.02);';
+    h+=`<div class="fg-hdr${isT?' today2':''}" style="${wb}"><div class="fg-dow">${dow}</div><div class="fg-dt">${date}</div>${i===7?'<div style="font-size:6px;color:var(--gold)">WK2</div>':''}</div>`;
+  });
+  rowDefs.forEach(row=>{
+    h+=`<div class="fgrl">${row.label}</div>`;
+    isos.forEach((iso,i)=>{
+      const f=sched.forecast[iso]||{rooms:0,stayover:0,checkout:0,adr:0};
+      const wb=i<7?'':'background:rgba(201,168,76,.015);';
+      if(row.type==='input'){
+        h+=`<input class="fgi" style="${wb}" data-iso="${iso}" data-key="${row.key}" value="${f[row.key]||''}" onchange="schedUpdateForecast(this)" onclick="this.select()">`;
+      } else {
+        let val='—',cls='';
+        if(row.key==='_rev'){val='$'+(f.rooms*(f.adr||0)/1000).toFixed(1)+'K';cls='hi';}
+        if(row.key==='_occ'){val=f.rooms>0?(f.rooms/PROP.rooms*100).toFixed(1)+'%':'—';cls='hi';}
+        if(row.key==='_lp'){const dr=f.rooms*(f.adr||0);const dc=sLaborCost([iso]);const p=dr>0?dc/dr*100:0;val=p>0?p.toFixed(1)+'%':'—';cls=sPctCls(p);}
+        h+=`<div class="fgc ${cls}" style="${wb}">${val}</div>`;
+      }
+    });
+  });
+  h+='</div>';
+  document.getElementById('schedForecastGrid').innerHTML=h;
+}
+
+function schedUpdateForecast(el){
+  const iso=el.dataset.iso,key=el.dataset.key;
+  if(!sched.forecast[iso])sched.forecast[iso]={rooms:0,stayover:0,checkout:0,adr:0};
+  sched.forecast[iso][key]=parseFloat(el.value)||0;
+  schedRecalc();
+}
+
+function schedRenderGrid(){
+  const isos=sGetISOs();
+  const wIsos=sched.activeWeek===1?isos.slice(0,7):isos.slice(7);
+  const cols=`185px repeat(${wIsos.length},minmax(68px,1fr)) 62px`;
+  let h='';
+  SCHED_DEPTS.forEach(dept=>{
+    const emps=sched.employees.filter(e=>e.dept===dept.id);
+    if(!emps.length)return;
+    const dHrs=sTotalHrs(wIsos,emps.map(e=>e.id));
+    const dCost=emps.reduce((a,emp)=>a+wIsos.reduce((b,iso)=>{const sh=sched.shifts[`${emp.id}_${iso}`];return b+(sh&&sh.type==='scheduled'?(sh.hours||0)*emp.rate:0);},0),0);
+    h+=`<div class="dsect"><div class="dhdr" onclick="schedToggleDept('${dept.id}')">
+      <div style="display:flex;align-items:center;gap:7px;"><div style="width:7px;height:7px;border-radius:50%;background:${dept.color}"></div><span class="dname">${dept.name}</span></div>
+      <div class="dstats"><span class="dstat">${dHrs}h</span><span class="dstat">$${dCost.toFixed(0)}</span><span style="font-size:9px;color:var(--td)">${sched.collapsed[dept.id]?'▶':'▼'}</span></div>
+    </div>`;
+    if(!sched.collapsed[dept.id]){
+      // Header row
+      h+=`<div class="erow" style="grid-template-columns:${cols};">
+        <div style="padding:4px 14px;font-size:8px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;border-right:.5px solid var(--bs);border-bottom:.5px solid var(--bs);background:var(--s2);">Employee</div>`;
+      wIsos.forEach(iso=>{const {dow,date}=sIsoDisp(iso);h+=`<div style="padding:4px 3px;text-align:center;border-right:.5px solid var(--bs);border-bottom:.5px solid var(--bs);background:var(--s2);"><div style="font-size:7px;color:var(--td)">${dow}</div><div style="font-size:8px;font-family:'DM Mono',monospace;color:var(--tm)">${date}</div></div>`;});
+      h+=`<div style="padding:4px 6px;text-align:center;font-size:8px;color:var(--td);border-bottom:.5px solid var(--bs);background:var(--s2);">Total</div></div>`;
+      emps.forEach(emp=>{
+        const eHrs=sTotalHrs(wIsos,[emp.id]);
+        const eCost=wIsos.reduce((a,iso)=>{const sh=sched.shifts[`${emp.id}_${iso}`];return a+(sh&&sh.type==='scheduled'?(sh.hours||0)*emp.rate:0);},0);
+        const isOT=eHrs>40;
+        h+=`<div class="erow" style="grid-template-columns:${cols};">
+          <div class="einfo"><div><div class="ename">${emp.name}</div><div class="epos">$${emp.rate}/hr</div></div></div>`;
+        wIsos.forEach(iso=>{
+          const sh=sched.shifts[`${emp.id}_${iso}`];
+          if(!sh){h+=`<div class="scell" onclick="schedOpenModal('${emp.id}','${iso}','${emp.name}')"><span class="sadd">+</span></div>`;}
+          else if(sh.type==='off'){h+=`<div class="scell" onclick="schedOpenModal('${emp.id}','${iso}','${emp.name}')"><span class="sbadge offb">OFF</span></div>`;}
+          else{h+=`<div class="scell sched2${isOT?' ot2':''}" onclick="schedOpenModal('${emp.id}','${iso}','${emp.name}')"><div class="sbadge${isOT?' ot':''}"><div>${sh.hours}h</div><div style="font-size:7px;color:var(--td)">${sh.start||''}</div></div></div>`;}
+        });
+        h+=`<div class="etot"><div class="etoth" style="color:${isOT?'var(--red)':'var(--t)'}">${eHrs}h${isOT?' ⚠':''}</div><div class="etotsub">$${eCost.toFixed(0)}</div></div></div>`;
+      });
+    }
+    h+='</div>';
+  });
+  document.getElementById('schedGrid').innerHTML=h;
+}
+
+function schedToggleDept(id){sched.collapsed[id]=!sched.collapsed[id];schedRenderGrid();}
+
+function schedOpenModal(empId,iso,empName){
+  const {dow,date}=sIsoDisp(iso);
+  sched.modalCtx={empId,iso};
+  document.getElementById('schedModalTitle').textContent=`${empName} — ${dow} ${date}`;
+  const tplHtml=SCHED_TEMPLATES.map(t=>`<div class="tpl" onclick="schedSelTpl('${t.id}',this)"><div class="tpl-name">${t.name}</div><div class="tpl-time">${t.start}${t.end?' – '+t.end:' (var)'} · ${t.hours}h</div></div>`).join('');
+  document.getElementById('schedModalTpls').innerHTML=tplHtml;
+  const ex=sched.shifts[`${empId}_${iso}`];
+  if(ex&&ex.type!=='off'){document.getElementById('smStart').value=ex.start||'';document.getElementById('smEnd').value=ex.end||'';document.getElementById('smHours').value=ex.hours||'';document.getElementById('smRemove').classList.remove('hidden');}
+  else{document.getElementById('smStart').value='';document.getElementById('smEnd').value='';document.getElementById('smHours').value='';document.getElementById('smRemove').classList.add('hidden');}
+  document.getElementById('schedModal').classList.remove('hidden');
+}
+
+function closeSchedModal(){document.getElementById('schedModal').classList.add('hidden');sched.modalCtx=null;}
+
+function schedSelTpl(id,el){
+  const t=SCHED_TEMPLATES.find(x=>x.id===id);if(!t)return;
+  document.querySelectorAll('.tpl').forEach(x=>x.classList.remove('active'));el.classList.add('active');
+  document.getElementById('smStart').value=t.start;document.getElementById('smEnd').value=t.end||'';document.getElementById('smHours').value=t.hours;
+}
+
+function schedSaveShift(){
+  if(!sched.modalCtx)return;
+  const hrs=parseFloat(document.getElementById('smHours').value)||0;
+  if(!hrs){alert('Please enter hours or select a template.');return;}
+  sched.shifts[`${sched.modalCtx.empId}_${sched.modalCtx.iso}`]={start:document.getElementById('smStart').value||null,end:document.getElementById('smEnd').value||null,hours:hrs,type:'scheduled'};
+  closeSchedModal();schedRecalc();
+}
+
+function schedRemoveShift(){if(!sched.modalCtx)return;delete sched.shifts[`${sched.modalCtx.empId}_${sched.modalCtx.iso}`];closeSchedModal();schedRecalc();}
+function schedMarkOff(){if(!sched.modalCtx)return;sched.shifts[`${sched.modalCtx.empId}_${sched.modalCtx.iso}`]={type:'off',hours:0};closeSchedModal();schedRecalc();}
+
+function schedRenderSummary(){
+  const isos=sGetISOs();
+  let dh='';
+  SCHED_DEPTS.forEach(dept=>{
+    const emps=sched.employees.filter(e=>e.dept===dept.id);if(!emps.length)return;
+    const hrs=sTotalHrs(isos,emps.map(e=>e.id));
+    const cost=emps.reduce((a,e)=>a+sTotalHrs(isos,[e.id])*e.rate,0);
+    const rev=sRevenue(isos);const pct=rev?cost/rev*100:0;
+    dh+=`<div class="ssum-row"><div style="display:flex;align-items:center;gap:6px;"><div style="width:6px;height:6px;border-radius:50%;background:${dept.color}"></div><span style="font-size:10px;color:var(--t)">${dept.name}</span></div><div style="text-align:right;"><div style="font-family:'DM Mono',monospace;font-size:11px;color:${dept.color}">${hrs}h · $${cost.toFixed(0)}</div><div class="sks ${sPctCls(pct)}">${pct.toFixed(1)}% of rev</div></div></div>`;
+  });
+  document.getElementById('schedSumDepts').innerHTML=dh;
+  const tc=sLaborCost(isos),tr=sRevenue(isos),tp=tr?tc/tr*100:0,th=sTotalHrs(isos),mp=sMPOR(isos);
+  document.getElementById('schedSumTotals').innerHTML=`
+    <div class="ssum-row"><span style="font-size:10px;color:var(--tm)">Total Labor Cost</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--t)">$${(tc/1000).toFixed(1)}K</span></div>
+    <div class="ssum-row"><span style="font-size:10px;color:var(--tm)">Total Revenue</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--t)">$${(tr/1000).toFixed(1)}K</span></div>
+    <div class="ssum-row"><span style="font-size:10px;color:var(--tm)">Labor Cost %</span><span style="font-family:'DM Mono',monospace;font-size:13px;" class="${sPctCls(tp)}">${tp.toFixed(1)}%</span></div>
+    <div class="ssum-row"><span style="font-size:10px;color:var(--tm)">Total Hours</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--t)">${th}</span></div>
+    <div class="ssum-row"><span style="font-size:10px;color:var(--tm)">HSK MPOR</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--t)">${mp} min</span></div>`;
+  let daily=`<table style="width:100%;border-collapse:collapse;min-width:600px;"><thead><tr>
+    <th style="text-align:left;padding:6px 12px;font-size:8px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;border-bottom:.5px solid var(--bs);">Date</th>
+    <th style="text-align:right;padding:6px 12px;font-size:8px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;border-bottom:.5px solid var(--bs);">Rooms</th>
+    <th style="text-align:right;padding:6px 12px;font-size:8px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;border-bottom:.5px solid var(--bs);">Revenue</th>
+    <th style="text-align:right;padding:6px 12px;font-size:8px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;border-bottom:.5px solid var(--bs);">Labor Cost</th>
+    <th style="text-align:right;padding:6px 12px;font-size:8px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;border-bottom:.5px solid var(--bs);">Labor %</th>
+    <th style="text-align:right;padding:6px 12px;font-size:8px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;border-bottom:.5px solid var(--bs);">Hours</th>
+  </tr></thead><tbody>`;
+  isos.forEach((iso,i)=>{
+    const {dow,date}=sIsoDisp(iso);const f=sched.forecast[iso]||{rooms:0,adr:0};
+    const rev=f.rooms*(f.adr||0),cost=sLaborCost([iso]),pct=rev?cost/rev*100:0,hrs=sTotalHrs([iso]);
+    const wb=i<7?'':'background:rgba(201,168,76,.02);';const wb2=i===7?'border-top:1px solid var(--bd);':'';
+    daily+=`<tr style="${wb}${wb2}">
+      <td style="padding:7px 12px;font-size:10px;color:var(--t);border-bottom:.5px solid var(--bs);"><span style="font-family:'DM Mono',monospace">${date}</span><span style="font-size:8px;color:var(--td);margin-left:4px">${dow}${i===7?' · Wk2':''}</span></td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:var(--t);border-bottom:.5px solid var(--bs);">${f.rooms||'—'}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:var(--t);border-bottom:.5px solid var(--bs);">${rev>0?'$'+(rev/1000).toFixed(1)+'K':'—'}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:var(--t);border-bottom:.5px solid var(--bs);">$${cost.toFixed(0)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;border-bottom:.5px solid var(--bs);" class="${sPctCls(pct)}">${pct>0?pct.toFixed(1)+'%':'—'}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:var(--t);border-bottom:.5px solid var(--bs);">${hrs}</td>
+    </tr>`;
+  });
+  daily+='</tbody></table>';
+  document.getElementById('schedSumDaily').innerHTML=daily;
+}
+
+function schedRenderSetup(){
+  const byDept={};SCHED_DEPTS.forEach(d=>{byDept[d.id]=sched.employees.filter(e=>e.dept===d.id);});
+  let h='';
+  SCHED_DEPTS.forEach(dept=>{
+    const emps=byDept[dept.id];if(!emps.length)return;
+    h+=`<li style="padding:5px 14px;font-size:8px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;background:var(--s2);border-bottom:.5px solid var(--bs);">${dept.name}</li>`;
+    emps.forEach(emp=>{h+=`<li class="empitem"><div><div class="empiname">${emp.name}</div><div class="empimeta">$${emp.rate}/hr</div></div><button class="empdel" onclick="schedDelEmp('${emp.id}')">✕</button></li>`;});
+  });
+  document.getElementById('schedEmpList').innerHTML=h;
+  document.getElementById('schedTplList').innerHTML=SCHED_TEMPLATES.map(t=>`<div class="tpl" style="cursor:default;"><div class="tpl-name">${t.name}</div><div class="tpl-time">${t.start}${t.end?' – '+t.end:''} · ${t.hours}h</div></div>`).join('');
+}
+
+function schedAddEmp(){
+  const name=document.getElementById('snewName').value.trim();
+  const dept=document.getElementById('snewDept').value;
+  const rate=parseFloat(document.getElementById('snewRate').value)||0;
+  if(!name||!dept||!rate){alert('Please fill name, department, and rate.');return;}
+  sched.employees.push({id:'s'+Date.now(),name,dept,rate});
+  document.getElementById('snewName').value='';document.getElementById('snewDept').value='';document.getElementById('snewRate').value='';
+  schedRenderSetup();schedRenderKPIs();
+}
+
+function schedDelEmp(id){if(!confirm('Remove from roster?'))return;sched.employees=sched.employees.filter(e=>e.id!==id);schedRenderSetup();schedRenderKPIs();}
+
+function swSched(tab,btn){
+  document.querySelectorAll('.stbn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+  ['forecast','schedule','summary','ssetup'].forEach(t=>document.getElementById('stab-'+t).classList.toggle('hidden',t!==tab));
+  sched.schedTab=tab;schedRecalc();
+}
+
+function setSchedWeek(n){
+  sched.activeWeek=n;
+  document.getElementById('swk1').classList.toggle('active',n===1);
+  document.getElementById('swk2').classList.toggle('active',n===2);
+  schedRecalc();
+}
+
+function prevSchedWeek(){sched.weekOffset--;schedInit();}
+function nextSchedWeek(){sched.weekOffset++;schedInit();}
+
+function schedRecalc(){
+  schedWeekLabel();schedRenderKPIs();
+  if(sched.schedTab==='forecast')schedRenderForecast();
+  if(sched.schedTab==='schedule')schedRenderGrid();
+  if(sched.schedTab==='summary')schedRenderSummary();
+  if(sched.schedTab==='ssetup')schedRenderSetup();
+}
+
+function schedInit(){
+  schedWeekLabel();schedRenderKPIs();schedRenderForecast();
+}
+
+// Close modal on overlay click
+document.addEventListener('DOMContentLoaded',function(){
+  const m=document.getElementById('schedModal');
+  if(m)m.addEventListener('click',function(e){if(e.target===this)closeSchedModal();});
+});
+
 
 // ═══ RATE SHOP DATA (Corpus only) ═══
 const DATES=['5/28','5/29','5/30','5/31','6/1','6/2','6/3','6/4','6/5','6/6','6/7','6/8'];
@@ -931,454 +1246,37 @@ function sw(n){
   const b=document.getElementById('nav-'+n);if(b)b.classList.add('active');
   if(n==='dar'){buildDARHistory();}
   if(n==='rateshop'){showCluster('spid',document.querySelector('.rct'));}
-  if(n==='labor'){initSched();}
+  if(n==='labor'){schedInit();}
 }
 
 // Auto-load DAR screen
 sw('dar');
-
-// ═══════════════════════════════════════
-// RGB LABOR INTELLIGENCE — SCHEDULER
-// ═══════════════════════════════════════
-const DAYS_S = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const DEPTS_S = [
-  {id:'housekeeping',name:'Housekeeping',color:'var(--grn)'},
-  {id:'frontdesk',   name:'Front Desk',  color:'var(--blu)'},
-  {id:'maintenance', name:'Maintenance', color:'var(--amb)'},
-  {id:'management',  name:'Management',  color:'var(--pur)'},
-  {id:'fnb',         name:'F&B',         color:'var(--red)'},
-];
-
-let sched = {
-  weekOffset:0, activeWeek:1, activeSchedTab:'forecast',
-  collapsed:{},
-  warnThresh:15, dangerThresh:19,
-  forecast:{},
-  shifts:{},
-  modalCtx:null,
-  employees:[
-    {id:'e1',name:'Maria Garcia',dept:'housekeeping',rate:14.50},
-    {id:'e2',name:'Rosa Lopez',dept:'housekeeping',rate:14.00},
-    {id:'e3',name:'Ana Martinez',dept:'housekeeping',rate:13.75},
-    {id:'e4',name:'Carmen Torres',dept:'housekeeping',rate:14.00},
-    {id:'e5',name:'Lucia Flores',dept:'housekeeping',rate:13.50},
-    {id:'e6',name:'James Wilson',dept:'frontdesk',rate:16.00},
-    {id:'e7',name:'Sarah Johnson',dept:'frontdesk',rate:15.50},
-    {id:'e8',name:'Mike Chen',dept:'frontdesk',rate:15.00},
-    {id:'e9',name:'Tom Rivera',dept:'maintenance',rate:18.00},
-    {id:'e10',name:'David Kim',dept:'maintenance',rate:17.00},
-    {id:'e11',name:'Jennifer Nash',dept:'management',rate:25.00},
-  ],
-  templates:[
-    {id:'t1',name:'Morning',start:'07:00',end:'15:00',hours:8},
-    {id:'t2',name:'Evening',start:'15:00',end:'23:00',hours:8},
-    {id:'t3',name:'Mid',start:'11:00',end:'19:00',hours:8},
-    {id:'t4',name:'Night',start:'23:00',end:'07:00',hours:8},
-    {id:'t5',name:'Split',start:'06:00',end:'14:00',hours:8},
-    {id:'t6',name:'Part-Time',start:'09:00',end:'13:00',hours:4},
-  ]
-};
-
-function getSchedSunday(){
-  const d=new Date();
-  const day=d.getDay();
-  d.setDate(d.getDate()-day+(sched.weekOffset*7));
-  d.setHours(0,0,0,0);
-  return d;
-}
-
-function getSchedISOs(){
-  const start=getSchedSunday();
-  const isos=[];
-  for(let i=0;i<14;i++){
-    const d=new Date(start);
-    d.setDate(d.getDate()+i);
-    isos.push(d.toISOString().split('T')[0]);
-  }
-  return isos;
-}
-
-function isoDisp(iso){
-  const d=new Date(iso+'T12:00:00');
-  return{dow:DAYS_S[d.getDay()],date:`${d.getMonth()+1}/${d.getDate()}`};
-}
-
-// Seed forecast
-(function(){
-  const isos=getSchedISOs();
-  const baseR=[72,88,105,118,114,120,108,69,85,102,115,110,118,106];
-  const baseA=[162,179,199,209,189,209,189,159,175,195,205,185,205,185];
-  isos.forEach((iso,i)=>{
-    if(!sched.forecast[iso]) sched.forecast[iso]={rooms:baseR[i]||80,stayover:Math.round((baseR[i]||80)*.6),checkout:Math.round((baseR[i]||80)*.35),adr:baseA[i]||175};
-  });
-})();
-
-// Seed shifts
-(function(){
-  const isos=getSchedISOs();
-  const hk=sched.employees.filter(e=>e.dept==='housekeeping');
-  const fd=sched.employees.filter(e=>e.dept==='frontdesk');
-  isos.forEach((iso,di)=>{
-    hk.forEach(emp=>{
-      if(di%7!==(parseInt(emp.id.replace('e',''))%7)) sched.shifts[`${emp.id}_${iso}`]={start:'08:00',end:null,hours:8,type:'scheduled'};
-    });
-    fd.forEach((emp,i)=>{
-      const tpl=i%2===0?{start:'07:00',end:'15:00',hours:8}:{start:'15:00',end:'23:00',hours:8};
-      sched.shifts[`${emp.id}_${iso}`]={...tpl,type:'scheduled'};
-    });
-    if(di%7>0&&di%7<6) sched.employees.filter(e=>e.dept==='maintenance').forEach(emp=>{sched.shifts[`${emp.id}_${iso}`]={start:'08:00',end:'17:00',hours:8,type:'scheduled'};});
-  });
-})();
-
-function getLaborCostS(isos){
-  let t=0;
-  sched.employees.forEach(emp=>isos.forEach(iso=>{const sh=sched.shifts[`${emp.id}_${iso}`];if(sh&&sh.type==='scheduled')t+=(sh.hours||0)*emp.rate;}));
-  return t;
-}
-function getRevenueS(isos){return isos.reduce((a,iso)=>{const f=sched.forecast[iso];return a+(f?f.rooms*(f.adr||0):0);},0);}
-function getLaborPctS(isos){const r=getRevenueS(isos);return r?getLaborCostS(isos)/r*100:0;}
-function getTotalHrsS(isos,empIds){let h=0;(empIds||sched.employees.map(e=>e.id)).forEach(id=>isos.forEach(iso=>{const sh=sched.shifts[`${id}_${iso}`];if(sh&&sh.type==='scheduled')h+=sh.hours||0;}));return h;}
-function getMPORS(isos){const hk=sched.employees.filter(e=>e.dept==='housekeeping').map(e=>e.id);const hrs=getTotalHrsS(isos,hk);const rooms=isos.reduce((a,iso)=>a+(sched.forecast[iso]?.rooms||0),0);return rooms?(hrs*60/rooms).toFixed(2):0;}
-function pctClsS(pct){const w=parseFloat(document.getElementById('warnThresh')?.value)||15;const d=parseFloat(document.getElementById('dangerThresh')?.value)||19;return pct>=d?'danger':pct>=w?'warn':'ok';}
-
-function renderSchedKPIs(){
-  const isos=getSchedISOs();
-  const wIsos=sched.activeWeek===1?isos.slice(0,7):isos.slice(7);
-  const tp=getLaborPctS(isos),wp=getLaborPctS(wIsos);
-  const tc=getLaborCostS(isos),tr=getRevenueS(isos),th=getTotalHrsS(isos),mp=getMPORS(isos);
-  const tcc=pctClsS(tp),wcc=pctClsS(wp);
-  const el=document.getElementById('schedKPIs');
-  if(!el)return;
-  el.innerHTML=`
-    <div class="kpi-strip-item"><div class="kl">2-Wk Labor %</div><div class="kv ${tcc}">${tp.toFixed(1)}%</div><div class="kpi-sub ${tcc}">of $${(tr/1000).toFixed(0)}K rev</div></div>
-    <div class="kpi-strip-item"><div class="kl">Wk ${sched.activeWeek} Labor %</div><div class="kv ${wcc}">${wp.toFixed(1)}%</div><div class="kpi-sub ${wcc}">Target &lt;${document.getElementById('warnThresh')?.value||15}%</div></div>
-    <div class="kpi-strip-item"><div class="kl">Total Labor Cost</div><div class="kv">$${(tc/1000).toFixed(1)}K</div><div class="kpi-sub neu">2-week</div></div>
-    <div class="kpi-strip-item"><div class="kl">Total Hours</div><div class="kv">${th}</div><div class="kpi-sub neu">All depts</div></div>
-    <div class="kpi-strip-item"><div class="kl">HSK MPOR</div><div class="kv">${mp}</div><div class="kpi-sub neu">Min/occupied room</div></div>
-    <div class="kpi-strip-item"><div class="kl">Employees</div><div class="kv">${sched.employees.length}</div><div class="kpi-sub neu">On roster</div></div>`;
-}
-
-function renderSchedWeekLabel(){
-  const isos=getSchedISOs();
-  const s=isoDisp(isos[0]),e=isoDisp(isos[13]);
-  const el=document.getElementById('schedWeekLabel');
-  if(el) el.textContent=`${s.date} – ${e.date}`;
-}
-
-function renderForecastS(){
-  const isos=getSchedISOs();
-  const rows=[
-    {key:'rooms',label:'Rooms Occupied',type:'input'},
-    {key:'stayover',label:'Stayovers',type:'input'},
-    {key:'checkout',label:'Checkouts',type:'input'},
-    {key:'adr',label:'ADR ($)',type:'input'},
-    {key:'_rev',label:'Room Revenue',type:'calc'},
-    {key:'_occ',label:'Occupancy %',type:'calc'},
-    {key:'_labor',label:'Labor Cost %',type:'calc'},
-  ];
-  const el=document.getElementById('forecastGrid');
-  if(!el)return;
-  el.style.gridTemplateColumns=`160px repeat(14,minmax(58px,1fr))`;
-  let html=`<div class="fg-label-cell" style="font-size:9px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;">Metric</div>`;
-  isos.forEach((iso,i)=>{
-    const {dow,date}=isoDisp(iso);
-    const isT=iso===new Date().toISOString().split('T')[0];
-    const bg=i<7?'':'background:rgba(201,168,76,.03);';
-    html+=`<div class="fg-hdr-cell" style="${bg}${isT?'background:rgba(201,168,76,.08);':''}">
-      <div style="font-size:7px;color:${isT?'var(--gold)':'var(--td)'};letter-spacing:.08em;text-transform:uppercase;">${dow}</div>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;color:${isT?'var(--gold)':'var(--tm)'};">${date}</div>
-      ${i===7?'<div style="font-size:7px;color:var(--gold);">WK2</div>':''}
-    </div>`;
-  });
-  rows.forEach(row=>{
-    html+=`<div class="fg-label-cell">${row.label}</div>`;
-    isos.forEach((iso,i)=>{
-      const f=sched.forecast[iso]||{rooms:0,stayover:0,checkout:0,adr:0};
-      const bg=i<7?'':'background:rgba(201,168,76,.02);';
-      if(row.type==='input'){
-        html+=`<input class="fg-input-cell" style="${bg}" data-iso="${iso}" data-key="${row.key}" value="${f[row.key]||''}" onchange="updateForecastS(this)" onclick="this.select()">`;
-      } else {
-        let val='—',cls='';
-        if(row.key==='_rev'){val='$'+(f.rooms*(f.adr||0)/1000).toFixed(1)+'K';cls='color:var(--t)';}
-        if(row.key==='_occ'){val=f.rooms>0?(f.rooms/PROP.rooms*100).toFixed(1)+'%':'—';cls='color:var(--t)';}
-        if(row.key==='_labor'){
-          const rev=f.rooms*(f.adr||0);const cost=getLaborCostS([iso]);
-          const pct=rev>0?cost/rev*100:0;val=pct>0?pct.toFixed(1)+'%':'—';
-          const pc=pctClsS(pct);cls=pc==='danger'?'color:var(--red)':pc==='warn'?'color:var(--amb)':'color:var(--grn)';
-        }
-        html+=`<div class="fg-calc-cell" style="${bg};${cls}">${val}</div>`;
-      }
-    });
-  });
-  el.innerHTML=html;
-}
-
-function updateForecastS(el){
-  const iso=el.dataset.iso,key=el.dataset.key;
-  if(!sched.forecast[iso])sched.forecast[iso]={rooms:0,stayover:0,checkout:0,adr:0};
-  sched.forecast[iso][key]=parseFloat(el.value)||0;
-  schedRecalc();
-}
-
-function renderScheduleS(){
-  const isos=getSchedISOs();
-  const wIsos=sched.activeWeek===1?isos.slice(0,7):isos.slice(7);
-  // OU Bar
-  const ouEl=document.getElementById('ouBar');
-  if(ouEl){
-    ouEl.innerHTML=DEPTS_S.map(dept=>{
-      const emps=sched.employees.filter(e=>e.dept===dept.id);
-      if(!emps.length)return'';
-      const hrs=getTotalHrsS(wIsos,emps.map(e=>e.id));
-      return`<span style="display:flex;align-items:center;gap:5px;font-size:9px;">
-        <span style="width:7px;height:7px;border-radius:50%;background:${dept.color};display:inline-block;flex-shrink:0;"></span>
-        <span style="color:var(--tm)">${dept.name}</span>
-        <span style="font-family:'DM Mono',monospace;color:var(--t)">${hrs}h</span>
-      </span>`;
-    }).join('');
-  }
-  const colStyle=`grid-template-columns:195px repeat(${wIsos.length},minmax(68px,1fr)) 65px;`;
-  let html='';
-  DEPTS_S.forEach(dept=>{
-    const emps=sched.employees.filter(e=>e.dept===dept.id);
-    if(!emps.length)return;
-    const dHrs=getTotalHrsS(wIsos,emps.map(e=>e.id));
-    const dCost=emps.reduce((a,emp)=>a+wIsos.reduce((b,iso)=>{const sh=sched.shifts[`${emp.id}_${iso}`];return b+(sh&&sh.type==='scheduled'?(sh.hours||0)*emp.rate:0);},0),0);
-    html+=`<div style="border-bottom:.5px solid var(--bs);">
-      <div class="dept-hdr" onclick="toggleDeptS('${dept.id}')">
-        <div style="display:flex;align-items:center;gap:7px;"><div style="width:7px;height:7px;border-radius:50%;background:${dept.color}"></div><span style="font-size:11px;font-weight:500;color:var(--t)">${dept.name}</span></div>
-        <div style="display:flex;gap:12px;align-items:center;">
-          <span style="font-size:10px;color:var(--tm);font-family:'DM Mono',monospace">${dHrs}h</span>
-          <span style="font-size:10px;color:var(--tm);font-family:'DM Mono',monospace">$${dCost.toFixed(0)}</span>
-          <span style="font-size:10px;color:var(--td)" id="dtgl_${dept.id}">${sched.collapsed[dept.id]?'▶':'▼'}</span>
-        </div>
-      </div>`;
-    if(!sched.collapsed[dept.id]){
-      // Header row
-      html+=`<div style="display:grid;${colStyle}">
-        <div style="padding:5px 14px;font-size:9px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;border-right:.5px solid var(--bs);border-bottom:.5px solid var(--bs);background:var(--s2);">Employee</div>`;
-      wIsos.forEach(iso=>{
-        const {dow,date}=isoDisp(iso);
-        html+=`<div style="padding:4px 3px;text-align:center;border-right:.5px solid var(--bs);border-bottom:.5px solid var(--bs);background:var(--s2);">
-          <div style="font-size:7px;color:var(--td)">${dow}</div>
-          <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--tm)">${date}</div>
-        </div>`;
-      });
-      html+=`<div style="padding:4px 6px;text-align:center;font-size:8px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;border-bottom:.5px solid var(--bs);background:var(--s2);">Total</div></div>`;
-      emps.forEach(emp=>{
-        const empHrs=getTotalHrsS(wIsos,[emp.id]);
-        const empCost=wIsos.reduce((a,iso)=>{const sh=sched.shifts[`${emp.id}_${iso}`];return a+(sh&&sh.type==='scheduled'?(sh.hours||0)*emp.rate:0);},0);
-        const isOT=empHrs>40;
-        html+=`<div style="display:grid;${colStyle}border-bottom:.5px solid var(--bs);">
-          <div style="padding:7px 14px;background:var(--s1);border-right:.5px solid var(--bs);display:flex;align-items:center;gap:7px;">
-            <div>
-              <div style="font-size:11px;color:var(--t)">${emp.name}</div>
-              <div style="font-size:9px;color:var(--td)">$${emp.rate}/hr</div>
-            </div>
-          </div>`;
-        wIsos.forEach(iso=>{
-          const sh=sched.shifts[`${emp.id}_${iso}`];
-          if(!sh){
-            html+=`<div class="shift-cell-s" onclick="openModalS('${emp.id}','${iso}','${emp.name.replace("'","\'")}')"><span style="font-size:16px;color:var(--td)">+</span></div>`;
-          } else if(sh.type==='off'){
-            html+=`<div class="shift-cell-s" onclick="openModalS('${emp.id}','${iso}','${emp.name.replace("'","\'")}')"><span style="font-size:9px;color:var(--td);font-family:'DM Mono',monospace">OFF</span></div>`;
-          } else {
-            html+=`<div class="shift-cell-s scheduled-s${isOT?' ot-s':''}" onclick="openModalS('${emp.id}','${iso}','${emp.name.replace("'","\'")}')">
-              <div style="text-align:center;">
-                <div style="font-size:9px;font-family:'DM Mono',monospace;color:${isOT?'var(--red)':'var(--grn)'}">${sh.hours}h</div>
-                <div style="font-size:8px;color:var(--td)">${sh.start||''}</div>
-              </div>
-            </div>`;
-          }
-        });
-        html+=`<div style="padding:7px 8px;background:var(--s2);border-left:.5px solid var(--bs);display:flex;flex-direction:column;align-items:center;justify-content:center;">
-          <div style="font-family:'DM Mono',monospace;font-size:11px;color:${isOT?'var(--red)':'var(--t)'}">${empHrs}h${isOT?' ⚠':''}</div>
-          <div style="font-size:9px;color:var(--tm)">$${empCost.toFixed(0)}</div>
-        </div></div>`;
-      });
-    }
-    html+='</div>';
-  });
-  const el=document.getElementById('scheduleGrid');
-  if(el) el.innerHTML=html;
-}
-
-function toggleDeptS(id){sched.collapsed[id]=!sched.collapsed[id];renderScheduleS();}
-
-function openModalS(empId,iso,empName){
-  const {dow,date}=isoDisp(iso);
-  sched.modalCtx={empId,iso};
-  document.getElementById('modalTitle').textContent=`${empName} — ${dow} ${date}`;
-  const tplHtml=sched.templates.map(t=>`
-    <div onclick="selectTemplateS('${t.id}')" style="background:var(--s3);border:.5px solid var(--bs);border-radius:5px;padding:6px 8px;cursor:pointer;text-align:center;transition:all .15s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bs)'">
-      <div style="font-size:10px;color:var(--t);font-weight:500">${t.name}</div>
-      <div style="font-size:8px;color:var(--tm);font-family:'DM Mono',monospace">${t.start}${t.end?' – '+t.end:''} · ${t.hours}h</div>
-    </div>`).join('');
-  document.getElementById('modalTemplates').innerHTML=tplHtml;
-  const existing=sched.shifts[`${empId}_${iso}`];
-  document.getElementById('modalStart').value=existing&&existing.type!=='off'?existing.start||'':'';
-  document.getElementById('modalEnd').value=existing&&existing.type!=='off'?existing.end||'':'';
-  document.getElementById('modalHours').value=existing&&existing.type!=='off'?existing.hours||'':'';
-  document.getElementById('modalRemove').style.display=existing?'block':'none';
-  const modal=document.getElementById('shiftModal');
-  modal.style.display='flex';
-}
-
-function closeModal(){document.getElementById('shiftModal').style.display='none';sched.modalCtx=null;}
-
-function selectTemplateS(tplId){
-  const tpl=sched.templates.find(t=>t.id===tplId);
-  if(!tpl)return;
-  document.getElementById('modalStart').value=tpl.start;
-  document.getElementById('modalEnd').value=tpl.end||'';
-  document.getElementById('modalHours').value=tpl.hours;
-}
-
-function saveShift(){
-  if(!sched.modalCtx)return;
-  const hrs=parseFloat(document.getElementById('modalHours').value)||0;
-  if(!hrs){alert('Please select a template or enter hours.');return;}
-  sched.shifts[`${sched.modalCtx.empId}_${sched.modalCtx.iso}`]={
-    start:document.getElementById('modalStart').value||null,
-    end:document.getElementById('modalEnd').value||null,
-    hours:hrs,type:'scheduled'
-  };
-  closeModal();schedRecalc();
-}
-
-function removeShift(){if(!sched.modalCtx)return;delete sched.shifts[`${sched.modalCtx.empId}_${sched.modalCtx.iso}`];closeModal();schedRecalc();}
-function markOff(){if(!sched.modalCtx)return;sched.shifts[`${sched.modalCtx.empId}_${sched.modalCtx.iso}`]={type:'off',hours:0};closeModal();schedRecalc();}
-
-function renderSummaryS(){
-  const isos=getSchedISOs();
-  const w=parseFloat(document.getElementById('warnThresh')?.value)||15;
-  const dg=parseFloat(document.getElementById('dangerThresh')?.value)||19;
-  const wd=document.getElementById('warnDisplay'),dd=document.getElementById('dangerDisplay');
-  if(wd)wd.textContent=w;if(dd)dd.textContent=dg;
-  let deptHtml='';
-  DEPTS_S.forEach(dept=>{
-    const emps=sched.employees.filter(e=>e.dept===dept.id);
-    if(!emps.length)return;
-    const hrs=getTotalHrsS(isos,emps.map(e=>e.id));
-    const cost=emps.reduce((a,emp)=>a+getTotalHrsS(isos,[emp.id])*emp.rate,0);
-    const rev=getRevenueS(isos);const pct=rev>0?cost/rev*100:0;
-    const cls=pctClsS(pct);const cc=cls==='danger'?'var(--red)':cls==='warn'?'var(--amb)':'var(--grn)';
-    deptHtml+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:.5px solid var(--bs);">
-      <div style="display:flex;align-items:center;gap:6px;"><div style="width:6px;height:6px;border-radius:50%;background:${dept.color}"></div><span style="font-size:11px;color:var(--t)">${dept.name}</span></div>
-      <div style="text-align:right;"><div style="font-family:'DM Mono',monospace;font-size:11px;color:${dept.color}">${hrs}h · $${cost.toFixed(0)}</div><div style="font-size:9px;color:${cc}">${pct.toFixed(1)}% of rev</div></div>
-    </div>`;
-  });
-  const tc=getLaborCostS(isos),tr=getRevenueS(isos),tp=tr>0?tc/tr*100:0,th=getTotalHrsS(isos),mp=getMPORS(isos);
-  const tcc=pctClsS(tp);const tccol=tcc==='danger'?'var(--red)':tcc==='warn'?'var(--amb)':'var(--grn)';
-  const de=document.getElementById('summaryDepts'),te=document.getElementById('summaryTotals');
-  if(de)de.innerHTML=deptHtml;
-  if(te)te.innerHTML=`
-    <div style="display:flex;justify-content:space-between;padding:9px 14px;border-bottom:.5px solid var(--bs);"><span style="font-size:11px;color:var(--tm)">Total Labor Cost</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--t)">$${(tc/1000).toFixed(1)}K</span></div>
-    <div style="display:flex;justify-content:space-between;padding:9px 14px;border-bottom:.5px solid var(--bs);"><span style="font-size:11px;color:var(--tm)">Total Revenue</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--t)">$${(tr/1000).toFixed(1)}K</span></div>
-    <div style="display:flex;justify-content:space-between;padding:9px 14px;border-bottom:.5px solid var(--bs);"><span style="font-size:11px;color:var(--tm)">Labor Cost %</span><span style="font-family:'DM Mono',monospace;font-size:13px;color:${tccol}">${tp.toFixed(1)}%</span></div>
-    <div style="display:flex;justify-content:space-between;padding:9px 14px;border-bottom:.5px solid var(--bs);"><span style="font-size:11px;color:var(--tm)">Total Hours</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--t)">${th}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:9px 14px;border-bottom:.5px solid var(--bs);"><span style="font-size:11px;color:var(--tm)">HSK MPOR</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--t)">${mp} min</span></div>
-    <div style="display:flex;justify-content:space-between;padding:9px 14px;"><span style="font-size:11px;color:var(--tm)">Employees</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--t)">${sched.employees.length}</span></div>`;
-  // Daily table
-  let dailyHtml=`<table style="width:100%;border-collapse:collapse;min-width:600px;">
-    <thead><tr>
-      ${['Date','Rooms','Revenue','Labor Cost','Labor %','Hours'].map(h=>`<th style="text-align:${h==='Date'?'left':'right'};padding:6px 12px;font-size:9px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;border-bottom:.5px solid var(--bs);">${h}</th>`).join('')}
-    </tr></thead><tbody>`;
-  isos.forEach((iso,i)=>{
-    const{dow,date}=isoDisp(iso);
-    const f=sched.forecast[iso]||{rooms:0,adr:0};
-    const rev=f.rooms*(f.adr||0),cost=getLaborCostS([iso]),pct=rev>0?cost/rev*100:0,hrs=getTotalHrsS([iso]);
-    const cls=pctClsS(pct);const cc=cls==='danger'?'var(--red)':cls==='warn'?'var(--amb)':pct>0?'var(--grn)':'var(--tm)';
-    const bg=i<7?'':'background:rgba(201,168,76,.02);';const w2=i===7?'border-top:1px solid var(--bd);':'';
-    dailyHtml+=`<tr style="${bg}${w2}">
-      <td style="padding:7px 12px;font-size:11px;color:var(--t);border-bottom:.5px solid var(--bs);"><span style="font-family:'DM Mono',monospace">${date}</span> <span style="font-size:9px;color:var(--td)">${dow}${i===7?' · Wk2':''}</span></td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:var(--t);border-bottom:.5px solid var(--bs);">${f.rooms||'—'}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:var(--t);border-bottom:.5px solid var(--bs);">${rev>0?'$'+(rev/1000).toFixed(1)+'K':'—'}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:var(--t);border-bottom:.5px solid var(--bs);">$${cost.toFixed(0)}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:${cc};border-bottom:.5px solid var(--bs);">${pct>0?pct.toFixed(1)+'%':'—'}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:var(--t);border-bottom:.5px solid var(--bs);">${hrs}</td>
-    </tr>`;
-  });
-  const sd=document.getElementById('summaryDaily');
-  if(sd)sd.innerHTML=dailyHtml+'</tbody></table>';
-}
-
-function renderSetupS(){
-  let html='';
-  DEPTS_S.forEach(dept=>{
-    const emps=sched.employees.filter(e=>e.dept===dept.id);
-    if(!emps.length)return;
-    html+=`<li style="padding:5px 14px;font-size:9px;color:var(--td);letter-spacing:.1em;text-transform:uppercase;background:var(--s2);border-bottom:.5px solid var(--bs);">${dept.name}</li>`;
-    emps.forEach(emp=>{
-      html+=`<li style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:.5px solid var(--bs);">
-        <div><div style="font-size:11px;color:var(--t)">${emp.name}</div><div style="font-size:9px;color:var(--td)">$${emp.rate}/hr</div></div>
-        <button onclick="deleteEmployeeS('${emp.id}')" style="background:none;border:none;color:var(--td);cursor:pointer;font-size:14px;padding:0 4px;transition:color .15s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--td)'">✕</button>
-      </li>`;
-    });
-  });
-  const el=document.getElementById('empList');if(el)el.innerHTML=html;
-  const tl=document.getElementById('tplList');
-  if(tl)tl.innerHTML=sched.templates.map(t=>`
-    <div style="background:var(--s3);border:.5px solid var(--bs);border-radius:5px;padding:6px 8px;text-align:center;">
-      <div style="font-size:10px;color:var(--t);font-weight:500">${t.name}</div>
-      <div style="font-size:8px;color:var(--tm);font-family:'DM Mono',monospace">${t.start}${t.end?' – '+t.end:''} · ${t.hours}h</div>
-    </div>`).join('');
-}
-
-function addEmployee(){
-  const name=document.getElementById('newEmpName').value.trim();
-  const dept=document.getElementById('newEmpDept').value;
-  const rate=parseFloat(document.getElementById('newEmpRate').value)||0;
-  if(!name||!dept||!rate){alert('Please fill in name, department, and rate.');return;}
-  sched.employees.push({id:'e'+Date.now(),name,dept,rate});
-  document.getElementById('newEmpName').value='';
-  document.getElementById('newEmpDept').value='';
-  document.getElementById('newEmpRate').value='';
-  renderSetupS();renderSchedKPIs();
-}
-
-function deleteEmployeeS(id){
-  if(!confirm('Remove from roster?'))return;
-  sched.employees=sched.employees.filter(e=>e.id!==id);
-  renderSetupS();renderSchedKPIs();
-}
-
-function swSched(tab,btn){
-  document.querySelectorAll('.stbn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  ['forecast','schedule','summary','ssetup'].forEach(t=>{
-    const el=document.getElementById('sched-'+t);
-    if(el)el.classList.toggle('hidden',t!==tab);
-  });
-  sched.activeSchedTab=tab;
-  schedRecalc();
-}
-
-function setSchedWeek(n){
-  sched.activeWeek=n;
-  document.getElementById('wk1btn').classList.toggle('active',n===1);
-  document.getElementById('wk2btn').classList.toggle('active',n===2);
-  schedRecalc();
-}
-
-function prevSchedWeek(){sched.weekOffset--;initSched();}
-function nextSchedWeek(){sched.weekOffset++;initSched();}
-function saveSchedule(){const b=document.querySelector('[onclick="saveSchedule()"]');if(b){b.textContent='✓ Saved!';setTimeout(()=>b.textContent='💾 Save',2000);}}
-
-function schedRecalc(){
-  renderSchedWeekLabel();
-  renderSchedKPIs();
-  if(sched.activeSchedTab==='forecast')renderForecastS();
-  if(sched.activeSchedTab==='schedule')renderScheduleS();
-  if(sched.activeSchedTab==='summary')renderSummaryS();
-  if(sched.activeSchedTab==='ssetup')renderSetupS();
-}
-
-function initSched(){renderSchedWeekLabel();renderSchedKPIs();renderForecastS();}
-
-// Close shift modal on overlay click
-document.getElementById('shiftModal')?.addEventListener('click',function(e){if(e.target===this)closeModal();});
-
 </script>
+
+<!-- SHIFT MODAL -->
+<div class="smoverlay hidden" id="schedModal">
+  <div class="smodal">
+    <div class="smhdr">
+      <div class="smtitle" id="schedModalTitle">Assign Shift</div>
+      <button class="smclose" onclick="closeSchedModal()">✕</button>
+    </div>
+    <div class="smbody">
+      <label class="smlbl">Shift Template</label>
+      <div class="tpls" id="schedModalTpls"></div>
+      <label class="smlbl">Start Time</label>
+      <input class="sminput" type="time" id="smStart">
+      <label class="smlbl">End Time <span style="color:var(--td)">(leave blank for Housekeeping)</span></label>
+      <input class="sminput" type="time" id="smEnd">
+      <label class="smlbl">Hours</label>
+      <input class="sminput" type="number" id="smHours" step="0.5" placeholder="e.g. 8">
+      <div class="smfooter">
+        <button class="smbtn sec" id="smRemove" onclick="schedRemoveShift()">Remove</button>
+        <button class="smbtn pri" onclick="schedSaveShift()">Save Shift</button>
+      </div>
+      <button class="smbtn dan" onclick="schedMarkOff()" style="width:100%;margin-top:7px;">Mark as Day Off</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
