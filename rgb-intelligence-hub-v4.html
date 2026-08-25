@@ -934,29 +934,78 @@ function renderDAR(){
 }
 
 // ═══ PORTFOLIO DATA ═══
+// Pilot: Portfolio Flash now fetches from the permissions-filtered Apps Script API
+// instead of hardcoding every property's numbers in this file. Paste your deployed
+// web app URL below after following apps-script/Code.gs's setup steps.
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbybdQ2rod5aELbqdmi7qhJPpGq6UI1zt8y2T0QN1gL1yGcpF8zWJwQ0e7aEWppmTt-CXg/exec';
 const MF=['January','February','March','April','May','June','July','August','September','October','November','December'];
-const PROPS=[
-  {n:'Residence Inn Downtown',b:'MARRIOTT',c:'cmar',r:110,mk:'corpus',rv:[527180,535304,578907,582962,487199,0,0,0,0,0,0,0],oc:[3020,2853,2960,2800,2594,0,0,0,0,0,0,0],tr:[575397,583852,644878,631981,0,0,0,0,0,0,0,0]},
-  {n:'Holiday Inn Downtown',b:'IHG',c:'cihg',r:345,mk:'corpus',rv:[542902,691343,808801,938111,640646,0,0,0,0,0,0,0],oc:[5036,5831,6415,6902,5200,0,0,0,0,0,0,0],tr:[712867,846002,1007430,1158603,0,0,0,0,0,0,0,0]},
-  {n:'HIE Navigation',b:'IHG',c:'cihg',r:64,mk:'corpus',rv:[99496,121712,155191,136381,126332,0,0,0,0,0,0,0],oc:[990,1201,1402,1173,1100,0,0,0,0,0,0,0],tr:[100471,123003,157790,138130,0,0,0,0,0,0,0,0]},
-  {n:'Hampton Inn Navigation',b:'HILTON',c:'chil',r:80,mk:'corpus',rv:[112005,136092,179098,229727,176331,0,0,0,0,0,0,0],oc:[1056,1304,1508,1750,1480,0,0,0,0,0,0,0],tr:[113951,139053,183016,233770,0,0,0,0,0,0,0,0]},
-  {n:'Residence Inn South',b:'MARRIOTT',c:'cmar',r:120,mk:'corpus',rv:[349568,415910,455151,449292,373092,0,0,0,0,0,0,0],oc:[2513,2834,2893,2716,2680,0,0,0,0,0,0,0],tr:[359605,429122,472388,461698,0,0,0,0,0,0,0,0]},
-  {n:'TRU Corpus Christi',b:'HILTON',c:'chil',r:100,mk:'corpus',rv:[202158,220948,279537,278401,222309,0,0,0,0,0,0,0],oc:[2238,2277,2614,2567,2100,0,0,0,0,0,0,0],tr:[207563,226082,286807,284205,0,0,0,0,0,0,0,0]},
-  {n:'Springhill Suites',b:'MARRIOTT',c:'cmar',r:119,mk:'corpus',rv:[262407,272338,341424,299777,205168,0,0,0,0,0,0,0],oc:[2414,2439,2790,2463,1980,0,0,0,0,0,0,0],tr:[269210,276476,347645,308086,0,0,0,0,0,0,0,0]},
-  {n:'Aloft CC',b:'MARRIOTT',c:'cmar',r:105,mk:'corpus',rv:[129667,206810,265507,240067,198000,0,0,0,0,0,0,0],oc:[1241,1817,2118,1799,1680,0,0,0,0,0,0,0],tr:[141325,221475,279618,253018,0,0,0,0,0,0,0,0]},
-  {n:'Hyatt Place CC',b:'HYATT',c:'chya',r:103,mk:'corpus',rv:[117709,148894,204595,181868,162000,0,0,0,0,0,0,0],oc:[1338,1565,1854,1516,1420,0,0,0,0,0,0,0],tr:[119320,152797,209741,186304,0,0,0,0,0,0,0,0]},
-  {n:'HIE Rockport',b:'IHG',c:'cihg',r:69,mk:'corpus',rv:[52983,68458,141504,92389,89360,0,0,0,0,0,0,0],oc:[566,712,1110,890,820,0,0,0,0,0,0,0],tr:[54588,70439,144253,96532,0,0,0,0,0,0,0,0]},
-  {n:'Staybridge Portland',b:'IHG',c:'cihg',r:77,mk:'portland',rv:[209234,231476,263706,257095,210849,0,0,0,0,0,0,0],oc:[1456,1656,1788,1700,1540,0,0,0,0,0,0,0],tr:[210948,232290,275268,258248,0,0,0,0,0,0,0,0]},
-  {n:'Hampton Inn Portland',b:'HILTON',c:'chil',r:91,mk:'portland',rv:[207001,228158,272434,267322,212900,0,0,0,0,0,0,0],oc:[1804,1901,2163,2099,1820,0,0,0,0,0,0,0],tr:[210566,230956,280122,273042,0,0,0,0,0,0,0,0]},
-  {n:'La Quinta Portland',b:'WYNDHAM',c:'cwyn',r:70,mk:'portland',rv:[59755,83376,112101,150842,126419,0,0,0,0,0,0,0],oc:[639,903,1073,1464,1240,0,0,0,0,0,0,0],tr:[60736,83943,113131,152139,0,0,0,0,0,0,0,0]},
-  {n:'Hampton SA NE',b:'HILTON',c:'chil',r:76,mk:'sa',rv:[131193,210368,241453,204990,162604,0,0,0,0,0,0,0],oc:[1206,1529,1962,1798,1480,0,0,0,0,0,0,0],tr:[133723,213819,245142,207803,0,0,0,0,0,0,0,0]},
-  {n:'TRU San Antonio Rim',b:'HILTON',c:'chil',r:106,mk:'sa',rv:[137083,180320,288401,243236,203115,0,0,0,0,0,0,0],oc:[1356,1656,2302,2028,1780,0,0,0,0,0,0,0],tr:[146048,187294,294413,248692,0,0,0,0,0,0,0,0]},
-  {n:'Fairfield Austin',b:'MARRIOTT',c:'cmar',r:130,mk:'austin',rv:[322847,482190,652228,595524,483418,0,0,0,0,0,0,0],oc:[2166,2701,3161,3325,2980,0,0,0,0,0,0,0],tr:[370254,543414,750991,670641,0,0,0,0,0,0,0,0]},
-  {n:'Embassy Suites Austin',b:'HILTON',c:'chil',r:150,mk:'austin',rv:[0,241736,556431,526176,470204,0,0,0,0,0,0,0],oc:[0,1604,3498,3303,2980,0,0,0,0,0,0,0],tr:[0,247193,592874,571737,0,0,0,0,0,0,0,0]},
-  {n:'Home2 Suites Houston',b:'HILTON',c:'chil',r:112,mk:'houston',rv:[281282,377490,544339,373421,315457,0,0,0,0,0,0,0],oc:[2308,2559,3093,2570,2360,0,0,0,0,0,0,0],tr:[309533,408985,582487,409732,0,0,0,0,0,0,0,0]},
-  {n:'Embassy Suites Houston',b:'HILTON',c:'chil',r:150,mk:'houston',rv:[0,384855,728008,517562,427293,0,0,0,0,0,0,0],oc:[0,2469,4260,3272,2980,0,0,0,0,0,0,0],tr:[0,435561,800364,561978,0,0,0,0,0,0,0,0]},
-  {n:'Embassy Suites Dallas',b:'HILTON',c:'chil',r:150,mk:'dallas',rv:[0,0,0,0,0,0,0,0,0,0,0,0],oc:[0,0,0,0,0,0,0,0,0,0,0,0],tr:[0,0,0,0,0,0,0,0,0,0,0,0]},
-];
+const BRAND_CHIP={IHG:'cihg',HILTON:'chil',MARRIOTT:'cmar',HYATT:'chya',WYNDHAM:'cwyn'};
+
+let PROPS=[];
+let flashState='idle'; // idle | needs_login | loading | ready | error
+let flashError=null;
+let flashCaller=null, flashScope=null;
+
+// Login is username/password (Credentials sheet), not Google sign-in — see
+// apps-script/Code.gs's header comment for why. Cached in sessionStorage so
+// it only needs to be re-entered once per browser tab session.
+function getStoredCreds_(){
+  const u=sessionStorage.getItem('rgb_u'), p=sessionStorage.getItem('rgb_p');
+  return (u && p) ? {u,p} : null;
+}
+function setStoredCreds_(u,p){ sessionStorage.setItem('rgb_u',u); sessionStorage.setItem('rgb_p',p); }
+function clearStoredCreds_(){ sessionStorage.removeItem('rgb_u'); sessionStorage.removeItem('rgb_p'); }
+
+function submitFlashLogin(){
+  const u=document.getElementById('flashLoginU').value.trim();
+  const p=document.getElementById('flashLoginP').value;
+  if(!u||!p) return;
+  setStoredCreds_(u,p);
+  flashState='idle';
+  loadPortfolioFlash().then(renderFlash);
+  renderFlash();
+}
+
+async function loadPortfolioFlash(){
+  if(flashState==='ready'||flashState==='loading') return;
+  const creds=getStoredCreds_();
+  if(!creds){ flashState='needs_login'; return; }
+  flashState='loading';
+  try{
+    if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_')===0){
+      throw new Error('Apps Script API URL not configured yet (APPS_SCRIPT_URL).');
+    }
+    const qs=new URLSearchParams({module:'portfolio-flash', username:creds.u, password:creds.p});
+    const res = await fetch(`${APPS_SCRIPT_URL}?${qs.toString()}`);
+    const json = await res.json();
+    if(json._status && json._status>=400){
+      if(json._status===401){ clearStoredCreds_(); flashState='needs_login'; flashError=json.message||'Login failed.'; return; }
+      throw new Error(json.message||('API error '+json._status));
+    }
+    flashCaller=json.caller; flashScope=json.scope;
+    // Reshape long-format flash rows (one row per property per month) back into
+    // the {n,b,c,r,mk,rv[],oc[],tr[]} shape the rest of renderFlash() expects.
+    const byProp={};
+    (json.properties||[]).forEach(p=>{
+      byProp[p.property_id]={
+        n:p.name, b:p.brand, c:BRAND_CHIP[p.brand]||'chya', r:Number(p.rooms), mk:p.market,
+        rv:new Array(12).fill(0), oc:new Array(12).fill(0), tr:new Array(12).fill(0)
+      };
+    });
+    (json.flash||[]).forEach(row=>{
+      const p=byProp[row.property_id];
+      if(!p) return;
+      const m=Number(row.month_index);
+      p.rv[m]=Number(row.room_rev)||0;
+      p.oc[m]=Number(row.occupied_rooms)||0;
+      p.tr[m]=Number(row.total_rev)||0;
+    });
+    PROPS=Object.values(byProp);
+    flashState='ready';
+  }catch(err){
+    flashState='error'; flashError=String(err.message||err); PROPS=[];
+  }
+}
 
 let curM=-1,curMkt='all';
 function buildMTabs(){
@@ -966,8 +1015,36 @@ function buildMTabs(){
 function selM(i,btn){curM=i;document.querySelectorAll('#monthTabs .mtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('tableTitle').textContent=i===-1?'Year to Date 2026':MF[i]+' 2026';renderFlash();}
 function fmkt(m,btn){curMkt=m;document.querySelectorAll('.fp').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderFlash();}
 function renderFlash(){
+  if(flashState==='needs_login'){
+    document.getElementById('flashBody').innerHTML=`<tr><td colspan="8" style="text-align:center;padding:24px">
+      <div style="max-width:280px;margin:0 auto">
+        ${flashError?`<div style="color:var(--dn,#c0392b);font-size:12px;margin-bottom:10px">${flashError}</div>`:''}
+        <div style="font-size:12px;color:var(--tm);margin-bottom:10px">Sign in to view your properties</div>
+        <input id="flashLoginU" placeholder="Username" style="width:100%;padding:6px;margin-bottom:6px;box-sizing:border-box">
+        <input id="flashLoginP" type="password" placeholder="Password" style="width:100%;padding:6px;margin-bottom:10px;box-sizing:border-box">
+        <button onclick="submitFlashLogin()" style="padding:6px 16px">Sign in</button>
+      </div>
+    </td></tr>`;
+    document.getElementById('kpiRow').innerHTML='';
+    return;
+  }
+  if(flashState==='loading'||flashState==='idle'){
+    document.getElementById('flashBody').innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--tm);padding:24px">Loading your properties…</td></tr>';
+    document.getElementById('kpiRow').innerHTML='';
+    return;
+  }
+  if(flashState==='error'){
+    document.getElementById('flashBody').innerHTML=`<tr><td colspan="8" style="text-align:center;color:var(--dn,#c0392b);padding:24px">Couldn't load Portfolio Flash: ${flashError}</td></tr>`;
+    document.getElementById('kpiRow').innerHTML='';
+    return;
+  }
   const days=[31,28,31,30,31,30,31,31,30,31,30,31];
   const filt=curMkt==='all'?PROPS:PROPS.filter(p=>p.mk===curMkt);
+  if(!filt.length){
+    document.getElementById('flashBody').innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--tm);padding:24px">No properties in view for your account.</td></tr>';
+    document.getElementById('kpiRow').innerHTML='';
+    return;
+  }
   let tR=0,tO=0,tN=0,tRv=0,tTr=0;
   const rows=filt.map(p=>{
     const rv=curM===-1?p.rv.reduce((a,b)=>a+b,0):p.rv[curM]||0;
@@ -980,7 +1057,7 @@ function renderFlash(){
     return`<tr><td><span class="sd ${dc}"></span>${p.n}</td><td><span class="chip ${p.c}">${p.b}</span></td><td class="mono">${p.r}</td><td class="mono r">${op>0?op.toFixed(1)+'%':'—'}</td><td class="mono r">${adr>0?'$'+adr.toFixed(2):'—'}</td><td class="mono r">${rp>0?'$'+rp.toFixed(2):'—'}</td><td class="mono r">${rv>0?'$'+(rv/1000).toFixed(0)+'K':'—'}</td><td class="mono r">${tr>0?'$'+(tr/1000).toFixed(0)+'K':'—'}</td></tr>`;
   }).join('');
   const td=curM===-1?140:days[curM],ta=tR*td,po=tN/ta*100;
-  document.getElementById('flashBody').innerHTML=rows+`<tr class="tot"><td>📊 Portfolio Total</td><td>20 PROPS</td><td class="mono">${tR}</td><td class="mono r">${po.toFixed(1)}%</td><td class="mono r">$${(tRv/tN).toFixed(2)}</td><td class="mono r">$${(tRv/ta).toFixed(2)}</td><td class="mono r">$${(tRv/1e6).toFixed(2)}M</td><td class="mono r">$${(tTr/1e6).toFixed(2)}M</td></tr>`;
+  document.getElementById('flashBody').innerHTML=rows+`<tr class="tot"><td>📊 Portfolio Total</td><td>${filt.length} PROP${filt.length===1?'':'S'}</td><td class="mono">${tR}</td><td class="mono r">${po.toFixed(1)}%</td><td class="mono r">$${(tRv/tN).toFixed(2)}</td><td class="mono r">$${(tRv/ta).toFixed(2)}</td><td class="mono r">$${(tRv/1e6).toFixed(2)}M</td><td class="mono r">$${(tTr/1e6).toFixed(2)}M</td></tr>`;
   document.getElementById('kpiRow').innerHTML=`
     <div class="kc"><div class="kl">Portfolio RevPAR</div><div class="kv">$${(tRv/ta).toFixed(0)}</div><div class="kch up">▲ Live</div></div>
     <div class="kc"><div class="kl">Occupancy</div><div class="kv">${po.toFixed(1)}%</div><div class="kch neu">— Avg</div></div>
@@ -1117,7 +1194,7 @@ function sw(n){
   SCREENS.forEach(s=>{document.getElementById('screen-'+s).classList.add('hidden');const b=document.getElementById('nav-'+s);if(b)b.classList.remove('active');});
   document.getElementById('screen-'+n).classList.remove('hidden');
   const b=document.getElementById('nav-'+n);if(b)b.classList.add('active');
-  if(n==='portfolio'){buildMTabs();renderFlash();}
+  if(n==='portfolio'){buildMTabs();renderFlash();if(flashState==='idle'){loadPortfolioFlash().then(renderFlash);}}
   if(n==='rateshop'){showCluster('spid',document.querySelector('.rct'));}
   if(n==='dar'){buildDarMtabs();renderDAR();}
   if(n==='he'){buildHE();}
