@@ -438,17 +438,7 @@ tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
       <span class="ab ab-g">✅ Embassy Suites Dallas $129/$139 — compset avg $140/$157. Competitive</span>
     </div>
     <div class="rw">
-      <div class="rctabs">
-        <button class="rct active" onclick="showCluster('spid',this)">SPID</button>
-        <button class="rct" onclick="showCluster('portland',this)">Portland</button>
-        <button class="rct" onclick="showCluster('navigation',this)">Navigation</button>
-        <button class="rct" onclick="showCluster('downtown',this)">Downtown CC</button>
-        <button class="rct" onclick="showCluster('rockport',this)">Rockport</button>
-        <button class="rct" onclick="showCluster('sa',this)">San Antonio</button>
-        <button class="rct" onclick="showCluster('austin',this)">Austin</button>
-        <button class="rct" onclick="showCluster('houston',this)">Houston</button>
-        <button class="rct" onclick="showCluster('dallas',this)">Dallas</button>
-      </div>
+      <div class="rctabs"></div>
       <div class="rscroll"><table class="rtable" id="rateTable"></table></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:8px;font-size:9px;color:var(--td);flex-wrap:wrap;">
@@ -1192,44 +1182,100 @@ function renderComparison(mode){
 }
 
 // ═══ RATE SHOP ═══
-const DATES=['5/28','5/29','5/30','5/31','6/1','6/2','6/3','6/4','6/5','6/6','6/7','6/8'];
-const DOWS=['THU','FRI','SAT','SUN','MON','TUE','WED','THU','FRI','SAT','SUN','MON'];
-const CL={
-  spid:{rgb:[{n:'Aloft CC',r:[109,149,159,169,109,109,119,119,129,149,159,119]},{n:'Hyatt Place CC',r:[118,142,196,162,118,118,119,119,129,149,149,119]},{n:'Springhill Suites',r:[119,149,149,159,119,119,119,119,129,149,149,119]},{n:'TRU Corpus',r:[109,136,156,149,109,109,109,109,119,136,141,109]},{n:'Residence Inn South',r:[179,189,189,199,179,179,189,189,199,199,209,169]}],comp:[{n:'Hilton Garden Inn CC',r:[119,139,139,149,109,109,119,119,129,139,139,109]},{n:'Staybridge CC',r:[124,144,144,154,119,119,124,129,134,154,139,119]},{n:'Residence Inn CC',r:[104,149,149,149,104,104,109,109,119,149,149,104]},{n:'Home2 CC SE',r:[143,174,174,184,124,124,134,139,144,174,189,129]},{n:'Courtyard',r:[104,134,134,139,104,104,109,114,119,134,144,99]},{n:'Hampton SPID',r:['Sold out',149,'Sold out',159,129,129,129,129,139,149,149,119]}]},
-  portland:{rgb:[{n:'Hampton Portland',r:[139,154,173,168,139,139,144,144,154,173,173,139]},{n:'La Quinta Portland',r:[116,143,143,138,116,116,121,121,131,143,143,116]},{n:'Staybridge Portland',r:[184,254,274,264,184,184,194,194,204,254,274,189]}],comp:[{n:'Comfort Inn Portland',r:[89,154,154,149,89,89,99,99,109,154,154,89]},{n:'Best Western',r:[99,154,159,154,99,99,104,104,114,154,159,99]},{n:'Home2 Portland',r:[119,150,163,158,119,119,124,124,134,150,163,119]},{n:'AVID Portland',r:[99,144,144,139,99,99,104,104,114,144,144,99]}]},
-  navigation:{rgb:[{n:'Hampton Navigation',r:[119,139,139,144,119,119,124,124,134,139,139,119]},{n:'HIE Navigation',r:[109,139,139,144,109,109,114,114,124,139,139,109]}],comp:[{n:'Hampton CC NW',r:[115,169,169,164,115,115,120,120,130,169,169,115]},{n:'HI Airport CC',r:[109,114,119,114,109,109,114,114,119,114,119,109]},{n:'La Quinta Airport',r:[83,108,116,111,83,83,88,88,98,108,116,83]},{n:'HIE Calallen',r:[109,129,129,134,109,109,114,114,124,129,129,109]}]},
-  downtown:{rgb:[{n:'HI Marina',r:[129,194,199,214,139,134,144,149,159,199,214,134]},{n:'Residence Inn DT',r:[219,'Sold out',249,259,219,214,224,229,239,'Sold out',259,219]}],comp:[{n:'Emerald Beach',r:['Sold out','Sold out','Sold out','Sold out',199,189,199,204,219,'Sold out','Sold out',189]},{n:'Omni',r:[219,209,209,219,219,214,219,224,229,209,209,209]},{n:'DoubleTree',r:[156,198,226,221,156,151,161,166,176,198,226,151]},{n:'Best Western Marina',r:[119,179,169,164,119,114,124,129,139,179,169,114]}]},
-  rockport:{rgb:[{n:'HIE Rockport',r:[109,129,169,159,109,109,119,119,129,169,159,109]}],comp:[{n:'La Quinta Rockport',r:[114,169,164,159,114,114,119,119,129,169,164,114]},{n:'Hampton Rockport',r:[109,144,144,149,109,109,114,114,124,144,144,109]},{n:'Fairfield Rockport',r:[109,149,149,154,109,109,114,114,124,149,149,109]}]},
-  sa:{rgb:[{n:'Hampton SA NE',r:[119,119,119,129,119,119,119,119,129,119,119,119]},{n:'TRU at Rim',r:[109,139,145,149,109,109,114,114,124,139,145,109]}],comp:[{n:'Drury Inn',r:[105,110,110,115,105,105,110,110,115,110,110,105]},{n:'HIE North-Windcrest',r:[129,119,119,124,129,119,124,129,129,119,119,119]},{n:'Home2 at the Rim',r:[169,'Sold out',179,184,124,124,129,134,144,'Sold out',179,124]},{n:'Aloft UTSA',r:[104,144,134,139,104,104,109,109,119,144,134,104]}]},
-  austin:{rgb:[{n:'Fairfield Austin',r:[169,169,159,164,169,169,174,179,184,169,159,169]},{n:'Embassy Suites Austin',r:[139,144,144,149,139,144,149,154,159,144,144,139]}],comp:[{n:'Aloft Austin DT',r:[209,199,199,204,209,204,214,219,224,199,199,209]},{n:'Hampton Austin DT',r:[181,175,154,159,181,176,181,186,191,175,154,181]},{n:'Courtyard Austin DT',r:[209,199,199,204,209,204,214,219,224,199,199,204]},{n:'Hyatt Place Domain',r:[109,121,124,129,109,109,114,119,124,121,124,109]}]},
-  houston:{rgb:[{n:'Home2 Houston',r:[139,139,139,144,139,139,144,149,154,139,139,139]},{n:'Embassy Suites Galleria',r:[144,144,144,149,144,144,149,154,159,144,144,144]}],comp:[{n:'HGI Galleria',r:[134,134,134,139,134,134,139,144,149,134,134,134]},{n:'DoubleTree Galleria',r:[169,169,169,174,169,164,174,179,184,169,169,164]},{n:'Hyatt House Galleria',r:[129,139,139,144,129,129,134,139,144,139,139,129]},{n:'Courtyard Houston Galleria',r:[139,139,139,144,139,134,144,149,154,139,139,134]}]},
-  dallas:{rgb:[{n:'Embassy Suites Dallas',r:[129,139,129,134,129,129,134,139,144,139,129,129]}],comp:[{n:'AC Hotel Dallas Galleria',r:[144,139,139,144,144,139,144,149,154,139,139,144]},{n:'Le Meridien Galleria',r:[179,149,149,154,179,174,179,184,189,149,149,179]},{n:'Hyatt Place Dallas N',r:[109,129,110,114,109,104,114,119,124,129,110,109]},{n:'Westin Galleria Dallas',r:[215,215,215,219,215,210,215,220,225,215,215,210]}]}
-};
+// Pilot: fetches from the same permissions-filtered Apps Script API as
+// Portfolio Flash (module=rate-shop), fed by pasting the morning OTA Insight
+// export into the "Rate Shop Data" spreadsheet's Raw Paste tab and running
+// runParseRateShop — see apps-script/Code.gs's "RATE SHOP" section. Not yet
+// filtered by market (everyone who's logged in sees every cluster, same as
+// this screen's behavior before this pilot) — see that same section for why.
+let RATE_SHOP=[]; // flat rows: {market, property_name, is_rgb, date, rate_display, rate_num, to_sell, change}
+let rateShopState='idle'; // idle | loading | ready | error
+let rateShopError=null;
+
+async function loadRateShop(){
+  if(rateShopState==='ready'||rateShopState==='loading') return;
+  const creds=getStoredCreds_();
+  if(!creds){ rateShopState='error'; rateShopError='Sign in on the Portfolio screen first.'; renderRateShopTabs(); return; }
+  rateShopState='loading'; renderRateShopTabs();
+  try{
+    const qs=new URLSearchParams({module:'rate-shop', username:creds.u, password:creds.p});
+    const res=await fetch(`${APPS_SCRIPT_URL}?${qs.toString()}`);
+    const json=await res.json();
+    if(json._status && json._status>=400) throw new Error(json.message||('API error '+json._status));
+    RATE_SHOP=json.rateShop||[];
+    rateShopState='ready';
+  }catch(err){
+    rateShopState='error'; rateShopError=String(err.message||err); RATE_SHOP=[];
+  }
+  renderRateShopTabs();
+}
+
+function rateShopClusters(){
+  const seen=[];
+  RATE_SHOP.forEach(r=>{ if(r.market && !seen.includes(r.market)) seen.push(r.market); });
+  return seen;
+}
+
+function renderRateShopTabs(){
+  const tabsEl=document.querySelector('.rctabs');
+  if(rateShopState==='loading'||rateShopState==='idle'){
+    tabsEl.innerHTML='<span style="font-size:11px;color:var(--tm)">Loading Rate Shop…</span>';
+    document.getElementById('rateTable').innerHTML='';
+    return;
+  }
+  if(rateShopState==='error'){
+    tabsEl.innerHTML=`<span style="font-size:11px;color:var(--dn,#c0392b)">Couldn't load Rate Shop: ${rateShopError}</span>`;
+    document.getElementById('rateTable').innerHTML='';
+    return;
+  }
+  const clusters=rateShopClusters();
+  if(!clusters.length){
+    tabsEl.innerHTML=`<span style="font-size:11px;color:var(--tm)">No Rate Shop data yet — paste this morning's OTA Insight export and run runParseRateShop.</span>`;
+    document.getElementById('rateTable').innerHTML='';
+    return;
+  }
+  tabsEl.innerHTML=clusters.map((c,i)=>`<button class="rct${i===0?' active':''}" onclick='showCluster(${JSON.stringify(c)},this)'>${c}</button>`).join('');
+  showCluster(clusters[0], tabsEl.querySelector('.rct'));
+}
 
 function rcls(v,all){if(typeof v!=='number')return'';const n=all.filter(x=>typeof x==='number');if(!n.length)return'';return v===Math.min(...n)&&Math.min(...n)<Math.max(...n)?'rl':v>=Math.max(...n)*0.95?'rh':'';}
 function showCluster(k,btn){
-  document.querySelectorAll('.rct').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
-  const d=CL[k];if(!d){document.getElementById('rateTable').innerHTML='';return;}
-  let h=`<thead><tr><th class="pc">Property</th>${DATES.map((dt,i)=>`<th><div style="font-size:7px;color:var(--td)">${DOWS[i]}</div><div>${dt}</div></th>`).join('')}</tr></thead><tbody>`;
-  h+=`<tr class="sh"><td colspan="${DATES.length+1}">RGB Properties</td></tr>`;
-  d.rgb.forEach(row=>{
-    h+=`<tr class="rr"><td class="pc">${row.n}</td>`;
-    row.r.forEach((v,i)=>{
-      const all=[...d.rgb,...d.comp].map(p=>p.r[i]);
-      const s=typeof v!=='number'?(String(v||'').toLowerCase().includes('sold')?'rs':'rlo'):'';
-      h+=`<td class="${s||rcls(v,all)}">${v===null?'—':v}</td>`;
-    });h+='</tr>';
+  document.querySelectorAll('.rct').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const rows=RATE_SHOP.filter(r=>r.market===k);
+  if(!rows.length){ document.getElementById('rateTable').innerHTML=''; return; }
+
+  const dates=[...new Set(rows.map(r=>r.date))].sort();
+  const byName={};
+  rows.forEach(r=>{
+    if(!byName[r.property_name]) byName[r.property_name]={name:r.property_name, is_rgb:!!r.is_rgb, byDate:{}};
+    byName[r.property_name].byDate[r.date]=r;
   });
-  h+=`<tr class="sh"><td colspan="${DATES.length+1}">Compset</td></tr>`;
-  d.comp.forEach(row=>{
-    h+=`<tr><td class="pc">${row.n}</td>`;
-    row.r.forEach((v,i)=>{
-      const all=[...d.rgb,...d.comp].map(p=>p.r[i]);
-      const s=typeof v!=='number'?(String(v||'').toLowerCase().includes('sold')?'rs':'rlo'):'';
-      h+=`<td class="${s||rcls(v,all)}">${v===null?'—':v}</td>`;
-    });h+='</tr>';
-  });
-  h+='</tbody>';document.getElementById('rateTable').innerHTML=h;
+  const rgb=Object.values(byName).filter(p=>p.is_rgb);
+  const comp=Object.values(byName).filter(p=>!p.is_rgb);
+  const allRows=[...rgb,...comp];
+
+  function cellHtml(row,date){
+    const rec=row.byDate[date];
+    const display=rec&&rec.rate_display ? rec.rate_display : '—';
+    const rateNum=rec&&rec.rate_num!==''&&rec.rate_num!=null ? Number(rec.rate_num) : null;
+    const all=allRows.map(p=>{ const r2=p.byDate[date]; return r2&&r2.rate_num!==''&&r2.rate_num!=null ? Number(r2.rate_num) : null; });
+    const s = rateNum===null ? (display==='—'?'':(display.toLowerCase().includes('sold')?'rs':'rlo')) : '';
+    return `<td class="${s||rcls(rateNum,all)}">${display}</td>`;
+  }
+
+  let h=`<thead><tr><th class="pc">Property</th>${dates.map(d=>{
+    const dt=new Date(d+'T12:00:00');
+    const dow=dt.toLocaleDateString('en-US',{weekday:'short'}).toUpperCase();
+    const md=dt.toLocaleDateString('en-US',{month:'numeric',day:'numeric'});
+    return `<th><div style="font-size:7px;color:var(--td)">${dow}</div><div>${md}</div></th>`;
+  }).join('')}</tr></thead><tbody>`;
+  h+=`<tr class="sh"><td colspan="${dates.length+1}">RGB Properties</td></tr>`;
+  rgb.forEach(row=>{ h+=`<tr class="rr"><td class="pc">${row.name}</td>${dates.map(d=>cellHtml(row,d)).join('')}</tr>`; });
+  h+=`<tr class="sh"><td colspan="${dates.length+1}">Compset</td></tr>`;
+  comp.forEach(row=>{ h+=`<tr><td class="pc">${row.name}</td>${dates.map(d=>cellHtml(row,d)).join('')}</tr>`; });
+  h+='</tbody>';
+  document.getElementById('rateTable').innerHTML=h;
 }
 
 // ═══ HOTEL EFFECTIVENESS ═══
@@ -1320,7 +1366,7 @@ function sw(n){
   document.getElementById('screen-'+n).classList.remove('hidden');
   const b=document.getElementById('nav-'+n);if(b)b.classList.add('active');
   if(n==='portfolio'){buildMTabs();renderFlash();if(flashState==='idle'){loadPortfolioFlash().then(renderFlash);}}
-  if(n==='rateshop'){showCluster('spid',document.querySelector('.rct'));}
+  if(n==='rateshop'){ if(rateShopState==='idle'){loadRateShop();} else {renderRateShopTabs();} }
   if(n==='dar'){buildDarMtabs();renderDAR();}
   if(n==='he'){buildHE();}
   if(n==='naparser'){buildNAGrid();}

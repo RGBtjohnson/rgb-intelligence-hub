@@ -37,6 +37,11 @@
  *      Historical      property_id, name, year (2024|2025), month_index (0-11),
  *                      room_rev, occupied_rooms — feeds the Portfolio Flash
  *                      screen's Year-over-Year / vs-Budget comparison toggle
+ *      Rate Shop Data  market, property_name, is_rgb, date, rate_display,
+ *                      rate_num, to_sell, change — populated by pasting the
+ *                      OTA Insight export into that spreadsheet's "Raw Paste"
+ *                      tab and running runParseRateShop (see the "RATE SHOP"
+ *                      section below)
  * 2. To add/update/revoke a night-auditor or franchise-GM login: edit a row
  *    in the Credentials sheet (username, new_password as plaintext, property_id,
  *    role, active), then in the Apps Script editor pick "syncCredentials_" from
@@ -69,13 +74,17 @@ const BUDGET_SHEET_ID       = '1uj3wiFtnyWOoWnJpwyGhzrRDujp4ir9l1gfZb3pYOFY'; //
                                                                                //   property_id, name, month_index, budget_room_rev
 const HISTORICAL_SHEET_ID   = '1pDYuQkJWvDBCt9rk_XWXfaLgSVF2pRkN8sYM-vuNVXE'; // RGB Intel Hub — Historical Actuals
                                                                                //   property_id, name, year, month_index, room_rev, occupied_rooms
+const RATE_SHOP_SHEET_ID    = '1JD2yi77dgUhFpWPkwCxRiYKYJ1RDEVDoSiHLq3eIHZc'; // RGB Intel Hub — Rate Shop Data
+                                                                               //   market, property_name, is_rgb, date, rate_display,
+                                                                               //   rate_num, to_sell, change — see the "RATE SHOP" section
+                                                                               //   below for how this gets populated each morning.
 
 // Never assume the data lives on getSheets()[0] — a Read Me tab (or anything
 // else) inserted ahead of it silently breaks that. This picks the first tab
 // that isn't a known non-data tab by name. If you add a personal/reference
 // tab to any of these spreadsheets, name it something in NON_DATA_TAB_NAMES
 // (or add your name here) so it's automatically skipped.
-const NON_DATA_TAB_NAMES = new Set(['read me', 'readme', 'notes']);
+const NON_DATA_TAB_NAMES = new Set(['read me', 'readme', 'notes', 'raw paste']);
 function firstDataSheet_(spreadsheetId) {
   const sheets = SpreadsheetApp.openById(spreadsheetId).getSheets();
   const dataSheet = sheets.find(s => !NON_DATA_TAB_NAMES.has(s.getName().trim().toLowerCase()));
@@ -184,6 +193,10 @@ function doGet(e) {
     }
 
     const module = params.module || 'portfolio-flash';
+
+    if (module === 'rate-shop') {
+      return jsonOut_({ caller: identity.label, scope: identity.grant, rateShop: getRateShopRows_() }, 200);
+    }
     if (module !== 'portfolio-flash') {
       return jsonOut_({ error: 'unknown_module', message: `Module "${module}" is not wired to the API yet.` }, 400);
     }
@@ -785,6 +798,150 @@ function handleAvailabilitySubmission_(body) {
   });
 
   return { ok: true, property_id: cred.property_id, updated: updated, inserted: inserted };
+}
+
+// ═══ RATE SHOP (comp-set rates, OTA Insight import) ═══
+// The "Rate" column is genuinely external data — competitor pricing scraped
+// by the OTA Insight tool — so someone pulling that export and pasting it in
+// each morning isn't going away. What this replaces is hand-editing a JS
+// object in the Hub's HTML every time the numbers change. It does NOT yet
+// replace RGB properties' To Sell/Change with the auditor-entered Availability
+// data (see RATE_SHOP_NAME_MAP below) — those still come straight from
+// whatever was pasted, same as before. Also NOT permission-filtered by market
+// yet: like the rest of today's Rate Shop screen, every logged-in viewer sees
+// every cluster — the OTA Insight cluster names (SPID, Navigation, Downtown,
+// Portland, ...) are finer-grained than the Properties sheet's market column,
+// and guessing that mapping wrong would show someone the wrong comp set, so
+// that's deferred until it can be confirmed rather than assumed.
+//
+// MORNING WORKFLOW
+// 1. Open the "RGB Intel Hub — Rate Shop Data" spreadsheet. If there's no
+//    "Raw Paste" tab yet, add one (right-click any tab > Insert sheet >
+//    rename it "Raw Paste") — only needs doing once, ever.
+// 2. Paste the OTA Insight export (values only) into Raw Paste starting at
+//    cell A1, exactly as exported — same file, same shape as always.
+// 3. In the Apps Script editor: function dropdown > runParseRateShop > Run.
+// 4. Done — the Hub's Rate Shop screen reads the parsed result immediately,
+//    no redeploy needed.
+
+// Maps a property's exact display name in the OTA Insight export to its
+// property_id. Once a name is added here, that property's To Sell/Change on
+// the Rate Shop screen could be sourced from the Availability sheet (auditor-
+// entered) instead of the pasted file — that join isn't built yet, but this
+// is where the crosswalk will live when it is. Confirm names before adding —
+// a wrong match would silently show one property's inventory as another's.
+const RATE_SHOP_NAME_MAP = {
+  // 'Aloft': '9963103',
+};
+
+function firstOrCreateSheet_(spreadsheetId, name) {
+  const ss = SpreadsheetApp.openById(spreadsheetId);
+  return ss.getSheetByName(name) || ss.insertSheet(name);
+}
+
+/** Wrapper — see firstDataSheet_'s header comment for why this exists (the
+ *  Run dropdown hides any function whose name ends in "_"). */
+function runParseRateShop(){ parseRateShopImport_(); }
+
+/** Finds the header row within the first several rows of the pasted export —
+ *  the row whose first cell is non-empty and whose second cell looks like an
+ *  "M/D" date. Searching for it (rather than assuming a fixed row number)
+ *  survives OTA Insight adding or dropping a label row above it. */
+function findRateShopHeaderRow_(data) {
+  for (let r = 0; r < Math.min(data.length, 10); r++) {
+    const row = data[r];
+    if (String(row[0] || '').trim() && /^\d{1,2}\/\d{1,2}$/.test(String(row[1] || '').trim())) return r;
+  }
+  return -1;
+}
+
+/** OTA Insight's dates come as "8/27" with no year. Assumes the current year
+ *  unless that would land more than 60 days in the past, in which case it
+ *  must mean next year (handles a Dec-into-Jan 21-day window). */
+function normalizeRateShopDate_(label) {
+  const m = /^(\d{1,2})\/(\d{1,2})$/.exec(label);
+  if (!m) return label; // not a plain M/D date — leave it as-is rather than guess
+  const now = new Date();
+  let year = now.getFullYear();
+  let candidate = new Date(year, Number(m[1]) - 1, Number(m[2]));
+  if (candidate < now && (now - candidate) / 86400000 > 60) {
+    year += 1;
+    candidate = new Date(year, Number(m[1]) - 1, Number(m[2]));
+  }
+  return Utilities.formatDate(candidate, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+
+/** Parses the wide OTA Insight export (Raw Paste tab) into normalized rows on
+ *  the Rate Shop Data tab. Re-run each morning after pasting a fresh export —
+ *  this overwrites the prior snapshot rather than appending; Rate Shop is
+ *  "what does the market look like right now," not a history to preserve. */
+function parseRateShopImport_() {
+  const raw = firstOrCreateSheet_(RATE_SHOP_SHEET_ID, 'Raw Paste');
+  const data = raw.getDataRange().getValues();
+
+  const headerRowIdx = findRateShopHeaderRow_(data);
+  if (headerRowIdx < 0) {
+    throw new Error('Could not find the header row in Raw Paste (looking for a row starting with a cluster name followed by an "M/D" date). Check the paste matches the OTA Insight export format, starting at cell A1.');
+  }
+
+  const headerRow = data[headerRowIdx];
+  const dates = [];
+  for (let c = 1; c < headerRow.length; c += 4) {
+    const label = String(headerRow[c] || '').trim();
+    if (!label) break;
+    dates.push(normalizeRateShopDate_(label));
+  }
+
+  const out = [];
+  let cluster = String(headerRow[0] || '').trim();
+  for (let r = headerRowIdx + 1; r < data.length; r++) {
+    const row = data[r];
+    const name = String(row[0] || '').trim();
+    const rest = row.slice(1);
+    const restEmpty = rest.every(v => v === '' || v === null);
+    if (!name && restEmpty) break;              // fully blank row — end of the rate grid
+    if (name && restEmpty) { cluster = name; continue; } // cluster-separator row
+    if (!name) continue;                        // stray blank-name row — skip defensively
+
+    let isRgb = false;
+    const cells = dates.map((date, i) => {
+      const base = 1 + i * 4;
+      const rateDisplay = String(row[base] || '').trim();
+      const toSell = row[base + 2];
+      const change = row[base + 3];
+      if (toSell !== '' && toSell !== null) isRgb = true;
+      if (change !== '' && change !== null) isRgb = true;
+      const rateNum = /^\$[\d,.]+$/.test(rateDisplay) ? Number(rateDisplay.replace(/[$,]/g, '')) : '';
+      return { date, rateDisplay, rateNum, toSell, change };
+    });
+
+    cells.forEach(c => {
+      out.push([cluster, name, isRgb, c.date, c.rateDisplay, c.rateNum,
+        c.toSell === null ? '' : c.toSell, c.change === null ? '' : c.change]);
+    });
+  }
+
+  const outSheet = firstDataSheet_(RATE_SHOP_SHEET_ID);
+  const rowsToClear = Math.max(outSheet.getMaxRows() - 1, 1);
+  outSheet.getRange(2, 1, rowsToClear, 8).clearContent();
+  if (out.length) outSheet.getRange(2, 1, out.length, 8).setValues(out);
+
+  Logger.log(`Rate Shop: parsed ${out.length} property/date row(s) across ${new Set(out.map(r => r[0])).size} cluster(s).`);
+}
+
+/** Every parsed Rate Shop row. Not filtered by market yet — see this
+ *  section's header comment for why. */
+function getRateShopRows_() {
+  const sheet = firstDataSheet_(RATE_SHOP_SHEET_ID);
+  const data = sheet.getDataRange().getValues();
+  const header = data[0].map(h => String(h).trim().toLowerCase());
+  return data.slice(1)
+    .filter(r => r.some(v => v !== '' && v !== null)) // skip fully-blank trailing rows
+    .map(r => {
+      const obj = {};
+      header.forEach((h, i) => obj[h] = r[i]);
+      return obj;
+    });
 }
 
 // ═══ DAR ENTRY FORM (auditor-facing) ═══
