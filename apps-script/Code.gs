@@ -913,10 +913,16 @@ function parseRateShopImport_() {
     });
   }
 
+  // Full wipe, not just the first 4 columns — this sheet's schema changed
+  // more than once while this pipeline was being built, and a partial clear
+  // left stale columns (a duplicated rate_display/rate_num from an older
+  // version) sitting past column D. Those silently corrupted every row: the
+  // frontend keys each row by header name, so a repeated blank column
+  // overwrote the real value with nothing. A clean sheet each run avoids
+  // that regardless of what schema used to be here.
   const outSheet = firstDataSheet_(RATE_SHOP_SHEET_ID);
+  outSheet.clear();
   outSheet.getRange(1, 1, 1, 4).setValues([['property_name', 'date', 'rate_display', 'rate_num']]);
-  const rowsToClear = Math.max(outSheet.getMaxRows() - 1, 1);
-  outSheet.getRange(2, 1, rowsToClear, 4).clearContent();
   if (out.length) outSheet.getRange(2, 1, out.length, 4).setValues(out);
 
   Logger.log(`Rate Shop: parsed ${out.length} property/date rate(s) across ${new Set(out.map(r => r[0])).size} propert(y/ies).`);
