@@ -437,8 +437,19 @@ tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
       <span class="ab ab-a">⚠️ TRU Corpus $109 Thu while SPID compset avg $127 — review for weekend push</span>
       <span class="ab ab-g">✅ Embassy Suites Dallas $129/$139 — compset avg $140/$157. Competitive</span>
     </div>
+    <div id="rateShopStatus" style="font-size:11px;color:var(--tm);margin-bottom:8px;"></div>
     <div class="rw">
-      <div class="rctabs"></div>
+      <div class="rctabs">
+        <button class="rct active" onclick="showCluster('spid',this)">SPID</button>
+        <button class="rct" onclick="showCluster('portland',this)">Portland</button>
+        <button class="rct" onclick="showCluster('navigation',this)">Navigation</button>
+        <button class="rct" onclick="showCluster('downtown',this)">Downtown CC</button>
+        <button class="rct" onclick="showCluster('rockport',this)">Rockport</button>
+        <button class="rct" onclick="showCluster('sa',this)">San Antonio</button>
+        <button class="rct" onclick="showCluster('austin',this)">Austin</button>
+        <button class="rct" onclick="showCluster('houston',this)">Houston</button>
+        <button class="rct" onclick="showCluster('dallas',this)">Dallas</button>
+      </div>
       <div class="rscroll"><table class="rtable" id="rateTable"></table></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:8px;font-size:9px;color:var(--td);flex-wrap:wrap;">
@@ -1182,21 +1193,125 @@ function renderComparison(mode){
 }
 
 // ═══ RATE SHOP ═══
-// Pilot: fetches from the same permissions-filtered Apps Script API as
-// Portfolio Flash (module=rate-shop), fed by pasting the morning OTA Insight
-// export into the "Rate Shop Data" spreadsheet's Raw Paste tab and running
-// runParseRateShop — see apps-script/Code.gs's "RATE SHOP" section. Not yet
-// filtered by market (everyone who's logged in sees every cluster, same as
-// this screen's behavior before this pilot) — see that same section for why.
-let RATE_SHOP=[]; // flat rows: {market, property_name, is_rgb, date, rate_display, rate_num, to_sell, change}
+// The cluster list, property display names, and RGB/Compset table format
+// below are the original design — unchanged. What's live is the DATA: pull
+// from the same permissions-filtered Apps Script API as Portfolio Flash
+// (module=rate-shop), fed by pasting OTA Insight's "Rates" export into the
+// "Rate Shop Data" spreadsheet's Raw Paste tab and running runParseRateShop
+// (see apps-script/Code.gs's "RATE SHOP" section).
+//
+// Each property below carries a `raw` field — its exact name as it appears in
+// the OTA Insight export — used to look up its live rate. That export is a
+// flat name -> rate table with no cluster/market column at all, so cluster
+// assignment and RGB-vs-comp classification are decided ENTIRELY here, by
+// hand — never inferred from the file (the file's own "My Hotels" flagging is
+// missing 5 of our own properties: Residence Inn Downtown, Hampton
+// Navigation, TRU Corpus, Staybridge Portland, La Quinta Portland — worth
+// checking in OTA Insight's account settings, but not something this pipeline
+// should route around). Rockport/SA/Austin/Houston/Dallas comp lists are
+// filled in from the same export that confirmed the Corpus-area ones; a few
+// individual comp properties (HIE Calallen, one Downtown comp, Hyatt Place
+// Dallas N) didn't have a confident match and are left blank on purpose. A
+// property with no live match shows "—" for that cell rather than a
+// fabricated number.
+const CLUSTER_DEFS={
+  spid:{label:'SPID', rgb:[
+    {n:'Aloft CC', raw:'Aloft by Marriott Corpus Christi'},
+    {n:'Hyatt Place CC', raw:'Hyatt Place Corpus Christi'},
+    {n:'Springhill Suites', raw:'SpringHill Suites by Marriott Corpus Christi'},
+    {n:'TRU Corpus', raw:'Tru By Hilton Corpus Christi South Padre Island Dr'},
+    {n:'Residence Inn South', raw:'Residence Inn Corpus Christi South'}
+  ], comp:[
+    {n:'Hilton Garden Inn CC', raw:'Hilton Garden Inn Corpus Christi'},
+    {n:'Staybridge CC', raw:'Staybridge Suites Corpus Christi by IHG'},
+    {n:'Residence Inn CC', raw:'Residence Inn Corpus Christi'},
+    {n:'Home2 CC SE', raw:'Home2 Suites Corpus Christi Southeast, Tx'},
+    {n:'Courtyard', raw:'Courtyard by Marriott Corpus Christi'},
+    {n:'Hampton SPID', raw:'Hampton Inn & Suites Corpus Christi, TX'}
+  ]},
+  portland:{label:'Portland', rgb:[
+    {n:'Hampton Portland', raw:'Hampton Inn & Suites By Hilton-Corpus Christi Portland,Tx'},
+    {n:'La Quinta Portland', raw:'La Quinta by Wyndham Corpus Christi - Portland'},
+    {n:'Staybridge Portland', raw:'Staybridge Suites - Portland by IHG'}
+  ], comp:[
+    {n:'Comfort Inn Portland', raw:'Comfort Inn & Suites Portland Corpus Christi'},
+    {n:'Best Western', raw:'Best Western Plus Portland'},
+    {n:'Home2 Portland', raw:'Home2 Suites by Hilton Portland'},
+    {n:'AVID Portland', raw:'avid hotel Corpus Christi - Portland by IHG'}
+  ]},
+  navigation:{label:'Navigation', rgb:[
+    {n:'Hampton Navigation', raw:'Hampton Inn & Suites Corpus Christi I-37 - Navigation Boulevard'},
+    {n:'HIE Navigation', raw:'Holiday Inn Express & Suites Corpus Christi - North by IHG'}
+  ], comp:[
+    {n:'Hampton CC NW', raw:'Hampton Inn Corpus Christi-Northwest I-37'},
+    {n:'HI Airport CC', raw:'Holiday Inn Corpus Christi Arpt & Conf Ctr by IHG'},
+    {n:'La Quinta Airport', raw:'La Quinta by Wyndham Corpus Christi Airport'},
+    {n:'HIE Calallen', raw:''}
+  ]},
+  downtown:{label:'Downtown CC', rgb:[
+    {n:'HI Marina', raw:'Holiday Inn Corpus Christi Downtown Marina by IHG'},
+    {n:'Residence Inn DT', raw:'Residence Inn by Marriott Corpus Christi Downtown'}
+  ], comp:[
+    {n:'Emerald Beach', raw:'Emerald Beach Hotel Corpus Christi'},
+    {n:'Omni', raw:'Omni Corpus Christi Hotel'},
+    {n:'DoubleTree', raw:'DoubleTree by Hilton Corpus Christi Beachfront'},
+    {n:'Best Western Marina', raw:''}
+  ]},
+  rockport:{label:'Rockport', rgb:[
+    {n:'HIE Rockport', raw:'Holiday Inn Express & Suites Rockport - Bay View by IHG'}
+  ], comp:[
+    {n:'La Quinta Rockport', raw:'La Quinta by Wyndham Rockport - Fulton'},
+    {n:'Hampton Rockport', raw:'Hampton Inn & Suites Rockport-Fulton'},
+    {n:'Fairfield Rockport', raw:'Fairfield Inn & Suites by Marriott Rockport'}
+  ]},
+  sa:{label:'San Antonio', rgb:[
+    {n:'Hampton SA NE', raw:'Hampton Inn & Suites San Antonio/Northeast I-35'},
+    {n:'TRU at Rim', raw:'Tru By Hilton San Antonio At The Rim, Tx'}
+  ], comp:[
+    {n:'Drury Inn', raw:'Drury Inn & Suites San Antonio Northeast'},
+    {n:'HIE North-Windcrest', raw:'Holiday Inn Express & Suites San Antonio North-Windcrest by IHG'},
+    {n:'Home2 at the Rim', raw:'Home2 Suites By Hilton San Antonio At The Rim, Tx'},
+    {n:'Aloft UTSA', raw:'Aloft by Marriott San Antonio UTSA Area'}
+  ]},
+  austin:{label:'Austin', rgb:[
+    {n:'Fairfield Austin', raw:'Fairfield Inn & Suites Austin Downtown'},
+    {n:'Embassy Suites Austin', raw:'Embassy Suites by Hilton Austin The Domain Area'}
+  ], comp:[
+    {n:'Aloft Austin DT', raw:'Aloft by Marriott Austin Downtown'},
+    {n:'Hampton Austin DT', raw:'Hampton Inn & Suites Austin - Downtown'},
+    {n:'Courtyard Austin DT', raw:'Courtyard Austin Downtown/Convention Center'},
+    {n:'Hyatt Place Domain', raw:'Hyatt Place Austin The Domain Area'}
+  ]},
+  houston:{label:'Houston', rgb:[
+    {n:'Home2 Houston', raw:'Home2 Suites At The Galleria'},
+    {n:'Embassy Suites Galleria', raw:'Embassy Suites by Hilton Houston Near the Galleria'}
+  ], comp:[
+    {n:'HGI Galleria', raw:'Hilton Garden Inn Houston/Galleria Area'},
+    {n:'DoubleTree Galleria', raw:'DoubleTree by Hilton Hotel & Suites Houston by the Galleria'},
+    {n:'Hyatt House Galleria', raw:'Hyatt House Houston Galleria'},
+    {n:'Courtyard Houston Galleria', raw:'Courtyard by Marriott Houston Galleria'}
+  ]},
+  dallas:{label:'Dallas', rgb:[
+    {n:'Embassy Suites Dallas', raw:'Embassy Suites by Hilton Dallas Near the Galleria'}
+  ], comp:[
+    {n:'AC Hotel Dallas Galleria', raw:'AC Hotel By Marriott Dallas By The Galleria'},
+    {n:'Le Meridien Galleria', raw:'Le Meridien Dallas by the Galleria'},
+    {n:'Hyatt Place Dallas N', raw:''},
+    {n:'Westin Galleria Dallas', raw:'The Westin Galleria Dallas'}
+  ]}
+};
+
+let RATE_SHOP=[]; // flat rows from module=rate-shop: {property_name, date, rate_display, rate_num}
 let rateShopState='idle'; // idle | loading | ready | error
 let rateShopError=null;
+let curCluster='spid';
+const RATE_SHOP_MAX_DAYS=21; // the export covers ~91 days; cap the table to a readable window
 
 async function loadRateShop(){
-  if(rateShopState==='ready'||rateShopState==='loading') return;
+  if(rateShopState==='ready'||rateShopState==='loading'){ refreshRateShop(); return; }
   const creds=getStoredCreds_();
-  if(!creds){ rateShopState='error'; rateShopError='Sign in on the Portfolio screen first.'; renderRateShopTabs(); return; }
-  rateShopState='loading'; renderRateShopTabs();
+  if(!creds){ rateShopState='error'; rateShopError='Sign in on the Portfolio screen first.'; refreshRateShop(); return; }
+  rateShopState='loading'; refreshRateShop();
   try{
     const qs=new URLSearchParams({module:'rate-shop', username:creds.u, password:creds.p});
     const res=await fetch(`${APPS_SCRIPT_URL}?${qs.toString()}`);
@@ -1207,59 +1322,56 @@ async function loadRateShop(){
   }catch(err){
     rateShopState='error'; rateShopError=String(err.message||err); RATE_SHOP=[];
   }
-  renderRateShopTabs();
+  refreshRateShop();
 }
 
-function rateShopClusters(){
-  const seen=[];
-  RATE_SHOP.forEach(r=>{ if(r.market && !seen.includes(r.market)) seen.push(r.market); });
-  return seen;
-}
-
-function renderRateShopTabs(){
-  const tabsEl=document.querySelector('.rctabs');
-  if(rateShopState==='loading'||rateShopState==='idle'){
-    tabsEl.innerHTML='<span style="font-size:11px;color:var(--tm)">Loading Rate Shop…</span>';
-    document.getElementById('rateTable').innerHTML='';
-    return;
-  }
-  if(rateShopState==='error'){
-    tabsEl.innerHTML=`<span style="font-size:11px;color:var(--dn,#c0392b)">Couldn't load Rate Shop: ${rateShopError}</span>`;
-    document.getElementById('rateTable').innerHTML='';
-    return;
-  }
-  const clusters=rateShopClusters();
-  if(!clusters.length){
-    tabsEl.innerHTML=`<span style="font-size:11px;color:var(--tm)">No Rate Shop data yet — paste this morning's OTA Insight export and run runParseRateShop.</span>`;
-    document.getElementById('rateTable').innerHTML='';
-    return;
-  }
-  tabsEl.innerHTML=clusters.map((c,i)=>`<button class="rct${i===0?' active':''}" onclick='showCluster(${JSON.stringify(c)},this)'>${c}</button>`).join('');
-  showCluster(clusters[0], tabsEl.querySelector('.rct'));
+function refreshRateShop(){
+  const statusEl=document.getElementById('rateShopStatus');
+  if(rateShopState==='loading'||rateShopState==='idle'){ statusEl.textContent='Loading live rates…'; statusEl.style.color='var(--tm)'; }
+  else if(rateShopState==='error'){ statusEl.textContent=`Couldn't load live rates: ${rateShopError} — showing cluster list only.`; statusEl.style.color='var(--dn,#c0392b)'; }
+  else { statusEl.textContent=''; }
+  const activeBtn=document.querySelector('.rct.active')||document.querySelector('.rct');
+  showCluster(curCluster, activeBtn);
 }
 
 function rcls(v,all){if(typeof v!=='number')return'';const n=all.filter(x=>typeof x==='number');if(!n.length)return'';return v===Math.min(...n)&&Math.min(...n)<Math.max(...n)?'rl':v>=Math.max(...n)*0.95?'rh':'';}
+
+// Global name -> {date -> row} lookup, built once per render from the flat live feed.
+function rateShopByRaw_(){
+  const byRaw={};
+  RATE_SHOP.forEach(r=>{
+    if(!byRaw[r.property_name]) byRaw[r.property_name]={};
+    byRaw[r.property_name][r.date]=r;
+  });
+  return byRaw;
+}
+
 function showCluster(k,btn){
+  curCluster=k;
   document.querySelectorAll('.rct').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
-  const rows=RATE_SHOP.filter(r=>r.market===k);
-  if(!rows.length){ document.getElementById('rateTable').innerHTML=''; return; }
+  const def=CLUSTER_DEFS[k];
+  if(!def){ document.getElementById('rateTable').innerHTML=''; return; }
 
-  const dates=[...new Set(rows.map(r=>r.date))].sort();
-  const byName={};
-  rows.forEach(r=>{
-    if(!byName[r.property_name]) byName[r.property_name]={name:r.property_name, is_rgb:!!r.is_rgb, byDate:{}};
-    byName[r.property_name].byDate[r.date]=r;
-  });
-  const rgb=Object.values(byName).filter(p=>p.is_rgb);
-  const comp=Object.values(byName).filter(p=>!p.is_rgb);
-  const allRows=[...rgb,...comp];
+  const byRaw=rateShopByRaw_();
+  const allEntries=[...def.rgb,...def.comp];
+  const datesSeen=new Set();
+  allEntries.forEach(e=>{ if(e.raw && byRaw[e.raw]) Object.keys(byRaw[e.raw]).forEach(d=>datesSeen.add(d)); });
+  const dates=[...datesSeen].sort().slice(0,RATE_SHOP_MAX_DAYS);
 
-  function cellHtml(row,date){
-    const rec=row.byDate[date];
+  if(!dates.length){
+    document.getElementById('rateTable').innerHTML=`<tbody><tr><td style="padding:16px;text-align:center;color:var(--tm);font-size:12px">No live data for ${def.label} yet — none of this cluster's mapped property names matched the latest paste. Paste a fresh OTA Insight Rates export into Raw Paste and run runParseRateShop.</td></tr></tbody>`;
+    return;
+  }
+
+  function cellHtml(entry,date){
+    const rec=entry.raw ? (byRaw[entry.raw]||{})[date] : null;
     const display=rec&&rec.rate_display ? rec.rate_display : '—';
     const rateNum=rec&&rec.rate_num!==''&&rec.rate_num!=null ? Number(rec.rate_num) : null;
-    const all=allRows.map(p=>{ const r2=p.byDate[date]; return r2&&r2.rate_num!==''&&r2.rate_num!=null ? Number(r2.rate_num) : null; });
+    const all=allEntries.map(e=>{
+      const r2=e.raw ? (byRaw[e.raw]||{})[date] : null;
+      return r2&&r2.rate_num!==''&&r2.rate_num!=null ? Number(r2.rate_num) : null;
+    });
     const s = rateNum===null ? (display==='—'?'':(display.toLowerCase().includes('sold')?'rs':'rlo')) : '';
     return `<td class="${s||rcls(rateNum,all)}">${display}</td>`;
   }
@@ -1271,9 +1383,9 @@ function showCluster(k,btn){
     return `<th><div style="font-size:7px;color:var(--td)">${dow}</div><div>${md}</div></th>`;
   }).join('')}</tr></thead><tbody>`;
   h+=`<tr class="sh"><td colspan="${dates.length+1}">RGB Properties</td></tr>`;
-  rgb.forEach(row=>{ h+=`<tr class="rr"><td class="pc">${row.name}</td>${dates.map(d=>cellHtml(row,d)).join('')}</tr>`; });
+  def.rgb.forEach(entry=>{ h+=`<tr class="rr"><td class="pc">${entry.n}</td>${dates.map(d=>cellHtml(entry,d)).join('')}</tr>`; });
   h+=`<tr class="sh"><td colspan="${dates.length+1}">Compset</td></tr>`;
-  comp.forEach(row=>{ h+=`<tr><td class="pc">${row.name}</td>${dates.map(d=>cellHtml(row,d)).join('')}</tr>`; });
+  def.comp.forEach(entry=>{ h+=`<tr><td class="pc">${entry.n}</td>${dates.map(d=>cellHtml(entry,d)).join('')}</tr>`; });
   h+='</tbody>';
   document.getElementById('rateTable').innerHTML=h;
 }
@@ -1366,7 +1478,7 @@ function sw(n){
   document.getElementById('screen-'+n).classList.remove('hidden');
   const b=document.getElementById('nav-'+n);if(b)b.classList.add('active');
   if(n==='portfolio'){buildMTabs();renderFlash();if(flashState==='idle'){loadPortfolioFlash().then(renderFlash);}}
-  if(n==='rateshop'){ if(rateShopState==='idle'){loadRateShop();} else {renderRateShopTabs();} }
+  if(n==='rateshop'){ loadRateShop(); }
   if(n==='dar'){buildDarMtabs();renderDAR();}
   if(n==='he'){buildHE();}
   if(n==='naparser'){buildNAGrid();}
