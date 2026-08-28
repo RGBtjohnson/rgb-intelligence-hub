@@ -1521,6 +1521,11 @@ function splashRoute(who, username){
   }
   document.getElementById('splash').style.display='none';
   document.getElementById('land').classList.remove('hidden');
+  // Every individual screen (#screen-dar, #screen-portfolio, ...) starts
+  // hidden — without activating one here, a READ-role login shows the nav
+  // bar over a completely blank body until the user happens to click a nav
+  // tab themselves. DAR is the default landing screen.
+  sw('dar');
 }
 
 function splashLogin(){
