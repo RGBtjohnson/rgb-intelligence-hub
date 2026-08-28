@@ -838,27 +838,23 @@ function firstOrCreateSheet_(spreadsheetId, name) {
  *  Run dropdown hides any function whose name ends in "_"). */
 function runParseRateShop(){ parseRateShopImport_(); }
 
-/** Finds the header row within the first several rows of the pasted export —
- *  the row whose second cell looks like "Thu 27 Aug 2026" (a weekday name
- *  followed by a day number). Searching for it (rather than assuming a fixed
- *  row number) survives OTA Insight adding or dropping a label row above it. */
-function findRatesHeaderRow_(data) {
-  for (let r = 0; r < Math.min(data.length, 10); r++) {
-    const cell = String((data[r] && data[r][1]) || '').trim();
-    if (/^[A-Za-z]{3}\s+\d{1,2}\s+[A-Za-z]{3}\s+\d{4}$/.test(cell)) return r;
+/** Recognizes a date in an OTA Insight "Rates" header cell and normalizes it
+ *  to "yyyy-MM-dd", or returns null if the cell isn't a date at all. Handles
+ *  two shapes because Excel-to-Sheets paste can produce either: the literal
+ *  text "Thu 27 Aug 2026" (a weekday name, day, month name, year), OR a real
+ *  Date value if Sheets auto-detected that text as a date during paste (a
+ *  common paste-from-Excel quirk — not a locale-dependent guess, since a
+ *  genuine Date object here unambiguously came from that recognition, not
+ *  from parsing arbitrary user text). */
+function parseRatesDateCell_(cell) {
+  if (cell instanceof Date) {
+    return Utilities.formatDate(cell, Session.getScriptTimeZone(), 'yyyy-MM-dd');
   }
-  return -1;
-}
-
-/** "Thu 27 Aug 2026" -> "2026-08-27". Not a locale-dependent parse (relying on
- *  JS's built-in Date parsing of arbitrary text formats is a known footgun
- *  across environments) — matched and rebuilt from named groups instead. */
-function normalizeRatesDate_(label) {
-  const m = /^[A-Za-z]{3}\s+(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/.exec(String(label).trim());
-  if (!m) return String(label).trim();
+  const m = /^[A-Za-z]{3}\s+(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/.exec(String(cell || '').trim());
+  if (!m) return null;
   const months = { Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11 };
   const monthIdx = months[m[2]];
-  if (monthIdx === undefined) return String(label).trim();
+  if (monthIdx === undefined) return null;
   const d = new Date(Number(m[3]), monthIdx, Number(m[1]));
   return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 }
@@ -866,30 +862,41 @@ function normalizeRatesDate_(label) {
 const RATE_SHOP_SKIP_NAMES = new Set(['holidays', 'events']); // annotation rows in the export, not properties
 
 /** Parses the flat OTA Insight "Rates" export (Raw Paste tab) — one row per
- *  property, two columns per date (rate, then a % change column that's only
- *  ever populated for whichever properties OTA Insight has flagged as "My
- *  Hotels" — ignored here, see this section's header comment for why) — into
- *  normalized rows on the Rate Shop Data tab. Re-run each morning after
- *  pasting a fresh export; this overwrites the prior snapshot rather than
- *  appending, since Rate Shop is "what does the market look like right now,"
- *  not a history to preserve. */
+ *  property, a rate column per date (RGB-flagged properties also carry a
+ *  % change column next to it, which this ignores — see this section's
+ *  header comment for why) — into normalized rows on the Rate Shop Data tab.
+ *  Re-run each morning after pasting a fresh export; this overwrites the
+ *  prior snapshot rather than appending, since Rate Shop is "what does the
+ *  market look like right now," not a history to preserve.
+ *
+ *  Finds date COLUMNS by scanning header-candidate rows for cells that are
+ *  actually dates, rather than assuming a fixed column/stride — an Excel
+ *  paste can shift, merge, or duplicate header cells in ways position-based
+ *  guessing doesn't survive, but the date values themselves are reliable to
+ *  search for directly. If a date appears in two adjacent columns (a merged
+ *  header cell can read back as duplicated), only the first is kept — the
+ *  rate for that date reliably comes first, with its % change column right
+ *  after. */
 function parseRateShopImport_() {
   const raw = firstOrCreateSheet_(RATE_SHOP_SHEET_ID, 'Raw Paste');
   const data = raw.getDataRange().getValues();
 
-  const headerRowIdx = findRatesHeaderRow_(data);
+  let headerRowIdx = -1, dateCols = [];
+  for (let r = 0; r < Math.min(data.length, 10); r++) {
+    const row = data[r];
+    const cols = [];
+    const seenDates = new Set();
+    for (let c = 1; c < row.length; c++) {
+      const date = parseRatesDateCell_(row[c]);
+      if (date && !seenDates.has(date)) { cols.push(c); seenDates.add(date); }
+    }
+    if (cols.length >= 2) { headerRowIdx = r; dateCols = cols; break; }
+  }
   if (headerRowIdx < 0) {
-    throw new Error('Could not find the header row in Raw Paste (looking for a date like "Thu 27 Aug 2026" in column B). Check the paste matches the OTA Insight "Rates" export format, starting at cell A1.');
+    throw new Error('Could not find a header row with recognizable dates in Raw Paste. Check the paste matches the OTA Insight "Rates" export format, starting at cell A1.');
   }
-
   const headerRow = data[headerRowIdx];
-  const dates = [];
-  for (let c = 1; c < headerRow.length; c += 2) {
-    const label = String(headerRow[c] || '').trim();
-    if (!label) break;
-    dates.push(normalizeRatesDate_(label));
-  }
-  if (!dates.length) throw new Error('Found the header row but no dates in it — check the paste starts at cell A1.');
+  const dates = dateCols.map(c => parseRatesDateCell_(headerRow[c]));
 
   const out = [];
   for (let r = headerRowIdx + 1; r < data.length; r++) {
@@ -897,12 +904,12 @@ function parseRateShopImport_() {
     const name = String(row[0] || '').trim();
     if (!name || RATE_SHOP_SKIP_NAMES.has(name.toLowerCase())) continue;
 
-    dates.forEach((date, i) => {
-      const cellVal = row[1 + i * 2];
+    dateCols.forEach((c, i) => {
+      const cellVal = row[c];
       const rateDisplay = String(cellVal == null ? '' : cellVal).trim();
       if (!rateDisplay) return; // no rate for this property/date — just omit the row
       const rateNum = /^-?[\d,.]+$/.test(rateDisplay) ? Number(rateDisplay.replace(/,/g, '')) : '';
-      out.push([name, date, rateDisplay, rateNum]);
+      out.push([name, dates[i], rateDisplay, rateNum]);
     });
   }
 
