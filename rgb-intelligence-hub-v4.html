@@ -263,9 +263,24 @@ tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
 </head>
 <body>
 
+<!-- SPLASH / SIGN-IN GATE -->
+<div id="splash" style="position:fixed;inset:0;z-index:9999;background:var(--off);display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;">
+  <div style="width:100%;max-width:320px;padding:36px 32px;background:#fff;border-radius:10px;border:1px solid rgba(184,134,46,.15);box-shadow:0 12px 40px rgba(13,13,13,.08);">
+    <div style="color:var(--t);font-size:20px;font-weight:600;margin-bottom:4px;">RGB Intelligence <em style="font-style:italic;color:var(--gold)">Hub</em></div>
+    <div style="color:var(--tm);font-size:12px;margin-bottom:22px;">Sign in to continue</div>
+    <label style="display:block;color:var(--t);font-size:12px;font-weight:bold;margin-top:10px;">Username</label>
+    <input id="splashU" style="width:100%;padding:9px;margin-top:4px;box-sizing:border-box;border-radius:5px;border:1px solid var(--td);background:var(--off);color:var(--t);font-size:14px;">
+    <label style="display:block;color:var(--t);font-size:12px;font-weight:bold;margin-top:10px;">Password</label>
+    <input id="splashP" type="password" style="width:100%;padding:9px;margin-top:4px;box-sizing:border-box;border-radius:5px;border:1px solid var(--td);background:var(--off);color:var(--t);font-size:14px;">
+    <button id="splashBtn" onclick="splashLogin()" style="width:100%;margin-top:20px;padding:11px;background:var(--gold);color:#fff;border:none;border-radius:5px;font-size:14px;font-weight:600;cursor:pointer;">Sign In</button>
+    <div id="splashMsg" style="margin-top:12px;font-size:12px;min-height:16px;"></div>
+  </div>
+</div>
+
 <!-- LANDING -->
-<div id="land">
+<div id="land" class="hidden">
   <div class="lbg"></div><div class="lgrid"></div>
+  <button onclick="signOut()" style="position:absolute;top:16px;right:16px;z-index:5;background:transparent;border:1px solid var(--tm);color:var(--tm);padding:6px 12px;border-radius:4px;font-size:11px;cursor:pointer">Sign Out</button>
   <div class="brand">
     <div class="mono-ring"></div>
     <div class="bname">Intelligence <em>Hub</em></div>
@@ -346,6 +361,7 @@ tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
       <button class="nb" onclick="sw('sales')" id="nav-sales">Sales</button>
       <button class="nb" onclick="sw('str')" id="nav-str">STR</button>
       <button class="nb" onclick="sw('naparser')" id="nav-naparser">Night Audit</button>
+      <button class="nb" onclick="signOut()" id="nav-signout" style="margin-left:8px;opacity:.75">Sign Out</button>
     </div>
   </div>
 
@@ -383,6 +399,11 @@ tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
       <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--tm)" id="flash-date"></div>
     </div>
     <div class="mtabs" id="monthTabs"></div>
+    <div class="frow" id="cmpToggle" style="margin-bottom:10px;">
+      <button class="fp active" onclick="setCmpMode('flash',this)">Flash</button>
+      <button class="fp" onclick="setCmpMode('yoy',this)">Year over Year</button>
+      <button class="fp" onclick="setCmpMode('budget',this)">vs Budget</button>
+    </div>
     <div class="krow" id="kpiRow"></div>
     <div class="tw">
       <div class="tbar">
@@ -397,7 +418,7 @@ tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
           <button class="fp" onclick="fmkt('dallas',this)">Dallas</button>
         </div>
       </div>
-      <table><thead><tr>
+      <table><thead id="flashHead"><tr>
         <th>Property</th><th>Brand</th><th>Rooms</th>
         <th class="r">Occ%</th><th class="r">ADR</th><th class="r">RevPAR</th>
         <th class="r">Room Rev</th><th class="r">Total Rev</th>
@@ -949,12 +970,17 @@ let flashCaller=null, flashScope=null;
 // Login is username/password (Credentials sheet), not Google sign-in — see
 // apps-script/Code.gs's header comment for why. Cached in sessionStorage so
 // it only needs to be re-entered once per browser tab session.
+// Storage can throw (data: URLs, private-browsing edge cases, some sandboxed
+// previews) — never let a storage failure crash the page; just behave as if
+// there's no cached session.
 function getStoredCreds_(){
-  const u=sessionStorage.getItem('rgb_u'), p=sessionStorage.getItem('rgb_p');
-  return (u && p) ? {u,p} : null;
+  try{
+    const u=sessionStorage.getItem('rgb_u'), p=sessionStorage.getItem('rgb_p');
+    return (u && p) ? {u,p} : null;
+  }catch(e){ return null; }
 }
-function setStoredCreds_(u,p){ sessionStorage.setItem('rgb_u',u); sessionStorage.setItem('rgb_p',p); }
-function clearStoredCreds_(){ sessionStorage.removeItem('rgb_u'); sessionStorage.removeItem('rgb_p'); }
+function setStoredCreds_(u,p){ try{ sessionStorage.setItem('rgb_u',u); sessionStorage.setItem('rgb_p',p); }catch(e){} }
+function clearStoredCreds_(){ try{ sessionStorage.removeItem('rgb_u'); sessionStorage.removeItem('rgb_p'); }catch(e){} }
 
 function submitFlashLogin(){
   const u=document.getElementById('flashLoginU').value.trim();
@@ -989,7 +1015,10 @@ async function loadPortfolioFlash(){
     (json.properties||[]).forEach(p=>{
       byProp[p.property_id]={
         n:p.name, b:p.brand, c:BRAND_CHIP[p.brand]||'chya', r:Number(p.rooms), mk:p.market,
-        rv:new Array(12).fill(0), oc:new Array(12).fill(0), tr:new Array(12).fill(0)
+        rv:new Array(12).fill(0), oc:new Array(12).fill(0), tr:new Array(12).fill(0),
+        bg:new Array(12).fill(0),                                     // budget_room_rev, 2026
+        h25:new Array(12).fill(0), hoc25:new Array(12).fill(0),       // room_rev / occupied_rooms, 2025
+        h24:new Array(12).fill(0), hoc24:new Array(12).fill(0)        // room_rev / occupied_rooms, 2024
       };
     });
     (json.flash||[]).forEach(row=>{
@@ -1000,6 +1029,18 @@ async function loadPortfolioFlash(){
       p.oc[m]=Number(row.occupied_rooms)||0;
       p.tr[m]=Number(row.total_rev)||0;
     });
+    (json.budget||[]).forEach(row=>{
+      const p=byProp[row.property_id];
+      if(!p) return;
+      p.bg[Number(row.month_index)]=Number(row.budget_room_rev)||0;
+    });
+    (json.historical||[]).forEach(row=>{
+      const p=byProp[row.property_id];
+      if(!p) return;
+      const m=Number(row.month_index), y=Number(row.year);
+      if(y===2025){ p.h25[m]=Number(row.room_rev)||0; p.hoc25[m]=Number(row.occupied_rooms)||0; }
+      else if(y===2024){ p.h24[m]=Number(row.room_rev)||0; p.hoc24[m]=Number(row.occupied_rooms)||0; }
+    });
     PROPS=Object.values(byProp);
     flashState='ready';
   }catch(err){
@@ -1007,7 +1048,34 @@ async function loadPortfolioFlash(){
   }
 }
 
-let curM=-1,curMkt='all';
+let curM=-1,curMkt='all',cmpMode='flash'; // cmpMode: flash | yoy | budget
+const FLASH_HEAD=`<tr><th>Property</th><th>Brand</th><th>Rooms</th><th class="r">Occ%</th><th class="r">ADR</th><th class="r">RevPAR</th><th class="r">Room Rev</th><th class="r">Total Rev</th></tr>`;
+function cmpHead(mode){
+  return `<tr><th>Property</th><th>Brand</th><th>Rooms</th>
+    <th class="r">Room Rev (2026)</th>
+    <th class="r">${mode==='yoy'?'Room Rev (2025)':'Budget'}</th>
+    <th class="r">Δ Room Rev</th>
+    <th class="r">Occ% (2026)</th>
+    <th class="r">${mode==='yoy'?'Δ Occ (pts)':''}</th>
+  </tr>`;
+}
+function setCmpMode(mode,btn){
+  cmpMode=mode;
+  document.querySelectorAll('#cmpToggle .fp').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderFlash();
+}
+// delta as a percent (room rev vs prior-year or vs budget); null when there's no comparison value to divide by
+function pctDelta(cur,cmp){ if(!cmp) return null; return (cur-cmp)/Math.abs(cmp)*100; }
+// delta arrow — green ▲ / red ▼ / gray — for a % (opts.pts renders it as a point spread, e.g. occupancy, instead)
+function arrowHtml(delta,opts){
+  opts=opts||{};
+  if(delta===null||!isFinite(delta)) return '<span class="neu">—</span>';
+  const cls=delta>0.05?'up':delta<-0.05?'dn':'neu';
+  const arrow=delta>0.05?'▲':delta<-0.05?'▼':'—';
+  const suffix=opts.pts?' pts':'%';
+  return `<span class="${cls}">${arrow} ${Math.abs(delta).toFixed(1)}${suffix}</span>`;
+}
 function buildMTabs(){
   const el=document.getElementById('monthTabs');
   el.innerHTML='<button class="mtab active" onclick="selM(-1,this)">YTD</button>'+MF.map((m,i)=>`<button class="mtab" onclick="selM(${i},this)">${m.substr(0,3)}</button>`).join('');
@@ -1015,6 +1083,7 @@ function buildMTabs(){
 function selM(i,btn){curM=i;document.querySelectorAll('#monthTabs .mtab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('tableTitle').textContent=i===-1?'Year to Date 2026':MF[i]+' 2026';renderFlash();}
 function fmkt(m,btn){curMkt=m;document.querySelectorAll('.fp').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderFlash();}
 function renderFlash(){
+  document.getElementById('flashHead').innerHTML = cmpMode==='flash' ? FLASH_HEAD : cmpHead(cmpMode);
   if(flashState==='needs_login'){
     document.getElementById('flashBody').innerHTML=`<tr><td colspan="8" style="text-align:center;padding:24px">
       <div style="max-width:280px;margin:0 auto">
@@ -1038,6 +1107,8 @@ function renderFlash(){
     document.getElementById('kpiRow').innerHTML='';
     return;
   }
+  if(cmpMode!=='flash'){ renderComparison(cmpMode); return; }
+  document.getElementById('tableTitle').textContent = curM===-1?'Year to Date 2026':MF[curM]+' 2026';
   const days=[31,28,31,30,31,30,31,31,30,31,30,31];
   const filt=curMkt==='all'?PROPS:PROPS.filter(p=>p.mk===curMkt);
   if(!filt.length){
@@ -1064,6 +1135,60 @@ function renderFlash(){
     <div class="kc"><div class="kl">ADR</div><div class="kv">$${(tRv/tN).toFixed(0)}</div><div class="kch up">▲</div></div>
     <div class="kc"><div class="kl">Room Rev</div><div class="kv">$${(tRv/1e6).toFixed(2)}M</div><div class="kch up">▲</div></div>
     <div class="kc"><div class="kl">Total Rev</div><div class="kv">$${(tTr/1e6).toFixed(2)}M</div><div class="kch neu">—</div></div>`;
+}
+
+// Year-over-Year (vs. 2025 actuals) or vs-Budget-2026 comparison, same month/market
+// filters as the Flash table. Budget only carries Room Revenue (no budgeted
+// occupancy), so the Δ Occ column only ever populates in YoY mode.
+function renderComparison(mode){
+  document.getElementById('tableTitle').textContent = (curM===-1?'Year to Date 2026':MF[curM]+' 2026') + (mode==='yoy'?' — vs Prior Year':' — vs Budget');
+  const days=[31,28,31,30,31,30,31,31,30,31,30,31];
+  const filt=curMkt==='all'?PROPS:PROPS.filter(p=>p.mk===curMkt);
+  if(!filt.length){
+    document.getElementById('flashBody').innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--tm);padding:24px">No properties in view for your account.</td></tr>';
+    document.getElementById('kpiRow').innerHTML='';
+    return;
+  }
+  const sumRange = arr => curM===-1 ? arr.reduce((a,b)=>a+b,0) : (arr[curM]||0);
+  const d=curM===-1?140:days[curM];
+  let tCurRv=0,tCmpRv=0,tCurOc=0,tPyOc=0,tRooms=0;
+  const rows=filt.map(p=>{
+    const curRv=sumRange(p.rv), cmpRv=mode==='yoy'?sumRange(p.h25):sumRange(p.bg);
+    const curOc=sumRange(p.oc), pyOc=sumRange(p.hoc25);
+    const av=p.r*d;
+    const curOccPct=av>0?curOc/av*100:0, pyOccPct=av>0?pyOc/av*100:0;
+    const rvDelta=pctDelta(curRv,cmpRv);
+    const occDelta=mode==='yoy'?(curOccPct-pyOccPct):null;
+    const dotCls=mode==='yoy'
+      ? (curOccPct>80?'dg':curOccPct>65?'da':'dr')
+      : (cmpRv>0 ? (curRv>=cmpRv?'dg':curRv>=cmpRv*0.9?'da':'dr') : '');
+    if(curRv>0||cmpRv>0){ tCurRv+=curRv; tCmpRv+=cmpRv; tCurOc+=curOc; tPyOc+=pyOc; tRooms+=p.r; }
+    return `<tr><td><span class="sd ${dotCls}"></span>${p.n}</td><td><span class="chip ${p.c}">${p.b}</span></td>`+
+      `<td class="mono">${p.r}</td>`+
+      `<td class="mono r">${curRv>0?'$'+(curRv/1000).toFixed(0)+'K':'—'}</td>`+
+      `<td class="mono r">${cmpRv>0?'$'+(cmpRv/1000).toFixed(0)+'K':'—'}</td>`+
+      `<td class="mono r">${arrowHtml(rvDelta)}</td>`+
+      `<td class="mono r">${curOccPct>0?curOccPct.toFixed(1)+'%':'—'}</td>`+
+      `<td class="mono r">${mode==='yoy'?arrowHtml(occDelta,{pts:true}):'—'}</td>`+
+    `</tr>`;
+  }).join('');
+  const ta=tRooms*d, totCurOcc=ta>0?tCurOc/ta*100:0, totPyOcc=ta>0?tPyOc/ta*100:0;
+  const totRvDelta=pctDelta(tCurRv,tCmpRv);
+  const totOccDelta=mode==='yoy'?(totCurOcc-totPyOcc):null;
+  document.getElementById('flashBody').innerHTML=rows+`<tr class="tot"><td>📊 Portfolio Total</td><td>${filt.length} PROP${filt.length===1?'':'S'}</td>`+
+    `<td class="mono">${tRooms}</td>`+
+    `<td class="mono r">$${(tCurRv/1e6).toFixed(2)}M</td>`+
+    `<td class="mono r">${tCmpRv>0?'$'+(tCmpRv/1e6).toFixed(2)+'M':'—'}</td>`+
+    `<td class="mono r">${arrowHtml(totRvDelta)}</td>`+
+    `<td class="mono r">${totCurOcc>0?totCurOcc.toFixed(1)+'%':'—'}</td>`+
+    `<td class="mono r">${mode==='yoy'?arrowHtml(totOccDelta,{pts:true}):'—'}</td>`+
+  `</tr>`;
+  document.getElementById('kpiRow').innerHTML=`
+    <div class="kc"><div class="kl">Room Rev (2026)</div><div class="kv">$${(tCurRv/1e6).toFixed(2)}M</div><div class="kch">${arrowHtml(totRvDelta)}<span style="color:var(--td);margin-left:3px">vs ${mode==='yoy'?'PY':'Budget'}</span></div></div>
+    <div class="kc"><div class="kl">${mode==='yoy'?'Room Rev (2025)':'Budgeted Room Rev'}</div><div class="kv">${tCmpRv>0?'$'+(tCmpRv/1e6).toFixed(2)+'M':'—'}</div><div class="kch neu">Reference</div></div>
+    <div class="kc"><div class="kl">Occupancy (2026)</div><div class="kv">${totCurOcc.toFixed(1)}%</div><div class="kch">${mode==='yoy'?arrowHtml(totOccDelta,{pts:true}):'<span class="neu">— n/a</span>'}</div></div>
+    <div class="kc"><div class="kl">ADR (2026)</div><div class="kv">$${(tCurOc>0?tCurRv/tCurOc:0).toFixed(0)}</div><div class="kch neu">—</div></div>
+    <div class="kc"><div class="kl">RevPAR (2026)</div><div class="kv">$${(ta>0?tCurRv/ta:0).toFixed(0)}</div><div class="kch neu">—</div></div>`;
 }
 
 // ═══ RATE SHOP ═══
@@ -1204,6 +1329,76 @@ const now=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day
 document.getElementById('dar-date').textContent=now;
 document.getElementById('flash-date').textContent=now;
 document.getElementById('na-date').textContent=now;
+
+// ═══ SPLASH / SIGN-IN GATE ═══
+// One login for the whole site. Night auditors (role ENTRY) get bounced to the
+// standalone DAR Entry page after signing in here (their username is carried
+// over so they only have to retype their password there — passwords never go
+// in a URL). GMs and corporate (role READ) continue straight into the Hub,
+// already signed in for Portfolio Flash and anything else that checks
+// sessionStorage.
+function splashSetMsg(text, isErr){
+  const m=document.getElementById('splashMsg');
+  m.textContent=text; m.style.color = isErr ? '#c0392b' : '#1a8754';
+}
+
+// Important on shared hotel front-desk computers: clears the cached session
+// and resets everything module state back to a blank slate so the next
+// person doesn't inherit the previous person's data or scope.
+function signOut(){
+  clearStoredCreds_();
+  flashState='idle'; PROPS=[]; flashCaller=null; flashScope=null;
+  document.getElementById('land').classList.add('hidden');
+  document.getElementById('plat').style.display='none';
+  document.getElementById('splashU').value='';
+  document.getElementById('splashP').value='';
+  splashSetMsg('', false);
+  document.getElementById('splash').style.display='flex';
+}
+
+function splashRoute(who, username){
+  if(who.role === 'ENTRY'){
+    window.location.href = APPS_SCRIPT_URL + '?view=dar-entry&username=' + encodeURIComponent(username);
+    return;
+  }
+  document.getElementById('splash').style.display='none';
+  document.getElementById('land').classList.remove('hidden');
+}
+
+function splashLogin(){
+  const u=document.getElementById('splashU').value.trim();
+  const p=document.getElementById('splashP').value;
+  if(!u||!p){ splashSetMsg('Enter your username and password.', true); return; }
+  document.getElementById('splashBtn').disabled = true;
+  splashSetMsg('Signing in...', false);
+  fetch(`${APPS_SCRIPT_URL}?action=whoami&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}`)
+    .then(r=>r.json())
+    .then(who=>{
+      document.getElementById('splashBtn').disabled = false;
+      if(who.error){ splashSetMsg(who.message||'Sign-in failed.', true); return; }
+      setStoredCreds_(u,p);
+      splashRoute(who, u);
+    })
+    .catch(err=>{
+      document.getElementById('splashBtn').disabled = false;
+      splashSetMsg('Network error: '+err, true);
+    });
+}
+
+// On load: if a session is already cached from an earlier visit, skip the
+// login form entirely and go straight to routing.
+(function initSplash(){
+  const creds = getStoredCreds_();
+  if(!creds) return; // splash login form stays visible, waiting for input
+  splashSetMsg('Checking session...', false);
+  fetch(`${APPS_SCRIPT_URL}?action=whoami&username=${encodeURIComponent(creds.u)}&password=${encodeURIComponent(creds.p)}`)
+    .then(r=>r.json())
+    .then(who=>{
+      if(who.error){ clearStoredCreds_(); splashSetMsg('', false); return; }
+      splashRoute(who, creds.u);
+    })
+    .catch(()=>{ splashSetMsg('', false); }); // fall back to showing the login form
+})();
 </script>
 </body>
 </html>
