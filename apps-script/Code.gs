@@ -923,7 +923,14 @@ function parseRateShopImport_() {
   const outSheet = firstDataSheet_(RATE_SHOP_SHEET_ID);
   outSheet.clear();
   outSheet.getRange(1, 1, 1, 4).setValues([['property_name', 'date', 'rate_display', 'rate_num']]);
-  if (out.length) outSheet.getRange(2, 1, out.length, 4).setValues(out);
+  if (out.length) {
+    // Force column B to plain text before writing — otherwise Sheets'
+    // auto-formatting re-recognizes "2026-08-27" as an actual date and
+    // silently converts the cell, the same auto-conversion this whole
+    // section already works around on the Raw Paste side.
+    outSheet.getRange(2, 2, out.length, 1).setNumberFormat('@');
+    outSheet.getRange(2, 1, out.length, 4).setValues(out);
+  }
 
   Logger.log(`Rate Shop: parsed ${out.length} property/date rate(s) across ${new Set(out.map(r => r[0])).size} propert(y/ies).`);
 }
@@ -939,7 +946,19 @@ function getRateShopRows_() {
     .filter(r => r.some(v => v !== '' && v !== null)) // skip fully-blank trailing rows
     .map(r => {
       const obj = {};
-      header.forEach((h, i) => obj[h] = r[i]);
+      header.forEach((h, i) => {
+        let v = r[i];
+        // Defensive, in addition to writing the date column as plain text
+        // above — if a cell ever comes back as a real Date object anyway
+        // (a manual edit to the sheet, a format that slipped through),
+        // JSON.stringify would otherwise turn it into a full ISO timestamp
+        // and break the frontend's date parsing rather than just the
+        // display looking odd.
+        if (h === 'date' && v instanceof Date) {
+          v = Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+        }
+        obj[h] = v;
+      });
       return obj;
     });
 }
