@@ -416,13 +416,44 @@ tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
           <button class="fp" onclick="fmkt('austin',this)">Austin</button>
           <button class="fp" onclick="fmkt('houston',this)">Houston</button>
           <button class="fp" onclick="fmkt('dallas',this)">Dallas</button>
+          <button class="fp" onclick="exportTableToCsv('flashTable','portfolio-flash')">⬇ Export CSV</button>
         </div>
       </div>
-      <table><thead id="flashHead"><tr>
+      <table id="flashTable"><thead id="flashHead"><tr>
         <th>Property</th><th>Brand</th><th>Rooms</th>
         <th class="r">Occ%</th><th class="r">ADR</th><th class="r">RevPAR</th>
         <th class="r">Room Rev</th><th class="r">Total Rev</th>
       </tr></thead><tbody id="flashBody"></tbody></table>
+      <div style="font-size:9px;color:var(--td);padding:0 15px 12px">Click a property to drill down into its own MTD/YTD detail.</div>
+    </div>
+  </div>
+
+  <!-- PROPERTY DETAIL (drill-down from Portfolio) -->
+  <div id="screen-property-detail" class="scr hidden">
+    <div class="sh">
+      <div>
+        <div class="ss"><a href="#" onclick="sw('portfolio');return false;" style="color:var(--gold);text-decoration:none">← Back to Portfolio</a></div>
+        <div class="st" id="pdName">Property</div>
+        <div class="ss" id="pdSub"></div>
+      </div>
+      <button class="fp" onclick="exportTableToCsv('pdMonthlyTable','property-monthly')">⬇ Export CSV</button>
+    </div>
+    <div class="frow" id="pdRangeToggle" style="margin-bottom:10px;">
+      <button class="fp active" onclick="setPdRange('mtd',this)">MTD</button>
+      <button class="fp" onclick="setPdRange('ytd',this)">YTD</button>
+    </div>
+    <div class="frow" id="pdCompareToggle" style="margin-bottom:10px;">
+      <button class="fp active" onclick="setPdCompare('yoy',this)">vs Last Year</button>
+      <button class="fp" onclick="setPdCompare('budget',this)">vs Budget</button>
+      <button class="fp" onclick="setPdCompare('2024',this)">vs 2024</button>
+    </div>
+    <div class="krow" id="pdKpiRow"></div>
+    <div class="tw">
+      <div class="tbar"><div class="ttitle">Monthly Roll-Up — 2026</div></div>
+      <table id="pdMonthlyTable"><thead><tr>
+        <th>Month</th><th class="r">Occ%</th><th class="r">ADR</th><th class="r">RevPAR</th>
+        <th class="r">Room Rev</th><th class="r">Total Rev</th><th class="r">Budget Room Rev</th>
+      </tr></thead><tbody id="pdMonthlyBody"></tbody></table>
     </div>
   </div>
 
@@ -1015,7 +1046,7 @@ async function loadPortfolioFlash(){
     const byProp={};
     (json.properties||[]).forEach(p=>{
       byProp[p.property_id]={
-        n:p.name, b:p.brand, c:BRAND_CHIP[p.brand]||'chya', r:Number(p.rooms), mk:p.market,
+        id:p.property_id, n:p.name, b:p.brand, c:BRAND_CHIP[p.brand]||'chya', r:Number(p.rooms), mk:p.market,
         rv:new Array(12).fill(0), oc:new Array(12).fill(0), tr:new Array(12).fill(0),
         bg:new Array(12).fill(0),                                     // budget_room_rev, 2026
         h25:new Array(12).fill(0), hoc25:new Array(12).fill(0),       // room_rev / occupied_rooms, 2025
@@ -1126,7 +1157,7 @@ function renderFlash(){
     const av=p.r*d;const op=oc>0?oc/av*100:0;const adr=oc>0?rv/oc:0;const rp=av>0?rv/av:0;
     const dc=op>80?'dg':op>65?'da':'dr';
     if(rv>0){tR+=p.r;tO+=oc;tN+=oc;tRv+=rv;tTr+=tr;}
-    return`<tr><td><span class="sd ${dc}"></span>${p.n}</td><td><span class="chip ${p.c}">${p.b}</span></td><td class="mono">${p.r}</td><td class="mono r">${op>0?op.toFixed(1)+'%':'—'}</td><td class="mono r">${adr>0?'$'+adr.toFixed(2):'—'}</td><td class="mono r">${rp>0?'$'+rp.toFixed(2):'—'}</td><td class="mono r">${rv>0?'$'+(rv/1000).toFixed(0)+'K':'—'}</td><td class="mono r">${tr>0?'$'+(tr/1000).toFixed(0)+'K':'—'}</td></tr>`;
+    return`<tr><td><span class="sd ${dc}"></span><a href="#" onclick="openPropertyDetail('${p.id}');return false;" style="color:inherit;text-decoration:none;cursor:pointer" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='inherit'">${p.n}</a></td><td><span class="chip ${p.c}">${p.b}</span></td><td class="mono">${p.r}</td><td class="mono r">${op>0?op.toFixed(1)+'%':'—'}</td><td class="mono r">${adr>0?'$'+adr.toFixed(2):'—'}</td><td class="mono r">${rp>0?'$'+rp.toFixed(2):'—'}</td><td class="mono r">${rv>0?'$'+(rv/1000).toFixed(0)+'K':'—'}</td><td class="mono r">${tr>0?'$'+(tr/1000).toFixed(0)+'K':'—'}</td></tr>`;
   }).join('');
   const td=curM===-1?140:days[curM],ta=tR*td,po=tN/ta*100;
   document.getElementById('flashBody').innerHTML=rows+`<tr class="tot"><td>📊 Portfolio Total</td><td>${filt.length} PROP${filt.length===1?'':'S'}</td><td class="mono">${tR}</td><td class="mono r">${po.toFixed(1)}%</td><td class="mono r">$${(tRv/tN).toFixed(2)}</td><td class="mono r">$${(tRv/ta).toFixed(2)}</td><td class="mono r">$${(tRv/1e6).toFixed(2)}M</td><td class="mono r">$${(tTr/1e6).toFixed(2)}M</td></tr>`;
@@ -1164,7 +1195,7 @@ function renderComparison(mode){
       ? (curOccPct>80?'dg':curOccPct>65?'da':'dr')
       : (cmpRv>0 ? (curRv>=cmpRv?'dg':curRv>=cmpRv*0.9?'da':'dr') : '');
     if(curRv>0||cmpRv>0){ tCurRv+=curRv; tCmpRv+=cmpRv; tCurOc+=curOc; tPyOc+=pyOc; tRooms+=p.r; }
-    return `<tr><td><span class="sd ${dotCls}"></span>${p.n}</td><td><span class="chip ${p.c}">${p.b}</span></td>`+
+    return `<tr><td><span class="sd ${dotCls}"></span><a href="#" onclick="openPropertyDetail('${p.id}');return false;" style="color:inherit;text-decoration:none;cursor:pointer" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='inherit'">${p.n}</a></td><td><span class="chip ${p.c}">${p.b}</span></td>`+
       `<td class="mono">${p.r}</td>`+
       `<td class="mono r">${curRv>0?'$'+(curRv/1000).toFixed(0)+'K':'—'}</td>`+
       `<td class="mono r">${cmpRv>0?'$'+(cmpRv/1000).toFixed(0)+'K':'—'}</td>`+
@@ -1190,6 +1221,104 @@ function renderComparison(mode){
     <div class="kc"><div class="kl">Occupancy (2026)</div><div class="kv">${totCurOcc.toFixed(1)}%</div><div class="kch">${mode==='yoy'?arrowHtml(totOccDelta,{pts:true}):'<span class="neu">— n/a</span>'}</div></div>
     <div class="kc"><div class="kl">ADR (2026)</div><div class="kv">$${(tCurOc>0?tCurRv/tCurOc:0).toFixed(0)}</div><div class="kch neu">—</div></div>
     <div class="kc"><div class="kl">RevPAR (2026)</div><div class="kv">$${(ta>0?tCurRv/ta:0).toFixed(0)}</div><div class="kch neu">—</div></div>`;
+}
+
+// ═══ PROPERTY DETAIL (drill-down from a Portfolio Flash row) ═══
+// Entirely client-side — reuses whatever's already in PROPS from
+// loadPortfolioFlash() (2026 actuals, 2025/2024 historical, 2026 budget).
+// No new API call needed, so this opens instantly.
+let pdProp=null, pdRange='mtd', pdCompare='yoy';
+const DAYS_IN_MONTH=[31,28,31,30,31,30,31,31,30,31,30,31];
+
+/** The most recent month this property actually has 2026 room revenue for —
+ *  MTD means "that month," not literally today's calendar month, since the
+ *  Portfolio Flash Data upload lags behind the calendar. */
+function latestMonthWithData(p){
+  for(let m=11;m>=0;m--){ if(p.rv[m]>0) return m; }
+  return 0;
+}
+
+function openPropertyDetail(id){
+  const p=PROPS.find(x=>String(x.id)===String(id));
+  if(!p) return;
+  pdProp=p; pdRange='mtd'; pdCompare='yoy';
+  document.querySelectorAll('#pdRangeToggle .fp').forEach(b=>b.classList.remove('active'));
+  document.querySelector('#pdRangeToggle .fp').classList.add('active');
+  document.querySelectorAll('#pdCompareToggle .fp').forEach(b=>b.classList.remove('active'));
+  document.querySelector('#pdCompareToggle .fp').classList.add('active');
+  document.getElementById('pdName').textContent=p.n;
+  document.getElementById('pdSub').textContent=`${p.b} · ${p.mk} · ${p.r} rooms`;
+  sw('property-detail');
+}
+
+function setPdRange(range,btn){
+  pdRange=range;
+  document.querySelectorAll('#pdRangeToggle .fp').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPropertyDetail();
+}
+function setPdCompare(mode,btn){
+  pdCompare=mode;
+  document.querySelectorAll('#pdCompareToggle .fp').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPropertyDetail();
+}
+
+function renderPropertyDetail(){
+  if(!pdProp) return;
+  const p=pdProp;
+  const latest=latestMonthWithData(p);
+  const months = pdRange==='mtd' ? [latest] : Array.from({length:latest+1},(_,i)=>i);
+  const sum = arr => months.reduce((a,m)=>a+(arr[m]||0),0);
+  const days = months.reduce((a,m)=>a+DAYS_IN_MONTH[m],0);
+
+  const curRv=sum(p.rv), curOc=sum(p.oc), curTr=sum(p.tr);
+  const av=p.r*days;
+  const curOccPct=av>0?curOc/av*100:0, curAdr=curOc>0?curRv/curOc:0, curRevpar=av>0?curRv/av:0;
+
+  let cmpRv, cmpOc, cmpLabel;
+  if(pdCompare==='yoy'){ cmpRv=sum(p.h25); cmpOc=sum(p.hoc25); cmpLabel='Last Year'; }
+  else if(pdCompare==='2024'){ cmpRv=sum(p.h24); cmpOc=sum(p.hoc24); cmpLabel='2024'; }
+  else { cmpRv=sum(p.bg); cmpOc=null; cmpLabel='Budget'; }
+  const cmpOccPct = (cmpOc!=null && av>0) ? cmpOc/av*100 : null;
+
+  const rvDelta=pctDelta(curRv,cmpRv);
+  const occDelta = cmpOccPct!=null ? curOccPct-cmpOccPct : null;
+
+  document.getElementById('pdKpiRow').innerHTML=`
+    <div class="kc"><div class="kl">Room Revenue</div><div class="kv">$${(curRv/1000).toFixed(0)}K</div><div class="kch">${arrowHtml(rvDelta)}<span style="color:var(--td);margin-left:3px">vs ${cmpLabel}</span></div></div>
+    <div class="kc"><div class="kl">Occupancy</div><div class="kv">${curOccPct>0?curOccPct.toFixed(1)+'%':'—'}</div><div class="kch">${occDelta!=null?arrowHtml(occDelta,{pts:true}):'<span class="neu">— n/a</span>'}</div></div>
+    <div class="kc"><div class="kl">ADR</div><div class="kv">${curAdr>0?'$'+curAdr.toFixed(0):'—'}</div><div class="kch neu">—</div></div>
+    <div class="kc"><div class="kl">RevPAR</div><div class="kv">${curRevpar>0?'$'+curRevpar.toFixed(0):'—'}</div><div class="kch neu">—</div></div>
+    <div class="kc"><div class="kl">Total Revenue</div><div class="kv">$${(curTr/1000).toFixed(0)}K</div><div class="kch neu">—</div></div>`;
+
+  let rows='';
+  for(let m=0;m<=latest;m++){
+    const rv=p.rv[m]||0, oc=p.oc[m]||0, tr=p.tr[m]||0, bg=p.bg[m]||0;
+    const mav=p.r*DAYS_IN_MONTH[m];
+    const op=mav>0&&oc>0?oc/mav*100:0, adr=oc>0?rv/oc:0, rp=mav>0?rv/mav:0;
+    rows+=`<tr><td>${MF[m]}</td><td class="mono r">${op>0?op.toFixed(1)+'%':'—'}</td><td class="mono r">${adr>0?'$'+adr.toFixed(2):'—'}</td><td class="mono r">${rp>0?'$'+rp.toFixed(2):'—'}</td><td class="mono r">${rv>0?'$'+rv.toLocaleString(undefined,{maximumFractionDigits:0}):'—'}</td><td class="mono r">${tr>0?'$'+tr.toLocaleString(undefined,{maximumFractionDigits:0}):'—'}</td><td class="mono r">${bg>0?'$'+bg.toLocaleString(undefined,{maximumFractionDigits:0}):'—'}</td></tr>`;
+  }
+  document.getElementById('pdMonthlyBody').innerHTML=rows||'<tr><td colspan="7" style="text-align:center;color:var(--tm);padding:16px">No 2026 data yet for this property.</td></tr>';
+}
+
+// ═══ CSV EXPORT ═══
+// Reads whatever's currently rendered in a <table> and downloads it as CSV —
+// works on any of the Hub's tables as-is, no server round-trip.
+function exportTableToCsv(tableId, filenameBase){
+  const table=document.getElementById(tableId);
+  if(!table) return;
+  const esc = s => { s=String(s==null?'':s).replace(/\s+/g,' ').trim(); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+  const rows=[...table.querySelectorAll('tr')].map(tr =>
+    [...tr.children].map(td => esc(td.textContent)).join(',')
+  );
+  const csv=rows.join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`${filenameBase}-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ═══ RATE SHOP ═══
@@ -1470,7 +1599,7 @@ function analyzeSTR(e){
 }
 
 // ═══ NAV ═══
-const SCREENS=['dar','portfolio','rateshop','he','ops','recap','sales','str','naparser'];
+const SCREENS=['dar','portfolio','property-detail','rateshop','he','ops','recap','sales','str','naparser'];
 function go(s){document.getElementById('land').style.display='none';document.getElementById('plat').style.display='block';document.body.style.background='var(--off)';sw(s);}
 function back(){document.getElementById('land').style.display='flex';document.getElementById('plat').style.display='none';document.body.style.background='var(--off)';}
 function sw(n){
@@ -1478,6 +1607,7 @@ function sw(n){
   document.getElementById('screen-'+n).classList.remove('hidden');
   const b=document.getElementById('nav-'+n);if(b)b.classList.add('active');
   if(n==='portfolio'){buildMTabs();renderFlash();if(flashState==='idle'){loadPortfolioFlash().then(renderFlash);}}
+  if(n==='property-detail'){renderPropertyDetail();}
   if(n==='rateshop'){ loadRateShop(); }
   if(n==='dar'){buildDarMtabs();renderDAR();}
   if(n==='he'){buildHE();}
