@@ -985,12 +985,18 @@ function getRateShopRows_() {
 //   Forecast 2027       tabs: Forecast (property_id,date,rooms_sold,adr,notes,...) and Status
 //   Forecast Log 2027   append-only: every changed day (old/new) and every submit/review/approve
 //   Budget 2027         locked snapshots
-// Also set DAILY_ACTUALS_SHEET_ID below (last year's actuals, used for the
-// "last year same weekday" columns). Until it's set the forecast still works,
-// it just shows no last-year comparison.
+// The same run also builds the Daily Actuals sheet (last year's numbers, used
+// for the "last year same weekday" columns): upload "RGB Hub - Daily Actuals
+// 2022-2026.csv" to the Drive of the account that owns this script first, and
+// setupForecast2027 finds it BY NAME and converts it — no file ID lives in this
+// code (which is public on GitHub). Until it's imported the forecast still
+// works, it just shows no last-year comparison. Upload a fresher file later
+// and run reimportDailyActuals.
 
 const FORECAST_YEAR = 2027;
-const DAILY_ACTUALS_SHEET_ID = ''; // RGB Intel Hub — Daily Actuals (property_id, date, room_rev, rooms_occ, total_rev), 2022-2026
+const DAILY_ACTUALS_FILE_NAME = 'RGB Hub - Daily Actuals 2022-2026';
+// Optional manual override; normally left empty (the imported sheet's ID is kept in Script Properties).
+const DAILY_ACTUALS_SHEET_ID = '';
 
 const FC_HEADERS = {
   forecast: ['property_id', 'date', 'rooms_sold', 'adr', 'notes', 'updated_by', 'updated_at'],
@@ -1019,7 +1025,70 @@ function setupForecast2027() {
     const ss = fcEnsureSpreadsheet_(key);
     Logger.log(FC_SPREADSHEETS[key].title + ' -> ' + ss.getUrl());
   });
-  if (!DAILY_ACTUALS_SHEET_ID) Logger.log('NOTE: DAILY_ACTUALS_SHEET_ID is still empty — set it at the top of the 2027 BUDGET section to enable last-year comparisons.');
+  try {
+    Logger.log(fcImportDailyActuals_());
+  } catch (e) {
+    Logger.log('Daily Actuals NOT imported: ' + e.message + ' (the forecast sheets above are fine — fix this and run setupForecast2027 again).');
+  }
+}
+
+/** Use after uploading a refreshed daily-actuals file: drops the remembered sheet and imports the file again. */
+function reimportDailyActuals() {
+  PropertiesService.getScriptProperties().deleteProperty('DAILY_ACTUALS_ID');
+  Logger.log(fcImportDailyActuals_());
+}
+
+function fcDailyActualsId_() {
+  return PropertiesService.getScriptProperties().getProperty('DAILY_ACTUALS_ID') || DAILY_ACTUALS_SHEET_ID || '';
+}
+
+/** Finds the uploaded file by name in this account's Drive and converts it to the Google Sheet the forecast reads.
+ *  property_id and date are written as plain text so Sheets can't turn them into numbers/dates. */
+function fcImportDailyActuals_() {
+  const props = PropertiesService.getScriptProperties();
+  const existing = props.getProperty('DAILY_ACTUALS_ID');
+  if (existing) {
+    try { SpreadsheetApp.openById(existing); return 'Daily Actuals already imported (kept as is): ' + existing; } catch (e) { /* deleted — import again below */ }
+  }
+
+  let file = null;
+  [DAILY_ACTUALS_FILE_NAME + '.csv', DAILY_ACTUALS_FILE_NAME].forEach(name => {
+    const it = DriveApp.getFilesByName(name);
+    while (it.hasNext()) { const f = it.next(); if (!file || f.getLastUpdated() > file.getLastUpdated()) file = f; }
+  });
+  if (!file) {
+    return 'Daily Actuals NOT imported: no file named "' + DAILY_ACTUALS_FILE_NAME + '.csv" in this Drive. Upload it (keep that exact name), then run setupForecast2027 again.';
+  }
+  if (file.getMimeType() === MimeType.GOOGLE_SHEETS) {
+    props.setProperty('DAILY_ACTUALS_ID', file.getId());
+    return 'Daily Actuals: using the existing Google Sheet "' + file.getName() + '" (' + file.getId() + ').';
+  }
+
+  const rows = Utilities.parseCsv(file.getBlob().getDataAsString('UTF-8'));
+  const header = (rows[0] || []).map(h => String(h).replace(/^﻿/, '').trim().toLowerCase());
+  const want = ['property_id', 'date', 'room_rev', 'rooms_occ', 'total_rev'];
+  if (want.some((c, i) => header[i] !== c)) {
+    throw new Error('The CSV header must be exactly: ' + want.join(',') + ' (found: ' + header.join(',') + ').');
+  }
+  const body = rows.slice(1)
+    .filter(r => r.length >= 5 && String(r[0]).trim() !== '')
+    .map(r => [String(r[0]).trim(), String(r[1]).trim(), Number(r[2]) || 0, Number(r[3]) || 0, Number(r[4]) || 0]);
+  if (!body.length) throw new Error('The CSV has a header but no data rows.');
+
+  const ss = SpreadsheetApp.create('RGB Intel Hub — Daily Actuals');
+  const sh = ss.getSheets()[0].setName('Daily Actuals');
+  const need = body.length + 1;
+  if (sh.getMaxRows() < need) sh.insertRowsAfter(sh.getMaxRows(), need - sh.getMaxRows());
+  sh.getRange(1, 1, sh.getMaxRows(), 2).setNumberFormat('@');
+  sh.getRange(1, 1, 1, 5).setValues([want]).setFontWeight('bold');
+  sh.setFrozenRows(1);
+  for (let i = 0; i < body.length; i += 5000) {
+    const chunk = body.slice(i, i + 5000);
+    sh.getRange(2 + i, 1, chunk.length, 5).setValues(chunk);
+  }
+  props.setProperty('DAILY_ACTUALS_ID', ss.getId());
+  const dates = body.map(r => r[1]).sort();
+  return 'Daily Actuals imported: ' + body.length + ' rows, ' + new Set(body.map(r => r[0])).size + ' hotels, ' + dates[0] + ' to ' + dates[dates.length - 1] + ' -> ' + ss.getUrl();
 }
 
 function fcEnsureSpreadsheet_(key) {
@@ -1084,8 +1153,9 @@ function fcYearDays_(year) {
 /** {propertyId: {'yyyy-MM-dd': [roomsSold, adr]}} for 2025 onward, for the given properties only. */
 function fcLoadActuals_(propertyIds) {
   const out = {};
-  if (!DAILY_ACTUALS_SHEET_ID) return out;
-  const ss = SpreadsheetApp.openById(DAILY_ACTUALS_SHEET_ID);
+  const actualsId = fcDailyActualsId_();
+  if (!actualsId) return out;
+  const ss = SpreadsheetApp.openById(actualsId);
   const tz = ss.getSpreadsheetTimeZone();
   const sheet = ss.getSheets().find(s => !NON_DATA_TAB_NAMES.has(s.getName().trim().toLowerCase())) || ss.getSheets()[0];
   const data = sheet.getDataRange().getValues();
@@ -1221,7 +1291,7 @@ function handleForecastSummary_(params) {
   const ids = props.map(p => String(p.property_id));
   const idSet = new Set(ids);
 
-  let actuals = {}, actualsLoaded = !!DAILY_ACTUALS_SHEET_ID;
+  let actuals = {}, actualsLoaded = !!fcDailyActualsId_();
   if (actualsLoaded) { try { actuals = fcLoadActuals_(ids); } catch (e) { actualsLoaded = false; } }
 
   const fc = fcReadForecast_();
@@ -1271,7 +1341,7 @@ function handleForecastGet_(params) {
   if (!prop) return fcErr_('not_found', 'Unknown property.');
 
   let actuals = {}, baseError = '';
-  if (DAILY_ACTUALS_SHEET_ID) {
+  if (fcDailyActualsId_()) {
     try { actuals = fcLoadActuals_([pid])[pid] || {}; } catch (e) { baseError = String(e.message || e); }
   } else {
     baseError = 'Last-year comparison is not loaded yet.';
