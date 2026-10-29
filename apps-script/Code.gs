@@ -131,17 +131,61 @@ const DAR_FIELDS = [
   { key: 'county_tax', label: 'County Tax', section: 'Taxes' },
   { key: 'sales_tax', label: 'Sales Tax', section: 'Taxes' },
   { key: 'tabc_sales_tax', label: 'TABC Sales Tax', section: 'Taxes' },
-  { key: 'state_cost_recovery_tax', label: 'State Cost Recovery Tax', section: 'Taxes', restaurantOnly: true }
+  { key: 'state_cost_recovery_tax', label: 'State Cost Recovery Tax', section: 'Taxes', restaurantOnly: true },
+
+  // ── Settlement & ledger, per-brand "profile" ──
+  // Built from Hampton Inn Portland's real DAR + Daily Deposits workbook. These
+  // show ONLY for properties mapped to the profile in DAR_PROFILE_BY_PROPERTY,
+  // so no other hotel's form or totals change until its own DAR has been seen.
+  { key: 'employee_accrual', label: 'Accrual Employee', section: 'Allowances & Adjustments', profile: 'hilton_select' },
+  { key: 'telephone_allowance', label: 'Telephone Allowance', section: 'Allowances & Adjustments', profile: 'hilton_select' },
+  { key: 'gtd_allowance_100pct', label: '100% GTD Allowance', section: 'Allowances & Adjustments', profile: 'hilton_select' },
+  { key: 'advance_purchase_allowance', label: 'Adv Purchase Allowance (enter as negative)', section: 'Allowances & Adjustments', profile: 'hilton_select' },
+  { key: 'writeoffs', label: 'Writeoffs', section: 'Allowances & Adjustments', profile: 'hilton_select' },
+  { key: 'paid_outs', label: 'Paid Outs', section: 'Deposits', profile: 'hilton_select' },
+  { key: 'bank_deposits', label: 'Bank Deposits (cash)', section: 'Deposits', profile: 'hilton_select' },
+  { key: 'direct_deposit_ach', label: 'Direct Deposit ACH', section: 'Deposits', profile: 'hilton_select' },
+  { key: 'amex', label: 'Amex', section: 'Deposits', profile: 'hilton_select' },
+  { key: 'visa_mc', label: 'Visa / MC / Discover (combined)', section: 'Deposits', profile: 'hilton_select' },
+  { key: 'loyalty_advance_purchase', label: 'Hhonors Allowance', section: 'Deposits', profile: 'hilton_select' },
+  { key: 'over_short', label: 'Over / Short', section: 'Deposits', profile: 'hilton_select' },
+  { key: 'tray_guest_ledger', label: 'Tray Ledger', section: 'Ledgers', profile: 'hilton_select' },
+  { key: 'city_ledger', label: 'City Ledger', section: 'Ledgers', profile: 'hilton_select' },
+  { key: 'advance_deposit_ledger', label: 'Advance Deposit', section: 'Ledgers', profile: 'hilton_select' }
 ];
 
-// DEFERRED — not on the entry form yet (accounting reconciliation, not
-// performance data, and the settlement/ledger structure genuinely differs
-// by brand: Hilton uses City/Tray Ledger + Closed Folio; IHG uses Guest
-// Ledger + Accounts Receivable + Advance Deposit + a separate POS terminal
-// breakdown; Marriott/Wyndham/Hyatt not yet seen at all). The DAR Data sheet
-// already has columns reserved for all of these — enabling this section
-// later is just uncommenting entries here (per-brand if the structures
-// don't reconcile into one shared list) plus a UI pass, no schema change.
+// property_id -> settlement profile. Add a hotel here once its own DAR has been
+// compared against the form. Empty/absent = core performance fields only.
+const DAR_PROFILE_BY_PROPERTY = {
+  '10795674': 'hilton_select' // Hampton Inn Portland — night audit pilot
+};
+function darProfileForProperty_(propertyId) { return DAR_PROFILE_BY_PROPERTY[String(propertyId)] || ''; }
+
+/** Fields that apply to this property: not restaurant-only unless it has a restaurant, and not
+ *  profile-specific unless it's on that profile. */
+function darFieldsForProperty_(propertyId) {
+  const hasRestaurant = propertyHasRestaurant_(propertyId), profile = darProfileForProperty_(propertyId);
+  return DAR_FIELDS.filter(f => (!f.restaurantOnly || hasRestaurant) && (!f.profile || f.profile === profile));
+}
+
+const DAR_TOTAL_KEYS = ['total_revenue', 'total_non_revenue', 'total_allowances', 'total_deposits', 'rev_deposit_difference', 'net_receivables'];
+function darAllKeys_() { return DAR_FIELDS.map(f => f.key).concat(DAR_TOTAL_KEYS); }
+
+/** Appends any missing columns to the right of an existing header row. Writes elsewhere are by
+ *  header name, so adding columns can't shift anything — and nobody has to edit the sheet by hand. */
+function darEnsureColumns_(sheet, keys) {
+  const lastCol = sheet.getLastColumn();
+  const header = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim().toLowerCase());
+  const missing = keys.filter(k => header.indexOf(k) < 0);
+  if (!missing.length) return;
+  if (sheet.getMaxColumns() < lastCol + missing.length) sheet.insertColumnsAfter(sheet.getMaxColumns(), lastCol + missing.length - sheet.getMaxColumns());
+  sheet.getRange(1, lastCol + 1, 1, missing.length).setValues([missing]);
+}
+
+// Other brands' settlement/ledger structures (not yet seen — add a profile above when they are):
+// IHG uses Guest Ledger + Accounts Receivable + Advance Deposit + a separate POS terminal
+// breakdown; Hilton full-service/Embassy uses City/Tray Ledger + Closed Folio; Marriott,
+// Wyndham and Hyatt not yet seen at all. Reserved/spare entries kept for reference:
 // const DAR_FIELDS_DEFERRED = [
 //   { key: 'employee_accrual', label: 'Employee Accrual', section: 'Other' },
 //   { key: 'telephone_allowance', label: 'Telephone Allowance', section: 'Other' },
@@ -515,7 +559,8 @@ function handleWhoami_(params) {
       role: 'ENTRY',
       property_id: cred.property_id,
       property_name: prop ? prop.name : cred.property_id,
-      has_restaurant: propertyHasRestaurant_(cred.property_id)
+      has_restaurant: propertyHasRestaurant_(cred.property_id),
+      profile: darProfileForProperty_(cred.property_id)
     };
   }
 
@@ -601,18 +646,30 @@ function handleDarPending_(params) {
 /** Revenue-generating lines only — the totals below intentionally reference every
  *  possible field (including ones not yet on the form) so turning on a deferred
  *  field later doesn't require touching this formula. */
-function computeDarTotals_(v) {
+function computeDarTotals_(v, profile) {
   const n = k => Number(v[k]) || 0;
   const total_revenue = n('room_rental_revenue') + n('dry_cleaning_laundry') + n('parking') + n('early_late_fee') +
     n('hotel_misc') + n('data_internet_charge') + n('market_food') + n('market_beverage') + n('market_beer') +
     n('market_wine') + n('restaurant_food') + n('restaurant_liquor') + n('restaurant_beer') + n('restaurant_wine') +
     n('meeting_room_rental') + n('banquet_food') + n('banquet_misc');
+  // On the Hilton select-service DAR (confirmed from Hampton Inn Portland's), Non-Revenue =
+  // taxes + Accrual Employee + Banquet Service Charge, and Allowances include Writeoffs. Other
+  // hotels' treatment of the banquet service charge isn't confirmed, so it stays as it was.
+  const hilton = profile === 'hilton_select';
   const total_non_revenue = n('state_hotel_tax') + n('city_hotel_tax') + n('county_tax') + n('sales_tax') +
-    n('tabc_sales_tax') + n('state_meeting_room_tax') + n('state_cost_recovery_tax') + n('restaurant_food_tax');
-  const total_allowances = n('telephone_allowance') + n('gtd_allowance_100pct') + n('advance_purchase_allowance');
+    n('tabc_sales_tax') + n('state_meeting_room_tax') + n('state_cost_recovery_tax') + n('restaurant_food_tax') +
+    n('employee_accrual') + (hilton ? n('banquet_service_charge') : 0);
+  const total_allowances = n('telephone_allowance') + n('gtd_allowance_100pct') + n('advance_purchase_allowance') + n('writeoffs');
   const total_deposits = n('loyalty_advance_purchase') + n('amex') + n('visa_mc') + n('discover') +
-    n('other_card_allowance') + n('over_short') + n('bank_deposits');
-  return { total_revenue, total_non_revenue, total_allowances, total_deposits };
+    n('other_card_allowance') + n('over_short') + n('bank_deposits') + n('direct_deposit_ach');
+  const totals = { total_revenue, total_non_revenue, total_allowances, total_deposits };
+  if (hilton) {
+    // The two checks the auditor and GM actually reconcile each morning (Hampton's DAR rows 47 and 49):
+    // deposits minus everything charged, and what the ledgers say is still owed.
+    totals.rev_deposit_difference = Math.round((total_deposits - (total_revenue + total_non_revenue + total_allowances)) * 100) / 100;
+    totals.net_receivables = Math.round((n('tray_guest_ledger') + n('city_ledger') - n('advance_deposit_ledger')) * 100) / 100;
+  }
+  return totals;
 }
 
 function handleDarSubmission_(body) {
@@ -625,45 +682,58 @@ function handleDarSubmission_(body) {
     return { error: 'bad_request', message: 'date must be YYYY-MM-DD.', _status: 400 };
   }
 
-  const { sheet, data, header } = readDarSheet_();
-  const rowIndex = findDarRowIndex_(data, header, cred.property_id, date);
-  if (rowIndex >= 0 && String(data[rowIndex][header.indexOf('status')]) === 'VALIDATED') {
-    return { error: 'already_validated', message: 'This date was already approved by the GM and can no longer be resubmitted. Contact your GM if it needs correction.', _status: 409 };
+  const profile = darProfileForProperty_(cred.property_id);
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    // New fields get their columns added automatically (to the right of the existing ones).
+    darEnsureColumns_(firstDataSheet_(DAR_SHEET_ID), darAllKeys_());
+
+    const { sheet, data, header } = readDarSheet_();
+    const rowIndex = findDarRowIndex_(data, header, cred.property_id, date);
+    if (rowIndex >= 0 && String(data[rowIndex][header.indexOf('status')]) === 'VALIDATED') {
+      return { error: 'already_validated', message: 'This date was already approved by the GM and can no longer be resubmitted. Contact your GM if it needs correction.', _status: 409 };
+    }
+
+    // Only the fields this hotel's form actually shows are accepted; everything else is stored as 0.
+    const values = {};
+    DAR_FIELDS.forEach(f => { values[f.key] = 0; });
+    darFieldsForProperty_(cred.property_id).forEach(f => { values[f.key] = Number(body[f.key]) || 0; });
+    const totals = computeDarTotals_(values, profile);
+    const now = new Date();
+
+    const rowData = header.map(h => {
+      if (h === 'property_id') return cred.property_id;
+      if (h === 'date') return date;
+      if (h in values) return values[h];
+      if (h in totals) return totals[h];
+      if (h === 'submitted_by') return cred.username;
+      if (h === 'submitted_at') return now;
+      if (h === 'status') return 'SUBMITTED';
+      return ''; // validated_by, validated_at, flag_note, and any total not computed for this hotel
+    });
+
+    if (rowIndex >= 0) {
+      sheet.getRange(rowIndex + 1, 1, 1, rowData.length).setValues([rowData]);
+    } else {
+      sheet.appendRow(rowData);
+    }
+
+    // Permanent, append-only record of this exact submission — kept even if a
+    // later resubmission overwrites the "current" row above. Never updated or
+    // deleted by any code path; this is the answer to "what did the auditor
+    // actually submit, and when" regardless of what happened afterward.
+    logDarSubmission_(cred.property_id, date, cred.username, values, totals);
+
+    return { ok: true, property_id: cred.property_id, date: date, status: 'SUBMITTED', totals: totals };
+  } finally {
+    lock.releaseLock();
   }
-
-  const values = {};
-  DAR_FIELDS.forEach(f => { values[f.key] = Number(body[f.key]) || 0; });
-  const totals = computeDarTotals_(values);
-  const now = new Date();
-
-  const rowData = header.map(h => {
-    if (h === 'property_id') return cred.property_id;
-    if (h === 'date') return date;
-    if (h in values) return values[h];
-    if (h in totals) return totals[h];
-    if (h === 'submitted_by') return cred.username;
-    if (h === 'submitted_at') return now;
-    if (h === 'status') return 'SUBMITTED';
-    return ''; // validated_by, validated_at, flag_note, and any deferred field not in this submission
-  });
-
-  if (rowIndex >= 0) {
-    sheet.getRange(rowIndex + 1, 1, 1, rowData.length).setValues([rowData]);
-  } else {
-    sheet.appendRow(rowData);
-  }
-
-  // Permanent, append-only record of this exact submission — kept even if a
-  // later resubmission overwrites the "current" row above. Never updated or
-  // deleted by any code path; this is the answer to "what did the auditor
-  // actually submit, and when" regardless of what happened afterward.
-  logDarSubmission_(cred.property_id, date, cred.username, values, totals);
-
-  return { ok: true, property_id: cred.property_id, date: date, status: 'SUBMITTED', totals: totals };
 }
 
 function logDarSubmission_(propertyId, date, submittedBy, values, totals) {
   const sheet = firstDataSheet_(DAR_LOG_SHEET_ID);
+  darEnsureColumns_(sheet, darAllKeys_());
   const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim().toLowerCase());
   const row = header.map(h => {
     if (h === 'logged_at') return new Date();
@@ -1561,7 +1631,7 @@ const API_URL = '${scriptUrl}'; // the real /exec URL, injected server-side — 
                                  // inside a served Apps Script page points at an internal
                                  // googleusercontent.com content URL, not this one, so it can't
                                  // be used to build fetch() targets.
-let CTX = null; // {property_id, has_restaurant, username, password, date}
+let CTX = null; // {property_id, has_restaurant, profile, username, password, date}
 
 function yesterday(){ const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); }
 document.getElementById('d').value = yesterday();
@@ -1584,7 +1654,7 @@ function loadForm(){
     .then(who=>{
       if(who.error){ setMsg(who.message||'Login failed.', true); return; }
       if(who.role!=='ENTRY'){ setMsg('This login is not a night-audit login.', true); return; }
-      CTX = {property_id: who.property_id, has_restaurant: who.has_restaurant, username:u, password:p, date:d};
+      CTX = {property_id: who.property_id, has_restaurant: who.has_restaurant, profile: who.profile||'', username:u, password:p, date:d};
       document.getElementById('propInfo').textContent = 'Property: ' + who.property_name;
       return fetch(base()+'?action=dar_get&username='+encodeURIComponent(u)+'&password='+encodeURIComponent(p)+'&date='+d);
     })
@@ -1641,6 +1711,7 @@ function renderFields(existing){
   const sections={};
   FIELDS.forEach(f=>{
     if(f.restaurantOnly && !CTX.has_restaurant) return;
+    if(f.profile && f.profile!==CTX.profile) return;
     (sections[f.section]=sections[f.section]||[]).push(f);
   });
   let html='';
@@ -1665,7 +1736,15 @@ function submitDar(){
     .then(r=>r.json())
     .then(j=>{
       if(j.error){ setMsg(j.message||'Submit failed.', true); }
-      else { setMsg('Saved. Total Revenue: $'+j.totals.total_revenue.toFixed(2), false); }
+      else {
+        let m='Saved. Total Revenue: $'+j.totals.total_revenue.toFixed(2);
+        // Hotels on a settlement profile get the same check the Excel DAR ends with: deposits minus everything charged.
+        if(j.totals.rev_deposit_difference!==undefined){
+          const d=j.totals.rev_deposit_difference;
+          m+=' · Total Deposits: $'+j.totals.total_deposits.toFixed(2)+' · Deposit difference: '+(d<0?'-':'')+'$'+Math.abs(d).toFixed(2)+' · Net Receivables: $'+j.totals.net_receivables.toFixed(2);
+        }
+        setMsg(m, false);
+      }
     })
     .catch(err=>setMsg('Network error: '+err, true));
 }
@@ -1734,6 +1813,9 @@ function renderList(rows){
     return '<div class="card">'+
       '<h4>'+r.property_id+' — '+r.date+'</h4>'+
       '<div>Total Revenue: $'+Number(r.total_revenue||0).toFixed(2)+' | Total Non-Revenue (taxes): $'+Number(r.total_non_revenue||0).toFixed(2)+'</div>'+
+      (r.rev_deposit_difference!==''&&r.rev_deposit_difference!=null&&!isNaN(Number(r.rev_deposit_difference))
+        ? '<div style="margin-top:4px">Total Deposits: $'+Number(r.total_deposits||0).toFixed(2)+' | <strong>Deposit difference: $'+Number(r.rev_deposit_difference).toFixed(2)+'</strong> | Net Receivables: $'+Number(r.net_receivables||0).toFixed(2)+'</div>'
+        : '')+
       '<table>'+fieldRows+'</table>'+
       '<div style="margin-top:8px">'+
         '<button class="approve" onclick="act('+idx+',\\'validate_dar\\')">Approve</button>'+
