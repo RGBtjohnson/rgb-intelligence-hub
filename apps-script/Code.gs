@@ -188,6 +188,8 @@ function doGet(e) {
     if (params.action === 'dar_get') return jsonOut_(handleDarGet_(params), 200);
     if (params.action === 'dar_pending') return jsonOut_(handleDarPending_(params), 200);
     if (params.action === 'availability_get') return jsonOut_(handleAvailabilityGet_(params), 200);
+    if (params.action === 'forecast_summary') return jsonOut_(handleForecastSummary_(params), 200);
+    if (params.action === 'forecast_get') return jsonOut_(handleForecastGet_(params), 200);
 
     const identity = resolveIdentity_(params);
     if (!identity) {
@@ -233,6 +235,9 @@ function doPost(e) {
     if (action === 'validate_dar') return jsonOut_(handleDarValidation_(body, 'VALIDATED'), 200);
     if (action === 'flag_dar') return jsonOut_(handleDarValidation_(body, 'FLAGGED'), 200);
     if (action === 'submit_availability') return jsonOut_(handleAvailabilitySubmission_(body), 200);
+    if (action === 'forecast_save') return jsonOut_(handleForecastSave_(body), 200);
+    if (action === 'forecast_submit') return jsonOut_(handleForecastSubmit_(body), 200);
+    if (action === 'forecast_review') return jsonOut_(handleForecastReview_(body), 200);
     return jsonOut_({ error: 'unknown_action', message: `Action "${action}" is not supported.` }, 400);
 
   } catch (err) {
@@ -961,6 +966,485 @@ function getRateShopRows_() {
       });
       return obj;
     });
+}
+
+// ═══ 2027 BUDGET — DAILY FORECAST (GMs enter, corporate reviews, budget locks on approval) ═══
+// The forecast is the living, day-by-day number (rooms sold + ADR + a note per
+// day) and is never locked. Only the BUDGET is locked: when corporate approves
+// a submitted forecast, a frozen copy of those 365 days is written to the
+// Budget 2027 sheet, and no code path in this file edits or deletes a row there.
+//
+// STATE (per hotel, on the Status tab):
+//   (none) -> DRAFT -> SUBMITTED -> CHANGES_REQUESTED -> DRAFT ... -> APPROVED
+//   SUBMITTED freezes the GM's own edits until corporate responds. APPROVED
+//   only means the budget snapshot exists; the forecast stays editable.
+//
+// SETUP (once): run setupForecast2027 from the Apps Script editor. It creates
+// three private spreadsheets under the account that owns this script and
+// remembers their IDs in Script Properties (no IDs to paste):
+//   Forecast 2027       tabs: Forecast (property_id,date,rooms_sold,adr,notes,...) and Status
+//   Forecast Log 2027   append-only: every changed day (old/new) and every submit/review/approve
+//   Budget 2027         locked snapshots
+// Also set DAILY_ACTUALS_SHEET_ID below (last year's actuals, used for the
+// "last year same weekday" columns). Until it's set the forecast still works,
+// it just shows no last-year comparison.
+
+const FORECAST_YEAR = 2027;
+const DAILY_ACTUALS_SHEET_ID = ''; // RGB Intel Hub — Daily Actuals (property_id, date, room_rev, rooms_occ, total_rev), 2022-2026
+
+const FC_HEADERS = {
+  forecast: ['property_id', 'date', 'rooms_sold', 'adr', 'notes', 'updated_by', 'updated_at'],
+  status: ['property_id', 'status', 'submitted_by', 'submitted_at', 'reviewed_by', 'reviewed_at', 'review_note', 'locked_at', 'locked_by'],
+  log: ['logged_at', 'property_id', 'date', 'action', 'old_rooms_sold', 'old_adr', 'new_rooms_sold', 'new_adr', 'notes', 'user'],
+  budget: ['property_id', 'date', 'rooms_sold', 'adr', 'notes', 'locked_by', 'locked_at']
+};
+// Columns kept as plain text so Sheets never re-interprets "2027-01-05" as a
+// real date (the same auto-conversion that broke the Rate Shop headers).
+const FC_SPREADSHEETS = {
+  FC_FORECAST_ID: { title: 'RGB Intel Hub — Forecast 2027', tabs: [
+    { name: 'Forecast', header: FC_HEADERS.forecast, text: [1, 2, 5, 6, 7] },
+    { name: 'Status', header: FC_HEADERS.status, text: [1, 2, 3, 4, 5, 6, 7, 8, 9] }
+  ] },
+  FC_LOG_ID: { title: 'RGB Intel Hub — Forecast Log 2027 (append-only)', tabs: [
+    { name: 'Log', header: FC_HEADERS.log, text: [1, 2, 3, 4, 9, 10] }
+  ] },
+  FC_BUDGET_ID: { title: 'RGB Intel Hub — Budget 2027 (locked)', tabs: [
+    { name: 'Budget', header: FC_HEADERS.budget, text: [1, 2, 5, 6, 7] }
+  ] }
+};
+
+/** Run once from the Apps Script editor. Safe to re-run: it only creates what's missing. */
+function setupForecast2027() {
+  Object.keys(FC_SPREADSHEETS).forEach(key => {
+    const ss = fcEnsureSpreadsheet_(key);
+    Logger.log(FC_SPREADSHEETS[key].title + ' -> ' + ss.getUrl());
+  });
+  if (!DAILY_ACTUALS_SHEET_ID) Logger.log('NOTE: DAILY_ACTUALS_SHEET_ID is still empty — set it at the top of the 2027 BUDGET section to enable last-year comparisons.');
+}
+
+function fcEnsureSpreadsheet_(key) {
+  const props = PropertiesService.getScriptProperties();
+  const existingId = props.getProperty(key);
+  if (existingId) {
+    try { return SpreadsheetApp.openById(existingId); } catch (e) { /* deleted or no longer accessible — recreate below */ }
+  }
+  const spec = FC_SPREADSHEETS[key];
+  const ss = SpreadsheetApp.create(spec.title);
+  spec.tabs.forEach((t, i) => {
+    const sh = i === 0 ? ss.getSheets()[0].setName(t.name) : ss.insertSheet(t.name);
+    t.text.forEach(c => sh.getRange(1, c, sh.getMaxRows(), 1).setNumberFormat('@'));
+    sh.getRange(1, 1, 1, t.header.length).setValues([t.header]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  });
+  props.setProperty(key, ss.getId());
+  return ss;
+}
+
+function fcSheet_(key, tabName) {
+  const id = PropertiesService.getScriptProperties().getProperty(key);
+  if (!id) throw new Error('The 2027 budget sheets are not set up yet — run setupForecast2027 once from the Apps Script editor.');
+  const sh = SpreadsheetApp.openById(id).getSheetByName(tabName);
+  if (!sh) throw new Error('Missing tab "' + tabName + '" in the 2027 budget spreadsheet.');
+  return sh;
+}
+
+function fcErr_(code, message) { return { error: code, message: message }; }
+
+/** Budget screens are for logged-in READ users (GM / regional / corporate) with a row on the Permissions sheet. */
+function fcAuth_(source) {
+  const cred = checkCredentials_(source.username, source.password);
+  if (!cred) return { err: fcErr_('not_authorized', 'Invalid or inactive credentials.') };
+  if (cred.role !== 'READ') return { err: fcErr_('not_authorized', 'This login cannot access budgets.') };
+  const grant = lookupPermission_(cred.username);
+  if (!grant) return { err: fcErr_('not_authorized', 'Not on the Permissions sheet.') };
+  return { cred: cred, grant: grant, isCorporate: grant.scope_type === 'portfolio' };
+}
+
+// ── dates ──
+// Everything is a plain 'yyyy-MM-dd' string; Dates only appear when Sheets
+// hands one back, and are converted with the SPREADSHEET's timezone (not the
+// script's) so a midnight date can't slip to the neighbouring day.
+function fcDateKey_(v, tz) {
+  if (v instanceof Date) return Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+  return String(v == null ? '' : v).trim().slice(0, 10);
+}
+function fcShiftDate_(key, deltaDays) {
+  const p = key.split('-').map(Number);
+  return new Date(Date.UTC(p[0], p[1] - 1, p[2] + deltaDays)).toISOString().slice(0, 10);
+}
+function fcYearDays_(year) {
+  const out = [];
+  for (let d = new Date(Date.UTC(year, 0, 1)); d.getUTCFullYear() === year; d.setUTCDate(d.getUTCDate() + 1)) {
+    out.push(d.toISOString().slice(0, 10));
+  }
+  return out;
+}
+
+// ── last year's actuals → "same weekday last year" baseline ──
+/** {propertyId: {'yyyy-MM-dd': [roomsSold, adr]}} for 2025 onward, for the given properties only. */
+function fcLoadActuals_(propertyIds) {
+  const out = {};
+  if (!DAILY_ACTUALS_SHEET_ID) return out;
+  const ss = SpreadsheetApp.openById(DAILY_ACTUALS_SHEET_ID);
+  const tz = ss.getSpreadsheetTimeZone();
+  const sheet = ss.getSheets().find(s => !NON_DATA_TAB_NAMES.has(s.getName().trim().toLowerCase())) || ss.getSheets()[0];
+  const data = sheet.getDataRange().getValues();
+  const h = data[0].map(x => String(x).trim().toLowerCase());
+  const iId = h.indexOf('property_id'), iDate = h.indexOf('date'), iRev = h.indexOf('room_rev'), iOcc = h.indexOf('rooms_occ');
+  if (iId < 0 || iDate < 0 || iRev < 0 || iOcc < 0) throw new Error('Daily Actuals sheet needs columns: property_id, date, room_rev, rooms_occ.');
+  const want = new Set(propertyIds.map(String));
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const pid = String(row[iId]);
+    if (!want.has(pid)) continue;
+    const key = fcDateKey_(row[iDate], tz);
+    if (key < '2025-01-01') continue;
+    const sold = Number(row[iOcc]) || 0, rev = Number(row[iRev]) || 0;
+    if (sold <= 0) continue;
+    (out[pid] = out[pid] || {})[key] = [sold, rev / sold];
+  }
+  return out;
+}
+
+/** Baseline for a 2027 date: the same WEEKDAY one year back (364 days — keeps Fri on Fri,
+ *  and lands Thanksgiving on Thanksgiving), falling back to two years back (728 days) where
+ *  last year isn't available yet (Nov-Dec 2026). Returns [roomsSold, adr, sourceYear] or null. */
+function fcBase_(actualsForProperty, key) {
+  const a = actualsForProperty[fcShiftDate_(key, -364)];
+  if (a) return [a[0], a[1], FORECAST_YEAR - 1];
+  const b = actualsForProperty[fcShiftDate_(key, -728)];
+  if (b) return [b[0], b[1], FORECAST_YEAR - 2];
+  return null;
+}
+
+// ── sheet access ──
+function fcReadForecast_() {
+  const sheet = fcSheet_('FC_FORECAST_ID', 'Forecast');
+  const tz = sheet.getParent().getSpreadsheetTimeZone();
+  const width = FC_HEADERS.forecast.length;
+  // Exactly `width` columns per row (a stray extra column someone adds must not break the write-back).
+  const values = sheet.getDataRange().getValues().map(r => {
+    const row = r.slice(0, width);
+    while (row.length < width) row.push('');
+    return row;
+  });
+  for (let i = 1; i < values.length; i++) {          // normalize to text keys so round-trips are stable
+    values[i][0] = String(values[i][0]);
+    values[i][1] = fcDateKey_(values[i][1], tz);
+  }
+  return { sheet: sheet, tz: tz, values: values };
+}
+
+function fcReadStatus_() {
+  const sheet = fcSheet_('FC_FORECAST_ID', 'Status');
+  const data = sheet.getDataRange().getValues();
+  const map = {};
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === '' || data[i][0] == null) continue;
+    const o = { _row: i + 1 };
+    FC_HEADERS.status.forEach((k, j) => { o[k] = data[i][j] == null ? '' : data[i][j]; });
+    o.property_id = String(o.property_id);
+    map[o.property_id] = o;
+  }
+  return { sheet: sheet, map: map };
+}
+
+function fcSetStatus_(propertyId, patch) {
+  const s = fcReadStatus_();
+  const cur = s.map[propertyId];
+  const vals = FC_HEADERS.status.map(k => patch[k] !== undefined ? patch[k] : (cur ? cur[k] : ''));
+  vals[0] = propertyId;
+  if (cur) s.sheet.getRange(cur._row, 1, 1, vals.length).setValues([vals]);
+  else s.sheet.appendRow(vals);
+}
+
+function fcPublicStatus_(st) {
+  st = st || {};
+  return {
+    status: st.status || '', submitted_by: st.submitted_by || '', submitted_at: st.submitted_at || '',
+    reviewed_by: st.reviewed_by || '', reviewed_at: st.reviewed_at || '', review_note: st.review_note || '',
+    locked_at: st.locked_at || '', locked_by: st.locked_by || ''
+  };
+}
+
+function fcAppendRows_(sheet, rows, width) {
+  if (!rows.length) return;
+  const start = sheet.getLastRow() + 1;
+  const need = start + rows.length - 1;
+  if (sheet.getMaxRows() < need) sheet.insertRowsAfter(sheet.getMaxRows(), need - sheet.getMaxRows());
+  sheet.getRange(start, 1, rows.length, width).setValues(rows);
+}
+
+function fcLog_(rows) {
+  fcAppendRows_(fcSheet_('FC_LOG_ID', 'Log'), rows, FC_HEADERS.log.length);
+}
+
+function fcNowIso_() { return new Date().toISOString(); }
+
+/** Days (this year only, both numbers present) a property has entered: {date: [rooms, adr, notes]}. */
+function fcPropertyDays_(values, propertyId) {
+  const out = {};
+  for (let i = 1; i < values.length; i++) {
+    const r = values[i];
+    if (String(r[0]) !== propertyId) continue;
+    if (String(r[1]).slice(0, 4) !== String(FORECAST_YEAR)) continue;
+    if (r[2] === '' || r[3] === '' || !isFinite(Number(r[2])) || !isFinite(Number(r[3]))) continue;
+    out[r[1]] = [Number(r[2]), Number(r[3]), String(r[4] || '')];
+  }
+  return out;
+}
+
+function fcValidateDay_(d, roomCount) {
+  const date = String((d && d.date) || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date.slice(0, 4) !== String(FORECAST_YEAR) || fcShiftDate_(date, 0) !== date) {
+    return 'Not a valid ' + FORECAST_YEAR + ' date: ' + date;
+  }
+  const sold = Number(d.rooms_sold), adr = Number(d.adr);
+  if (d.rooms_sold === '' || d.rooms_sold == null || !isFinite(sold) || sold < 0 || sold > roomCount || Math.floor(sold) !== sold) {
+    return date + ': rooms sold must be a whole number from 0 to ' + roomCount + ' (the hotel\'s room count).';
+  }
+  if (d.adr === '' || d.adr == null || !isFinite(adr) || adr < 0 || adr > 2000) {
+    return date + ': ADR must be between $0 and $2,000.';
+  }
+  return null;
+}
+
+// ── handlers ──
+
+/** One row per hotel the caller can see: status, how many of 365 days are entered, the forecast
+ *  total, and that total against last year over the SAME days (so a half-finished forecast isn't
+ *  compared with a full year). */
+function handleForecastSummary_(params) {
+  const a = fcAuth_(params);
+  if (a.err) return a.err;
+  const props = getAuthorizedProperties_(a.grant);
+  const ids = props.map(p => String(p.property_id));
+  const idSet = new Set(ids);
+
+  let actuals = {}, actualsLoaded = !!DAILY_ACTUALS_SHEET_ID;
+  if (actualsLoaded) { try { actuals = fcLoadActuals_(ids); } catch (e) { actualsLoaded = false; } }
+
+  const fc = fcReadForecast_();
+  const statusMap = fcReadStatus_().map;
+  const yearDays = fcYearDays_(FORECAST_YEAR);
+
+  const agg = {};
+  fc.values.slice(1).forEach(r => {
+    const pid = String(r[0]);
+    if (!idSet.has(pid) || String(r[1]).slice(0, 4) !== String(FORECAST_YEAR)) return;
+    if (r[2] === '' || r[3] === '' || !isFinite(Number(r[2])) || !isFinite(Number(r[3]))) return;
+    const g = agg[pid] = agg[pid] || { days: 0, rooms: 0, rev: 0, revMatched: 0, baseRev: 0, updated: '' };
+    const sold = Number(r[2]), adr = Number(r[3]);
+    g.days++; g.rooms += sold; g.rev += sold * adr;
+    // "vs last year" only compares days that have BOTH a forecast and a baseline,
+    // so a day with no last-year number can't inflate the variance.
+    const b = fcBase_(actuals[pid] || {}, r[1]);
+    if (b) { g.baseRev += b[0] * b[1]; g.revMatched += sold * adr; }
+    const u = String(r[6] || '');
+    if (u > g.updated) g.updated = u;
+  });
+
+  const list = props.map(p => {
+    const pid = String(p.property_id);
+    const g = agg[pid] || { days: 0, rooms: 0, rev: 0, revMatched: 0, baseRev: 0, updated: '' };
+    let fullBaseRev = 0;
+    if (actuals[pid]) yearDays.forEach(d => { const b = fcBase_(actuals[pid], d); if (b) fullBaseRev += b[0] * b[1]; });
+    const st = fcPublicStatus_(statusMap[pid]);
+    return {
+      property_id: pid, name: p.name, brand: p.brand, market: p.market, rooms: Number(p.rooms) || 0, gm_email: p.gm_email || '',
+      status: st.status, days_entered: g.days, fc_rooms: g.rooms, fc_rev: Math.round(g.rev),
+      fc_rev_matched: Math.round(g.revMatched), base_rev_matched: Math.round(g.baseRev), base_rev_year: Math.round(fullBaseRev),
+      last_updated: g.updated, review_note: st.review_note, locked_at: st.locked_at
+    };
+  });
+
+  return { year: FORECAST_YEAR, scope: a.grant, can_review: a.isCorporate, daily_actuals_loaded: actualsLoaded, properties: list };
+}
+
+/** Everything the editor needs for one hotel: its saved forecast, the last-year baseline for every 2027 day, status. */
+function handleForecastGet_(params) {
+  const a = fcAuth_(params);
+  if (a.err) return a.err;
+  const pid = String(params.property_id || '').trim();
+  if (!pid || !isAuthorizedForProperty_(a.grant, pid)) return fcErr_('not_authorized', 'Not authorized for this property.');
+  const prop = getPropertyById_(pid);
+  if (!prop) return fcErr_('not_found', 'Unknown property.');
+
+  let actuals = {}, baseError = '';
+  if (DAILY_ACTUALS_SHEET_ID) {
+    try { actuals = fcLoadActuals_([pid])[pid] || {}; } catch (e) { baseError = String(e.message || e); }
+  } else {
+    baseError = 'Last-year comparison is not loaded yet.';
+  }
+  const base = {};
+  fcYearDays_(FORECAST_YEAR).forEach(d => {
+    const b = fcBase_(actuals, d);
+    if (b) base[d] = [b[0], Math.round(b[1] * 100) / 100, b[2]];
+  });
+
+  const days = fcPropertyDays_(fcReadForecast_().values, pid);
+  const st = fcPublicStatus_(fcReadStatus_().map[pid]);
+  return {
+    year: FORECAST_YEAR,
+    property: { property_id: pid, name: prop.name, brand: prop.brand, market: prop.market, rooms: Number(prop.rooms) || 0 },
+    status: st, forecast: days, base: base, base_error: baseError,
+    can_review: a.isCorporate,
+    can_edit: a.isCorporate || st.status !== 'SUBMITTED'
+  };
+}
+
+/** Upserts the days the caller changed. Only changed days are written, and each one is logged old -> new. */
+function handleForecastSave_(body) {
+  const a = fcAuth_(body);
+  if (a.err) return a.err;
+  const pid = String(body.property_id || '').trim();
+  if (!pid || !isAuthorizedForProperty_(a.grant, pid)) return fcErr_('not_authorized', 'Not authorized for this property.');
+  const prop = getPropertyById_(pid);
+  if (!prop) return fcErr_('not_found', 'Unknown property.');
+  const roomCount = Number(prop.rooms) || 0;
+
+  const days = Array.isArray(body.days) ? body.days : [];
+  if (!days.length) return fcErr_('bad_request', 'No days to save.');
+  if (days.length > 400) return fcErr_('bad_request', 'Too many days in one save.');
+  const clean = [], seen = new Set();
+  for (let i = 0; i < days.length; i++) {
+    const err = fcValidateDay_(days[i], roomCount);
+    if (err) return fcErr_('bad_request', err);
+    const date = String(days[i].date).trim();
+    if (seen.has(date)) continue;
+    seen.add(date);
+    clean.push({ date: date, rooms_sold: Number(days[i].rooms_sold), adr: Math.round(Number(days[i].adr) * 100) / 100, notes: String(days[i].notes || '').slice(0, 300) });
+  }
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const stMap = fcReadStatus_().map;
+    const curStatus = stMap[pid] ? stMap[pid].status : '';
+    if (curStatus === 'SUBMITTED' && !a.isCorporate) {
+      return fcErr_('locked_for_review', 'This forecast is submitted and waiting for review. Ask corporate to send it back if you need to change it.');
+    }
+
+    const fc = fcReadForecast_();
+    const values = fc.values;
+    const index = {};
+    for (let i = 1; i < values.length; i++) if (values[i][0] === pid) index[values[i][1]] = i;
+
+    const now = fcNowIso_(), who = a.cred.username;
+    const logRows = [];
+    clean.forEach(d => {
+      const i = index[d.date];
+      if (i !== undefined) {
+        const r = values[i];
+        const same = r[2] !== '' && Number(r[2]) === d.rooms_sold && r[3] !== '' && Number(r[3]) === d.adr && String(r[4] || '') === d.notes;
+        if (same) return;
+        logRows.push([now, pid, d.date, 'SAVE_DAY', r[2], r[3], d.rooms_sold, d.adr, d.notes, who]);
+        values[i] = [pid, d.date, d.rooms_sold, d.adr, d.notes, who, now];
+      } else {
+        logRows.push([now, pid, d.date, 'SAVE_DAY', '', '', d.rooms_sold, d.adr, d.notes, who]);
+        values.push([pid, d.date, d.rooms_sold, d.adr, d.notes, who, now]);
+        index[d.date] = values.length - 1;
+      }
+    });
+
+    if (!logRows.length) return { ok: true, changed: 0, status: curStatus };
+
+    if (fc.sheet.getMaxRows() < values.length) fc.sheet.insertRowsAfter(fc.sheet.getMaxRows(), values.length - fc.sheet.getMaxRows());
+    fc.sheet.getRange(1, 1, values.length, FC_HEADERS.forecast.length).setValues(values);
+    fcLog_(logRows);
+
+    let newStatus = curStatus;
+    if (curStatus === '' || curStatus === 'CHANGES_REQUESTED') { newStatus = 'DRAFT'; fcSetStatus_(pid, { status: 'DRAFT' }); }
+    return { ok: true, changed: logRows.length, status: newStatus };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** GM hands the forecast to corporate. Requires every day of the year to be filled in. */
+function handleForecastSubmit_(body) {
+  const a = fcAuth_(body);
+  if (a.err) return a.err;
+  const pid = String(body.property_id || '').trim();
+  if (!pid || !isAuthorizedForProperty_(a.grant, pid)) return fcErr_('not_authorized', 'Not authorized for this property.');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const cur = fcReadStatus_().map[pid];
+    if (cur && cur.status === 'APPROVED') return fcErr_('bad_state', 'This budget is already approved and locked.');
+    if (cur && cur.status === 'SUBMITTED') return fcErr_('bad_state', 'Already submitted — waiting for corporate review.');
+
+    const days = fcPropertyDays_(fcReadForecast_().values, pid);
+    const missingByMonth = [];
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const counts = new Array(12).fill(0);
+    fcYearDays_(FORECAST_YEAR).forEach(d => { if (!days[d]) counts[Number(d.slice(5, 7)) - 1]++; });
+    counts.forEach((n, m) => { if (n) missingByMonth.push(MONTHS[m] + ' (' + n + ')'); });
+    if (missingByMonth.length) {
+      return fcErr_('incomplete', 'Every day needs rooms sold and ADR before submitting. Still missing: ' + missingByMonth.join(', ') + '.');
+    }
+
+    const now = fcNowIso_();
+    fcSetStatus_(pid, { status: 'SUBMITTED', submitted_by: a.cred.username, submitted_at: now });
+    fcLog_([[now, pid, '', 'SUBMIT', '', '', '', '', '', a.cred.username]]);
+    return { ok: true, status: 'SUBMITTED' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Corporate only: COMMENT (note, no state change), REQUEST_CHANGES (back to the GM), or APPROVE (lock the budget). */
+function handleForecastReview_(body) {
+  const a = fcAuth_(body);
+  if (a.err) return a.err;
+  if (!a.isCorporate) return fcErr_('not_authorized', 'Only corporate can review budgets.');
+  const pid = String(body.property_id || '').trim();
+  if (!pid || !getPropertyById_(pid)) return fcErr_('not_found', 'Unknown property.');
+  const decision = String(body.decision || '').toUpperCase();
+  const note = String(body.note || '').slice(0, 1000);
+  if (['COMMENT', 'REQUEST_CHANGES', 'APPROVE'].indexOf(decision) < 0) return fcErr_('bad_request', 'Unknown decision.');
+  if (decision !== 'APPROVE' && !note.trim()) return fcErr_('bad_request', 'Add a note so the GM knows what to change.');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const cur = fcReadStatus_().map[pid];
+    const curStatus = cur ? cur.status : '';
+    const now = fcNowIso_(), who = a.cred.username;
+
+    if (decision === 'COMMENT') {
+      fcSetStatus_(pid, { status: curStatus || 'DRAFT', reviewed_by: who, reviewed_at: now, review_note: note });
+      fcLog_([[now, pid, '', 'COMMENT', '', '', '', '', note, who]]);
+      return { ok: true, status: curStatus || 'DRAFT' };
+    }
+
+    if (decision === 'REQUEST_CHANGES') {
+      if (curStatus === 'APPROVED') return fcErr_('bad_state', 'This budget is already locked.');
+      fcSetStatus_(pid, { status: 'CHANGES_REQUESTED', reviewed_by: who, reviewed_at: now, review_note: note });
+      fcLog_([[now, pid, '', 'REQUEST_CHANGES', '', '', '', '', note, who]]);
+      return { ok: true, status: 'CHANGES_REQUESTED' };
+    }
+
+    // APPROVE: freeze a copy of the 365 days into Budget 2027.
+    if (curStatus === 'APPROVED') return fcErr_('bad_state', 'This budget is already approved and locked.');
+    if (curStatus !== 'SUBMITTED') return fcErr_('bad_state', 'Only a submitted forecast can be approved.');
+    const budgetSheet = fcSheet_('FC_BUDGET_ID', 'Budget');
+    const existing = budgetSheet.getDataRange().getValues();
+    for (let i = 1; i < existing.length; i++) {
+      if (String(existing[i][0]) === pid) return fcErr_('bad_state', 'A locked budget already exists for this hotel.');
+    }
+    const days = fcPropertyDays_(fcReadForecast_().values, pid);
+    const yearDays = fcYearDays_(FORECAST_YEAR);
+    if (yearDays.some(d => !days[d])) return fcErr_('incomplete', 'Forecast is missing days — send it back instead of approving.');
+    const snapshot = yearDays.map(d => [pid, d, days[d][0], days[d][1], days[d][2], who, now]);
+    fcAppendRows_(budgetSheet, snapshot, FC_HEADERS.budget.length);
+    fcSetStatus_(pid, { status: 'APPROVED', reviewed_by: who, reviewed_at: now, review_note: note, locked_at: now, locked_by: who });
+    fcLog_([[now, pid, '', 'APPROVE', '', '', '', '', note, who]]);
+    return { ok: true, status: 'APPROVED', locked_at: now };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ═══ DAR ENTRY FORM (auditor-facing) ═══

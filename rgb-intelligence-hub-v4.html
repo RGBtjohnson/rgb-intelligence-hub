@@ -78,6 +78,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--off);color:var(--t);min-h
 
 /* KPI */
 .krow{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:16px;}
+/* 2027 Budget grid */
+.bginp{font-family:'DM Mono',monospace;font-size:11px;padding:3px 5px;border:.5px solid var(--bs);border-radius:4px;background:var(--off);color:var(--t);text-align:right;width:64px;}
+.bginp.adr{width:74px;}
+.bginp.note{text-align:left;width:200px;font-family:'DM Sans',sans-serif;}
+.bginp:focus{outline:none;border-color:var(--gold);}
+.bginp.bad{border-color:var(--red);background:rgba(178,59,59,.08);}
+.bginp:disabled{background:transparent;border-color:transparent;color:var(--t);}
+.bgwk td{background:rgba(184,134,46,.05);}
+.bgbtn{font-size:11px;padding:5px 12px;border-radius:5px;border:.5px solid var(--gold);background:var(--gold);color:var(--black);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;}
+.bgbtn.sec{background:none;color:var(--gold);}
+.bgbtn.warn{background:none;border-color:var(--red);color:var(--red);}
+.bgbtn:disabled{opacity:.45;cursor:not-allowed;}
+.bgrow{cursor:pointer;}
+.bgrow:hover td{background:rgba(184,134,46,.07);}
 @media(max-width:780px){.krow{grid-template-columns:repeat(3,1fr);}}
 .kc{background:var(--s1);border:.5px solid var(--bs);border-radius:9px;padding:12px 14px;}
 .kl{font-size:9px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--td);margin-bottom:5px;}
@@ -287,6 +301,12 @@ tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
     <div class="btag">RGB Hospitality · 20 Properties · 6 Markets</div>
   </div>
   <div class="mgrid">
+    <div class="mc live" onclick="go('budget')">
+      <div class="mi ig">🎯</div><div class="ml">Planning</div>
+      <div class="mt">2027 Budget</div>
+      <div class="md">Day-by-day forecast for every hotel, built from last year's actuals. GMs enter, corporate reviews. Final due Dec 1.</div>
+      <div class="badge bl"><span class="bd2"></span>Open · Due Dec 1</div>
+    </div>
     <div class="mc live" onclick="go('dar')">
       <div class="mi ig">📋</div><div class="ml">Daily Accounting Report</div>
       <div class="mt">DAR Business Summary</div>
@@ -354,6 +374,7 @@ tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
     <div class="hnav">
       <button class="nb" onclick="sw('dar')" id="nav-dar">DAR</button>
       <button class="nb" onclick="sw('portfolio')" id="nav-portfolio">Portfolio</button>
+      <button class="nb" onclick="sw('budget')" id="nav-budget">Budget 2027</button>
       <button class="nb" onclick="sw('rateshop')" id="nav-rateshop">Rate Shop</button>
       <button class="nb" onclick="sw('he')" id="nav-he">Labor Intelligence</button>
       <button class="nb" onclick="sw('ops')" id="nav-ops">Ops</button>
@@ -455,6 +476,16 @@ tbody td{padding:8px 12px;font-size:11px;color:var(--t);}
         <th class="r">Room Rev</th><th class="r">Total Rev</th><th class="r">Budget Room Rev</th>
       </tr></thead><tbody id="pdMonthlyBody"></tbody></table>
     </div>
+  </div>
+
+  <!-- 2027 BUDGET (GM daily forecast entry, corporate review) -->
+  <div id="screen-budget" class="scr hidden">
+    <div class="sh">
+      <div><div class="st">2027 Budget — Daily Forecast</div><div class="ss" id="bgSub">Final budgets due Dec 1</div></div>
+    </div>
+    <div id="bgMsg" style="font-size:12px;margin-bottom:10px;min-height:16px;"></div>
+    <div id="bgList"></div>
+    <div id="bgEditor" style="display:none"></div>
   </div>
 
   <!-- RATE SHOP -->
@@ -1321,6 +1352,419 @@ function exportTableToCsv(tableId, filenameBase){
   URL.revokeObjectURL(url);
 }
 
+// ═══ 2027 BUDGET — daily forecast entry ═══
+// GMs fill in rooms sold + ADR (and a note) for every day of 2027 next to last
+// year's same-weekday numbers; corporate reviews; approving locks a budget
+// snapshot on the server. The forecast itself is never locked. Every rule here
+// (room cap, ADR range, full year before submit, who may review) is enforced
+// again in Code.gs — this screen is convenience, not the security boundary.
+const BG_YEAR=2027;
+const BG_DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const BG_STATUS={
+  '':['Not started','var(--td)'], DRAFT:['Draft','var(--amb)'], SUBMITTED:['Submitted · in review','var(--blu)'],
+  CHANGES_REQUESTED:['Changes requested','var(--red)'], APPROVED:['Approved · budget locked','var(--grn)']
+};
+let BG={inited:false,list:[],canReview:false,prop:null,status:{},base:{},baseError:'',saved:{},edits:{},canEdit:true,month:0,view:'month',single:false,busy:false};
+
+function bgEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function bgIso(y,m,d){ return new Date(Date.UTC(y,m,d)).toISOString().slice(0,10); }
+function bgMonthDays(m){ const n=new Date(Date.UTC(BG_YEAR,m+1,0)).getUTCDate(); const out=[]; for(let d=1;d<=n;d++) out.push(bgIso(BG_YEAR,m,d)); return out; }
+function bgAllDays(){ let out=[]; for(let m=0;m<12;m++) out=out.concat(bgMonthDays(m)); return out; }
+function bgDow(d){ return BG_DOW[new Date(d+'T00:00:00Z').getUTCDay()]; }
+function bgNum(x){ if(x===''||x==null) return null; const n=Number(x); return isFinite(n)?n:null; }
+function bgMoney(n){ return n>0?'$'+Math.round(n).toLocaleString('en-US'):'—'; }
+function bgShort(iso){ if(!iso) return '—'; const t=new Date(iso); return isNaN(t)?'—':t.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function bgMsg(text,kind){ const el=document.getElementById('bgMsg'); el.textContent=text||''; el.style.color=kind==='err'?'var(--red)':kind==='ok'?'var(--grn)':'var(--tm)'; }
+function bgChip(s){ const x=BG_STATUS[s||'']||BG_STATUS['']; return `<span style="font-size:10px;font-weight:600;color:${x[1]};border:.5px solid ${x[1]};border-radius:10px;padding:1px 8px;white-space:nowrap">${x[0]}</span>`; }
+
+async function bgApi(action,params,post){
+  const c=getStoredCreds_(); if(!c) throw new Error('Please sign in again.');
+  if(post){
+    const r=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(Object.assign({action:action,username:c.u,password:c.p},params))});
+    return r.json();
+  }
+  const qs=new URLSearchParams(Object.assign({action:action,username:c.u,password:c.p},params));
+  const r=await fetch(`${APPS_SCRIPT_URL}?${qs.toString()}`); return r.json();
+}
+
+function bgEnter(){ if(!BG.inited){ BG.inited=true; bgInit(); } }
+
+async function bgInit(){
+  bgMsg('Loading…');
+  try{
+    const j=await bgApi('forecast_summary',{});
+    if(j.error){ BG.inited=false; bgMsg(j.message||'Could not load budgets.','err'); return; }
+    BG.list=j.properties||[]; BG.canReview=!!j.can_review;
+    bgMsg('');
+    if(BG.list.length===1 && !BG.canReview){ BG.single=true; await bgOpen(BG.list[0].property_id); }
+    else { BG.single=false; bgShowList(); }
+  }catch(e){ BG.inited=false; bgMsg('Could not load: '+e.message,'err'); }
+}
+
+function bgShowList(){
+  BG.prop=null;
+  document.getElementById('bgEditor').style.display='none';
+  const el=document.getElementById('bgList'); el.style.display='block';
+  const L=BG.list, cnt=s=>L.filter(p=>p.status===s).length;
+  const started=L.filter(p=>p.days_entered>0);
+  const fc=started.reduce((a,p)=>a+p.fc_rev,0), fcM=started.reduce((a,p)=>a+p.fc_rev_matched,0), base=started.reduce((a,p)=>a+p.base_rev_matched,0);
+  document.getElementById('bgSub').textContent=`${L.length} hotel${L.length===1?'':'s'} · final budgets due Dec 1`;
+  const rows=L.map(p=>{
+    const dv=p.base_rev_matched>0?arrowHtml(pctDelta(p.fc_rev_matched,p.base_rev_matched)):'<span class="neu">—</span>';
+    return `<tr class="bgrow" onclick="bgOpen('${bgEsc(p.property_id)}')"><td>${bgEsc(p.name)}</td><td><span class="chip ${BRAND_CHIP[p.brand]||'chya'}">${bgEsc(p.brand)}</span></td><td class="mono r">${p.rooms}</td><td>${bgChip(p.status)}</td><td class="mono r">${p.days_entered}/365</td><td class="mono r">${p.days_entered?bgMoney(p.fc_rev):'—'}</td><td class="mono r">${dv}</td><td class="mono">${bgShort(p.last_updated)}</td></tr>`;
+  }).join('');
+  el.innerHTML=`
+    <div class="krow">
+      <div class="kc"><div class="kl">Approved</div><div class="kv">${cnt('APPROVED')}/${L.length}</div><div class="kch neu">budget locked</div></div>
+      <div class="kc"><div class="kl">Submitted</div><div class="kv">${cnt('SUBMITTED')}</div><div class="kch neu">in review</div></div>
+      <div class="kc"><div class="kl">In progress</div><div class="kv">${cnt('DRAFT')+cnt('CHANGES_REQUESTED')}</div><div class="kch neu">draft or sent back</div></div>
+      <div class="kc"><div class="kl">Not started</div><div class="kv">${L.filter(p=>!p.status&&!p.days_entered).length}</div><div class="kch neu">no days entered</div></div>
+      <div class="kc"><div class="kl">Forecast Room Rev</div><div class="kv">${started.length?bgMoney(fc):'—'}</div><div class="kch">${base>0?arrowHtml(pctDelta(fcM,base)):'<span class="neu">—</span>'}<span style="color:var(--td);margin-left:3px">vs LY, same days</span></div></div>
+    </div>
+    <div class="tw"><div class="tbar"><div class="ttitle">Hotels</div><div class="frow"><button class="fp" onclick="bgReloadList()">↻ Refresh</button><button class="fp" onclick="exportTableToCsv('bgListTable','budget-2027-status')">⬇ Export CSV</button></div></div>
+      <table id="bgListTable"><thead><tr><th>Hotel</th><th>Brand</th><th class="r">Rooms</th><th>Status</th><th class="r">Days entered</th><th class="r">Forecast Room Rev</th><th class="r">vs Last Year</th><th>Updated</th></tr></thead><tbody>${rows}</tbody></table>
+      <div style="font-size:9px;color:var(--td);padding:0 15px 12px">Click a hotel to open its daily forecast. "vs Last Year" compares only the days already entered.</div>
+    </div>`;
+}
+
+async function bgReloadList(){
+  bgMsg('Refreshing…');
+  try{
+    const j=await bgApi('forecast_summary',{});
+    if(j.error){ bgMsg(j.message||'Could not refresh.','err'); return; }
+    BG.list=j.properties||[]; bgMsg(''); bgShowList();
+  }catch(e){ bgMsg('Could not refresh: '+e.message,'err'); }
+}
+
+function bgFirstIncompleteMonth(){
+  for(let m=0;m<12;m++){ if(bgStats(bgMonthDays(m)).n<bgMonthDays(m).length) return m; }
+  return 0;
+}
+
+async function bgOpen(pid){
+  bgMsg('Loading…');
+  try{
+    const j=await bgApi('forecast_get',{property_id:pid});
+    if(j.error){ bgMsg(j.message||'Could not open.','err'); return; }
+    BG.prop=j.property; BG.status=j.status||{}; BG.base=j.base||{}; BG.baseError=j.base_error||'';
+    BG.canEdit=!!j.can_edit; BG.canReview=!!j.can_review; BG.edits={}; BG.saved={};
+    Object.keys(j.forecast||{}).forEach(d=>{ const f=j.forecast[d]; BG.saved[d]={rooms:f[0],adr:f[1],notes:f[2]||''}; });
+    BG.view='month'; BG.month=bgFirstIncompleteMonth();
+    bgMsg('');
+    document.getElementById('bgList').style.display='none';
+    bgRenderEditor();
+  }catch(e){ bgMsg('Could not open: '+e.message,'err'); }
+}
+
+async function bgBack(){
+  if(bgDirtyDays().length && !confirm('You have unsaved changes. Leave without saving?')) return;
+  BG.edits={};
+  await bgReloadList();
+}
+
+// ── per-day values ──
+function bgVal(d){
+  const src=BG.edits[d]||BG.saved[d]||null;
+  return {rooms:src?src.rooms:'', adr:src?src.adr:'', notes:src?(src.notes||''):''};
+}
+function bgChanged(d){
+  const e=BG.edits[d]; if(!e) return false;
+  const s=BG.saved[d]||{rooms:'',adr:'',notes:''};
+  return String(e.rooms)!==String(s.rooms)||String(e.adr)!==String(s.adr)||String(e.notes||'')!==String(s.notes||'');
+}
+function bgDirtyDays(){ return Object.keys(BG.edits).filter(bgChanged).sort(); }
+
+function bgStats(days){
+  const avail=BG.prop?BG.prop.rooms:0;
+  // *M fields = only days that have BOTH a forecast and a last-year number, so
+  // "vs LY" is like-for-like even where last year is missing for some days.
+  const o={n:0,total:days.length,sold:0,rev:0,availEntered:0,lyRev:0,lyRooms:0,lyRevAll:0,lyRoomsAll:0,soldM:0,revM:0,availM:0};
+  days.forEach(d=>{
+    const b=BG.base[d]; if(b){ o.lyRevAll+=b[0]*b[1]; o.lyRoomsAll+=b[0]; }
+    const v=bgVal(d), s=bgNum(v.rooms), a=bgNum(v.adr);
+    if(s!==null&&a!==null){
+      o.n++; o.sold+=s; o.rev+=s*a; o.availEntered+=avail;
+      if(b){ o.lyRev+=b[0]*b[1]; o.lyRooms+=b[0]; o.soldM+=s; o.revM+=s*a; o.availM+=avail; }
+    }
+  });
+  o.occ=o.availEntered?o.sold/o.availEntered*100:null;
+  o.adr=o.sold?o.rev/o.sold:null;
+  o.revpar=o.availEntered?o.rev/o.availEntered:null;
+  return o;
+}
+
+function bgDerived(d){
+  const avail=BG.prop.rooms, v=bgVal(d), sold=bgNum(v.rooms), adr=bgNum(v.adr), b=BG.base[d];
+  const has=sold!==null&&adr!==null, rev=has?sold*adr:0;
+  return {
+    occ: sold!==null?(sold/avail*100).toFixed(1)+'%':'—',
+    rev: has?bgMoney(rev):'—',
+    revpar: has?'$'+(rev/avail).toFixed(0):'—',
+    vs: (has&&b)?arrowHtml(pctDelta(rev,b[0]*b[1])):'<span class="neu">—</span>'
+  };
+}
+
+// ── rendering ──
+function bgRenderEditor(){
+  const el=document.getElementById('bgEditor'); el.style.display='block';
+  const p=BG.prop;
+  document.getElementById('bgSub').textContent=`${p.name} · ${BG.single?'your':'2027'} daily forecast · final budgets due Dec 1`;
+  const tools=BG.canEdit?`
+    <div class="tw"><div class="tbar"><div class="ttitle">Start from last year</div>
+      <div class="frow" style="align-items:center;gap:8px">
+        <span style="font-size:10px;color:var(--tm)">Rooms sold</span><input id="bgFillOcc" class="bginp" type="number" step="0.5" value="0"><span style="font-size:10px;color:var(--tm)">%</span>
+        <span style="font-size:10px;color:var(--tm)">ADR</span><input id="bgFillAdr" class="bginp" type="number" step="0.5" value="0"><span style="font-size:10px;color:var(--tm)">%</span>
+        <label style="font-size:10px;color:var(--tm)"><input type="checkbox" id="bgFillEmpty" checked> only empty days</label>
+        <button class="bgbtn sec" onclick="bgFill('month')">Fill this month</button>
+        <button class="bgbtn sec" onclick="bgFill('year')">Fill whole year</button>
+      </div></div>
+      <div style="font-size:10px;color:var(--td);padding:0 15px 10px">Pre-fills from your actual 2026 numbers on the same weekday (2025 where 2026 isn't in yet), plus the % changes above. Then adjust every day that moves — holidays, events, renovations, sellouts — and add a note so the reason is on record.</div>
+    </div>`:'';
+  const review=BG.canReview?`
+    <div class="tw"><div class="tbar"><div class="ttitle">Corporate review</div></div>
+      <div style="padding:12px 15px">
+        <textarea id="bgNote" rows="3" style="width:100%;box-sizing:border-box;padding:8px;font-family:inherit;font-size:12px;border:.5px solid var(--bs);border-radius:6px;background:var(--off)" placeholder="Note to the GM (required to comment or send back)"></textarea>
+        <div class="frow" style="margin-top:8px;gap:8px">
+          <button class="bgbtn sec" onclick="bgReview('COMMENT')">Add comment</button>
+          <button class="bgbtn warn" onclick="bgReview('REQUEST_CHANGES')">Send back for changes</button>
+          <button class="bgbtn" onclick="bgReview('APPROVE')">Approve &amp; lock budget</button>
+        </div>
+        <div style="font-size:10px;color:var(--td);margin-top:6px">Approve works once the GM has submitted. It freezes a copy of these 365 days as the 2027 budget; the forecast itself stays editable.</div>
+      </div></div>`:'';
+  const actions=(BG.canEdit?`<button class="bgbtn" id="bgSaveBtn" onclick="bgSave()">Save changes</button><button class="bgbtn sec" onclick="bgSubmit()">Submit for review</button>`:'')+`<button class="bgbtn sec" onclick="bgExportYear()">⬇ Export full year CSV</button>`;
+  el.innerHTML=`
+    ${BG.single?'':`<div class="ss" style="margin-bottom:6px"><a href="#" onclick="bgBack();return false;" style="color:var(--gold);text-decoration:none">← All hotels</a></div>`}
+    <div id="bgHead"></div>
+    <div class="krow" id="bgKpi"></div>
+    ${tools}
+    <div class="mtabs" id="bgTabs"></div>
+    <div class="tw"><div class="tbar"><div class="ttitle" id="bgTitle"></div><div class="frow">${actions}</div></div>
+      <div style="overflow-x:auto" id="bgGrid"></div></div>
+    ${review}`;
+  bgRenderHead(); bgRenderBody();
+}
+
+function bgRenderHead(){
+  const p=BG.prop, st=BG.status||{};
+  let banner='';
+  const box=(color,txt)=>`<div style="border:.5px solid ${color};border-left:3px solid ${color};border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:var(--t)">${txt}</div>`;
+  if(st.status==='APPROVED') banner+=box('var(--grn)',`Budget approved and locked ${bgShort(st.locked_at)}. This forecast stays editable — changes here do not alter the locked budget.`);
+  if(st.status==='SUBMITTED') banner+=box('var(--blu)',`Submitted ${bgShort(st.submitted_at)} — waiting for corporate review.${BG.canEdit?'':' Editing is paused until it\'s reviewed.'}`);
+  if(st.review_note) banner+=box(st.status==='CHANGES_REQUESTED'?'var(--red)':'var(--gold)',`<strong>${st.status==='CHANGES_REQUESTED'?'Changes requested':'Note from corporate'}</strong> (${bgShort(st.reviewed_at)}): ${bgEsc(st.review_note)}`);
+  if(BG.baseError) banner+=box('var(--amb)',`Last-year comparison unavailable: ${bgEsc(BG.baseError)}`);
+  document.getElementById('bgHead').innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div class="st" style="font-size:20px">${bgEsc(p.name)}</div>${bgChip(st.status)}
+      <span style="font-size:11px;color:var(--tm)">${bgEsc(p.brand)} · ${p.rooms} rooms</span>
+    </div>${banner}`;
+}
+
+function bgRenderBody(){
+  const tabs=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((n,m)=>{
+    const days=bgMonthDays(m), done=bgStats(days).n===days.length;
+    return `<button class="mtab${BG.view==='month'&&BG.month===m?' active':''}" onclick="bgSelMonth(${m})">${n}${done?' ✓':''}</button>`;
+  }).join('')+`<button class="mtab${BG.view==='year'?' active':''}" onclick="bgSelYear()">Year</button>`;
+  document.getElementById('bgTabs').innerHTML=tabs;
+  const grid=document.getElementById('bgGrid');
+  if(BG.view==='year'){ document.getElementById('bgTitle').textContent='Year summary — '+BG_YEAR; grid.innerHTML=bgYearHtml(); }
+  else { document.getElementById('bgTitle').textContent=MF[BG.month]+' '+BG_YEAR; grid.innerHTML=bgMonthHtml(BG.month); }
+  bgRefreshKpi(); bgUpdateDirty();
+}
+function bgSelMonth(m){ BG.month=m; BG.view='month'; bgRenderBody(); }
+function bgSelYear(){ BG.view='year'; bgRenderBody(); }
+
+function bgRowHtml(d){
+  const avail=BG.prop.rooms, b=BG.base[d], v=bgVal(d), x=bgDerived(d);
+  const dw=new Date(d+'T00:00:00Z').getUTCDay(), wk=(dw===5||dw===6);
+  const dis=BG.canEdit?'':'disabled';
+  const approx=b&&b[2]!==BG_YEAR-1;
+  return `<tr id="bgr_${d}"${wk?' class="bgwk"':''}>
+    <td class="mono">${d.slice(5).replace('-','/')}</td><td>${bgDow(d)}</td><td class="mono r">${avail}</td>
+    <td class="mono r"${approx?` title="Based on ${b[2]} — last year isn't in yet"`:''}>${b?b[0]+(approx?'*':''):'—'}</td>
+    <td class="mono r">${b?(b[0]/avail*100).toFixed(0)+'%':'—'}</td>
+    <td class="mono r">${b?'$'+Math.round(b[1]):'—'}</td>
+    <td class="mono r">${b?bgMoney(b[0]*b[1]):'—'}</td>
+    <td class="r"><input class="bginp" type="number" min="0" max="${avail}" step="1" data-d="${d}" data-f="rooms" value="${bgEsc(v.rooms)}" ${dis} oninput="bgEdit(this)"></td>
+    <td class="mono r" data-k="occ">${x.occ}</td>
+    <td class="r"><input class="bginp adr" type="number" min="0" step="0.01" data-d="${d}" data-f="adr" value="${bgEsc(v.adr)}" ${dis} oninput="bgEdit(this)"></td>
+    <td class="mono r" data-k="rev">${x.rev}</td><td class="mono r" data-k="revpar">${x.revpar}</td><td class="mono r" data-k="vs">${x.vs}</td>
+    <td><input class="bginp note" type="text" maxlength="300" data-d="${d}" data-f="notes" value="${bgEsc(v.notes)}" ${dis} oninput="bgEdit(this)" placeholder="Event / reason"></td>
+  </tr>`;
+}
+
+function bgFootHtml(m){
+  const days=bgMonthDays(m), avail=BG.prop.rooms, s=bgStats(days);
+  const lyOcc=s.lyRoomsAll?(s.lyRoomsAll/(avail*days.length)*100).toFixed(0)+'%':'—';
+  const lyAdr=s.lyRoomsAll?'$'+Math.round(s.lyRevAll/s.lyRoomsAll):'—';
+  const vs=(s.n&&s.lyRev>0)?arrowHtml(pctDelta(s.revM,s.lyRev)):'<span class="neu">—</span>';
+  return `<tr class="tot"><td colspan="2">Month total</td><td class="mono r">${(avail*days.length).toLocaleString('en-US')}</td>
+    <td class="mono r">${s.lyRoomsAll?s.lyRoomsAll.toLocaleString('en-US'):'—'}</td><td class="mono r">${lyOcc}</td><td class="mono r">${lyAdr}</td><td class="mono r">${bgMoney(s.lyRevAll)}</td>
+    <td class="mono r">${s.n?s.sold.toLocaleString('en-US'):'—'}</td><td class="mono r">${s.occ!==null?s.occ.toFixed(1)+'%':'—'}</td><td class="mono r">${s.adr!==null?'$'+s.adr.toFixed(0):'—'}</td>
+    <td class="mono r">${s.n?bgMoney(s.rev):'—'}</td><td class="mono r">${s.revpar!==null?'$'+s.revpar.toFixed(0):'—'}</td><td class="mono r">${vs}</td>
+    <td style="font-size:10px;color:var(--tm)">${s.n}/${days.length} days entered</td></tr>`;
+}
+
+function bgMonthHtml(m){
+  const days=bgMonthDays(m);
+  return `<table id="bgTable"><thead><tr><th>Date</th><th>Day</th><th class="r">Avail</th><th class="r">LY Sold</th><th class="r">LY Occ</th><th class="r">LY ADR</th><th class="r">LY Rev</th><th class="r">Rooms Sold</th><th class="r">Occ%</th><th class="r">ADR</th><th class="r">Room Rev</th><th class="r">RevPAR</th><th class="r">vs LY</th><th>Notes</th></tr></thead>
+    <tbody id="bgBody">${days.map(bgRowHtml).join('')}</tbody><tfoot id="bgFoot">${bgFootHtml(m)}</tfoot></table>
+    <div style="font-size:9px;color:var(--td);padding:8px 15px 12px">LY = same weekday last year (364 days back). * = 2025 used because 2026 isn't in yet. Shaded rows are Fri/Sat.</div>`;
+}
+
+function bgYearHtml(){
+  const avail=BG.prop.rooms;
+  const rows=[];
+  for(let m=0;m<12;m++){
+    const days=bgMonthDays(m), s=bgStats(days);
+    rows.push(`<tr style="cursor:pointer" onclick="bgSelMonth(${m})"><td>${MF[m]}</td><td class="mono r">${s.n}/${days.length}</td><td class="mono r">${s.n?s.sold.toLocaleString('en-US'):'—'}</td><td class="mono r">${s.occ!==null?s.occ.toFixed(1)+'%':'—'}</td><td class="mono r">${s.adr!==null?'$'+s.adr.toFixed(0):'—'}</td><td class="mono r">${s.n?bgMoney(s.rev):'—'}</td><td class="mono r">${s.revpar!==null?'$'+s.revpar.toFixed(0):'—'}</td><td class="mono r">${s.lyRev>0?bgMoney(s.lyRev):'—'}</td><td class="mono r">${(s.n&&s.lyRev>0)?arrowHtml(pctDelta(s.revM,s.lyRev)):'<span class="neu">—</span>'}</td></tr>`);
+  }
+  const t=bgStats(bgAllDays());
+  rows.push(`<tr class="tot"><td>Total ${BG_YEAR}</td><td class="mono r">${t.n}/${t.total}</td><td class="mono r">${t.n?t.sold.toLocaleString('en-US'):'—'}</td><td class="mono r">${t.occ!==null?t.occ.toFixed(1)+'%':'—'}</td><td class="mono r">${t.adr!==null?'$'+t.adr.toFixed(0):'—'}</td><td class="mono r">${t.n?bgMoney(t.rev):'—'}</td><td class="mono r">${t.revpar!==null?'$'+t.revpar.toFixed(0):'—'}</td><td class="mono r">${t.lyRev>0?bgMoney(t.lyRev):'—'}</td><td class="mono r">${(t.n&&t.lyRev>0)?arrowHtml(pctDelta(t.revM,t.lyRev)):'<span class="neu">—</span>'}</td></tr>`);
+  return `<table id="bgYearTable"><thead><tr><th>Month</th><th class="r">Days entered</th><th class="r">Rooms Sold</th><th class="r">Occ%</th><th class="r">ADR</th><th class="r">Room Rev</th><th class="r">RevPAR</th><th class="r">LY Room Rev (same days)</th><th class="r">vs LY</th></tr></thead><tbody>${rows.join('')}</tbody></table>
+    <div style="font-size:9px;color:var(--td);padding:8px 15px 12px">Totals are computed from the days entered: occupancy = rooms sold ÷ rooms available, ADR = room revenue ÷ rooms sold, RevPAR = room revenue ÷ rooms available.</div>`;
+}
+
+function bgRefreshKpi(){
+  if(!BG.prop) return;
+  const t=bgStats(bgAllDays());
+  // Tile values cover every day entered; the arrows compare only days that also have a last-year number.
+  const occM=t.availM?t.soldM/t.availM*100:null, lyOcc=t.availM?t.lyRooms/t.availM*100:null;
+  const adrM=t.soldM?t.revM/t.soldM:null, lyAdr=t.lyRooms?t.lyRev/t.lyRooms:null;
+  const revparM=t.availM?t.revM/t.availM:null, lyRevpar=t.availM?t.lyRev/t.availM:null;
+  const dv=(cur,ly)=>(cur!=null&&ly)?arrowHtml(pctDelta(cur,ly)):'<span class="neu">—</span>';
+  document.getElementById('bgKpi').innerHTML=`
+    <div class="kc"><div class="kl">Forecast Room Rev</div><div class="kv">${t.n?bgMoney(t.rev):'—'}</div><div class="kch">${dv(t.revM,t.lyRev)}<span style="color:var(--td);margin-left:3px">vs LY</span></div></div>
+    <div class="kc"><div class="kl">Occupancy</div><div class="kv">${t.occ!==null?t.occ.toFixed(1)+'%':'—'}</div><div class="kch">${(occM!==null&&lyOcc!==null)?arrowHtml(occM-lyOcc,{pts:true}):'<span class="neu">—</span>'}</div></div>
+    <div class="kc"><div class="kl">ADR</div><div class="kv">${t.adr!==null?'$'+t.adr.toFixed(0):'—'}</div><div class="kch">${dv(adrM,lyAdr)}</div></div>
+    <div class="kc"><div class="kl">RevPAR</div><div class="kv">${t.revpar!==null?'$'+t.revpar.toFixed(0):'—'}</div><div class="kch">${dv(revparM,lyRevpar)}</div></div>
+    <div class="kc"><div class="kl">Days entered</div><div class="kv">${t.n}/${t.total}</div><div class="kch neu">${t.n===t.total?'full year — ready to submit':(t.total-t.n)+' to go'}</div></div>`;
+  // month tabs show a check when every day is in
+  document.querySelectorAll('#bgTabs .mtab').forEach((b,m)=>{
+    if(m>11) return;
+    const days=bgMonthDays(m), done=bgStats(days).n===days.length;
+    b.textContent=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m]+(done?' ✓':'');
+  });
+}
+
+function bgRefreshRow(d){
+  const tr=document.getElementById('bgr_'+d); if(!tr) return;
+  const x=bgDerived(d);
+  tr.querySelector('[data-k=occ]').textContent=x.occ;
+  tr.querySelector('[data-k=rev]').textContent=x.rev;
+  tr.querySelector('[data-k=revpar]').textContent=x.revpar;
+  tr.querySelector('[data-k=vs]').innerHTML=x.vs;
+}
+function bgRefreshFoot(){ if(BG.view!=='month') return; const f=document.getElementById('bgFoot'); if(f) f.innerHTML=bgFootHtml(BG.month); }
+function bgUpdateDirty(){
+  const n=bgDirtyDays().length, b=document.getElementById('bgSaveBtn');
+  if(b) b.textContent=n?`Save changes (${n})`:'Save changes';
+}
+
+function bgEdit(el){
+  const d=el.dataset.d, f=el.dataset.f;
+  let e=BG.edits[d];
+  if(!e){ const s=BG.saved[d]; e=BG.edits[d]={rooms:s?s.rooms:'',adr:s?s.adr:'',notes:s?s.notes:''}; }
+  e[f]=el.value;
+  const n=bgNum(el.value);
+  if(f==='rooms') el.classList.toggle('bad',el.value!==''&&(n===null||n<0||n>BG.prop.rooms||Math.floor(n)!==n));
+  if(f==='adr') el.classList.toggle('bad',el.value!==''&&(n===null||n<0||n>2000));
+  bgRefreshRow(d); bgRefreshFoot(); bgRefreshKpi(); bgUpdateDirty();
+}
+
+function bgFill(scope){
+  const occPct=bgNum(document.getElementById('bgFillOcc').value)||0, adrPct=bgNum(document.getElementById('bgFillAdr').value)||0;
+  const onlyEmpty=document.getElementById('bgFillEmpty').checked;
+  const days=scope==='year'?bgAllDays():bgMonthDays(BG.month);
+  const avail=BG.prop.rooms;
+  let filled=0, noBase=0;
+  days.forEach(d=>{
+    const b=BG.base[d], v=bgVal(d);
+    if(!b){ noBase++; return; }
+    if(onlyEmpty && bgNum(v.rooms)!==null && bgNum(v.adr)!==null) return;
+    const rooms=Math.max(0,Math.min(avail,Math.round(b[0]*(1+occPct/100))));
+    const adr=Math.max(0,Math.round(b[1]*(1+adrPct/100)));
+    BG.edits[d]={rooms:rooms,adr:adr,notes:v.notes||''};
+    filled++;
+  });
+  bgRenderBody();
+  bgMsg(`Filled ${filled} day${filled===1?'':'s'} from last year${noBase?` (${noBase} had no last-year number — enter those by hand)`:''}. Review, adjust, then Save.`,'ok');
+}
+
+// ── actions ──
+function bgSetBusy(on){ BG.busy=on; document.querySelectorAll('#bgEditor .bgbtn').forEach(b=>b.disabled=on); }
+
+async function bgSave(){
+  if(BG.busy) return false;
+  const dirty=bgDirtyDays();
+  if(!dirty.length){ bgMsg('Nothing to save.'); return true; }
+  const incomplete=dirty.filter(d=>{ const e=BG.edits[d]; return bgNum(e.rooms)===null||bgNum(e.adr)===null; });
+  if(incomplete.length){ bgMsg(`${incomplete.length} day${incomplete.length===1?'':'s'} need both rooms sold and ADR before saving (first: ${incomplete[0].slice(5).replace('-','/')}).`,'err'); return false; }
+  const invalid=dirty.filter(d=>{ const e=BG.edits[d],r=bgNum(e.rooms),a=bgNum(e.adr); return r<0||r>BG.prop.rooms||Math.floor(r)!==r||a<0||a>2000; });
+  if(invalid.length){ bgMsg(`Check ${invalid[0].slice(5).replace('-','/')}: rooms must be a whole number from 0 to ${BG.prop.rooms} and ADR between $0 and $2,000.`,'err'); return false; }
+  bgSetBusy(true); bgMsg('Saving…');
+  try{
+    for(let i=0;i<dirty.length;i+=300){
+      const chunk=dirty.slice(i,i+300).map(d=>({date:d,rooms_sold:bgNum(BG.edits[d].rooms),adr:bgNum(BG.edits[d].adr),notes:BG.edits[d].notes||''}));
+      const j=await bgApi('forecast_save',{property_id:BG.prop.property_id,days:chunk},true);
+      if(j.error){ bgSetBusy(false); bgMsg(j.message||'Save failed.','err'); return false; }
+      chunk.forEach(c=>{ BG.saved[c.date]={rooms:c.rooms_sold,adr:c.adr,notes:c.notes}; delete BG.edits[c.date]; });
+      if(j.status) BG.status.status=j.status;
+    }
+    bgSetBusy(false); bgRenderHead(); bgRenderBody();
+    bgMsg(`Saved ${dirty.length} day${dirty.length===1?'':'s'}.`,'ok');
+    return true;
+  }catch(e){ bgSetBusy(false); bgMsg('Save failed: '+e.message,'err'); return false; }
+}
+
+async function bgSubmit(){
+  if(BG.busy) return;
+  if(bgDirtyDays().length){ const ok=await bgSave(); if(!ok) return; }
+  if(!confirm(`Submit the ${BG_YEAR} forecast for ${BG.prop.name} to corporate for review?\n\nYou won't be able to edit it until it's reviewed.`)) return;
+  bgSetBusy(true); bgMsg('Submitting…');
+  try{
+    const j=await bgApi('forecast_submit',{property_id:BG.prop.property_id},true);
+    bgSetBusy(false);
+    if(j.error){ bgMsg(j.message||'Submit failed.','err'); return; }
+    BG.status.status='SUBMITTED'; BG.status.submitted_at=new Date().toISOString();
+    if(!BG.canReview) BG.canEdit=false;
+    bgRenderEditor(); bgMsg('Submitted for review.','ok');
+  }catch(e){ bgSetBusy(false); bgMsg('Submit failed: '+e.message,'err'); }
+}
+
+async function bgReview(decision){
+  if(BG.busy) return;
+  if(bgDirtyDays().length){ bgMsg('Save your edits first, then review.','err'); return; }
+  const note=(document.getElementById('bgNote').value||'').trim();
+  if(decision!=='APPROVE' && !note){ bgMsg('Add a note so the GM knows what to change.','err'); return; }
+  if(decision==='APPROVE' && !confirm(`Approve and LOCK the ${BG_YEAR} budget for ${BG.prop.name}?\n\nA frozen copy of all 365 days is saved as the budget and can't be changed from the Hub. The forecast itself stays editable.`)) return;
+  bgSetBusy(true); bgMsg('Saving review…');
+  try{
+    const j=await bgApi('forecast_review',{property_id:BG.prop.property_id,decision:decision,note:note},true);
+    bgSetBusy(false);
+    if(j.error){ bgMsg(j.message||'Review failed.','err'); return; }
+    await bgOpen(BG.prop.property_id);
+    bgMsg(decision==='APPROVE'?'Approved — budget locked.':decision==='REQUEST_CHANGES'?'Sent back to the GM.':'Comment saved.','ok');
+  }catch(e){ bgSetBusy(false); bgMsg('Review failed: '+e.message,'err'); }
+}
+
+function bgCsvDownload(filename,rows){
+  const esc=v=>{ const s=String(v==null?'':v).replace(/\s+/g,' ').trim(); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+  const blob=new Blob([rows.map(r=>r.map(esc).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+function bgExportYear(){
+  const avail=BG.prop.rooms;
+  const rows=[['Date','Day','Rooms Available','LY Rooms Sold','LY ADR','LY Room Rev','Rooms Sold','Occupancy %','ADR','Room Revenue','RevPAR','Notes']];
+  bgAllDays().forEach(d=>{
+    const b=BG.base[d], v=bgVal(d), s=bgNum(v.rooms), a=bgNum(v.adr), has=s!==null&&a!==null;
+    rows.push([d,bgDow(d),avail,b?b[0]:'',b?b[1].toFixed(2):'',b?(b[0]*b[1]).toFixed(2):'',has?s:'',s!==null?(s/avail*100).toFixed(1):'',has?a:'',has?(s*a).toFixed(2):'',has?(s*a/avail).toFixed(2):'',v.notes||'']);
+  });
+  bgCsvDownload(`budget-${BG_YEAR}-${String(BG.prop.name).replace(/[^A-Za-z0-9]+/g,'-')}.csv`,rows);
+}
+
+window.addEventListener('beforeunload',function(e){ if(BG.prop && bgDirtyDays().length){ e.preventDefault(); e.returnValue=''; } });
+
 // ═══ RATE SHOP ═══
 // The cluster list, property display names, and RGB/Compset table format
 // below are the original design — unchanged. What's live is the DATA: pull
@@ -1599,7 +2043,7 @@ function analyzeSTR(e){
 }
 
 // ═══ NAV ═══
-const SCREENS=['dar','portfolio','property-detail','rateshop','he','ops','recap','sales','str','naparser'];
+const SCREENS=['dar','portfolio','property-detail','budget','rateshop','he','ops','recap','sales','str','naparser'];
 function go(s){document.getElementById('land').style.display='none';document.getElementById('plat').style.display='block';document.body.style.background='var(--off)';sw(s);}
 function back(){document.getElementById('land').style.display='flex';document.getElementById('plat').style.display='none';document.body.style.background='var(--off)';}
 function sw(n){
@@ -1608,6 +2052,7 @@ function sw(n){
   const b=document.getElementById('nav-'+n);if(b)b.classList.add('active');
   if(n==='portfolio'){buildMTabs();renderFlash();if(flashState==='idle'){loadPortfolioFlash().then(renderFlash);}}
   if(n==='property-detail'){renderPropertyDetail();}
+  if(n==='budget'){bgEnter();}
   if(n==='rateshop'){ loadRateShop(); }
   if(n==='dar'){buildDarMtabs();renderDAR();}
   if(n==='he'){buildHE();}
