@@ -94,6 +94,53 @@ function firstDataSheet_(spreadsheetId) {
   return dataSheet;
 }
 
+// ═══ CACHE ═══
+// Opening a spreadsheet costs a fraction of a second every time, and the reference sheets
+// (properties, 2026 budget, history, last-year daily baselines) change rarely, so they are
+// kept in the script cache for a few minutes. The cache is shared by every caller, so it only
+// ever holds data that is the same for everyone; who may SEE a row is still decided per
+// request. Logins and permissions are deliberately never cached, so revoking a login takes
+// effect immediately. Run refreshHubCache after editing one of these sheets by hand.
+const CACHE_REF_SECONDS = 600;
+const CACHE_KEYS_ = ['hub:props', 'hub:budget', 'hub:hist'];
+function cacheGet_(key) {
+  try { const v = CacheService.getScriptCache().get(key); return v ? JSON.parse(v) : null; } catch (e) { return null; }
+}
+function cacheGetMany_(keys) {
+  const out = {};
+  try {
+    const got = CacheService.getScriptCache().getAll(keys);
+    keys.forEach(k => { if (got[k]) out[k] = JSON.parse(got[k]); });
+  } catch (e) { /* the cache is an optimisation only */ }
+  return out;
+}
+function cachePut_(key, value, seconds) {
+  try {
+    const s = JSON.stringify(value);
+    if (s.length < 90000) CacheService.getScriptCache().put(key, s, seconds);   // 100KB per-entry limit
+  } catch (e) { /* the cache is an optimisation only */ }
+}
+/** Header-keyed row objects of a reference sheet, cached. */
+function cachedSheetObjects_(cacheKey, spreadsheetId) {
+  const hit = cacheGet_(cacheKey);
+  if (hit) return hit;
+  const data = firstDataSheet_(spreadsheetId).getDataRange().getValues();
+  const header = data[0].map(h => String(h).trim().toLowerCase());
+  const rows = data.slice(1).map(r => {
+    const obj = {};
+    header.forEach((h, i) => obj[h] = r[i]);
+    return obj;
+  });
+  cachePut_(cacheKey, rows, CACHE_REF_SECONDS);
+  return rows;
+}
+/** Run from the Apps Script editor after hand-editing Properties, Budget 2026, Historical Actuals or Daily Actuals. */
+function refreshHubCache() {
+  try { CacheService.getScriptCache().removeAll(CACHE_KEYS_); } catch (e) { /* nothing cached */ }
+  PropertiesService.getScriptProperties().setProperty('FC_ACTUALS_VER', String(Date.now()));
+  Logger.log('Cache cleared — the next request reads the sheets fresh.');
+}
+
 // Properties whose DAR includes actual restaurant revenue (vs. just a small
 // self-serve market). Hardcoded for now since the Properties sheet doesn't
 // have a column for it yet — move this to a real "has_restaurant" column on
@@ -417,15 +464,7 @@ function syncCredentials_() {
 // ═══ DATA ACCESS ═══
 
 function getAuthorizedProperties_(grant) {
-  const sheet = firstDataSheet_(PROPERTIES_SHEET_ID);
-  const data = sheet.getDataRange().getValues();
-  const header = data[0].map(h => String(h).trim().toLowerCase());
-
-  const rows = data.slice(1).map(r => {
-    const obj = {};
-    header.forEach((h, i) => obj[h] = r[i]);
-    return obj;
-  });
+  const rows = cachedSheetObjects_('hub:props', PROPERTIES_SHEET_ID);
 
   if (grant.scope_type === 'portfolio') return rows;
   if (grant.scope_type === 'market') {
@@ -455,36 +494,14 @@ function getFlashRows_(propertyIds) {
 function getBudgetRows_(propertyIds) {
   if (!propertyIds.length) return [];
   const idSet = new Set(propertyIds.map(String));
-  const sheet = firstDataSheet_(BUDGET_SHEET_ID);
-  const data = sheet.getDataRange().getValues();
-  const header = data[0].map(h => String(h).trim().toLowerCase());
-  const idCol = header.indexOf('property_id');
-
-  return data.slice(1)
-    .filter(r => idSet.has(String(r[idCol])))
-    .map(r => {
-      const obj = {};
-      header.forEach((h, i) => obj[h] = r[i]);
-      return obj;
-    });
+  return cachedSheetObjects_('hub:budget', BUDGET_SHEET_ID).filter(o => idSet.has(String(o.property_id)));
 }
 
 /** 2024/2025 actuals (property_id, name, year, month_index, room_rev, occupied_rooms) for the given property IDs only. */
 function getHistoricalRows_(propertyIds) {
   if (!propertyIds.length) return [];
   const idSet = new Set(propertyIds.map(String));
-  const sheet = firstDataSheet_(HISTORICAL_SHEET_ID);
-  const data = sheet.getDataRange().getValues();
-  const header = data[0].map(h => String(h).trim().toLowerCase());
-  const idCol = header.indexOf('property_id');
-
-  return data.slice(1)
-    .filter(r => idSet.has(String(r[idCol])))
-    .map(r => {
-      const obj = {};
-      header.forEach((h, i) => obj[h] = r[i]);
-      return obj;
-    });
+  return cachedSheetObjects_('hub:hist', HISTORICAL_SHEET_ID).filter(o => idSet.has(String(o.property_id)));
 }
 
 /** Night-audit submission. Property comes from the caller's credential, never from the payload. */
@@ -522,18 +539,7 @@ function handleFlashSubmission_(body) {
 }
 
 function getPropertyById_(propertyId) {
-  const sheet = firstDataSheet_(PROPERTIES_SHEET_ID);
-  const data = sheet.getDataRange().getValues();
-  const header = data[0].map(h => String(h).trim().toLowerCase());
-  const idCol = header.indexOf('property_id');
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][idCol]) === String(propertyId)) {
-      const obj = {};
-      header.forEach((h, j) => obj[h] = data[i][j]);
-      return obj;
-    }
-  }
-  return null;
+  return cachedSheetObjects_('hub:props', PROPERTIES_SHEET_ID).find(o => String(o.property_id) === String(propertyId)) || null;
 }
 
 function isAuthorizedForProperty_(grant, propertyId) {
@@ -1220,11 +1226,23 @@ function fcYearDays_(year) {
 }
 
 // ── last year's actuals → "same weekday last year" baseline ──
+const FC_MIN_PLAUSIBLE_ADR = 35;            // below this a day is a bad Flash entry, not a rate
+const FC_ACTUALS_CACHE_SECONDS = 1800;
 /** {propertyId: {'yyyy-MM-dd': [roomsSold, adr]}} for 2025 onward, for the given properties only. */
 function fcLoadActuals_(propertyIds) {
   const out = {};
   const actualsId = fcDailyActualsId_();
   if (!actualsId) return out;
+
+  // The sheet is ~29k rows, so each hotel's baseline is cached once it has been read.
+  const ver = actualsId + ':' + (PropertiesService.getScriptProperties().getProperty('FC_ACTUALS_VER') || '0');
+  const keyOf = pid => 'fcact:' + ver + ':' + pid;
+  const ids = propertyIds.map(String);
+  const cached = cacheGetMany_(ids.map(keyOf));
+  const missing = [];
+  ids.forEach(pid => { if (cached[keyOf(pid)]) out[pid] = cached[keyOf(pid)]; else missing.push(pid); });
+  if (!missing.length) return out;
+
   const ss = SpreadsheetApp.openById(actualsId);
   const tz = ss.getSpreadsheetTimeZone();
   const sheet = ss.getSheets().find(s => !NON_DATA_TAB_NAMES.has(s.getName().trim().toLowerCase())) || ss.getSheets()[0];
@@ -1232,7 +1250,9 @@ function fcLoadActuals_(propertyIds) {
   const h = data[0].map(x => String(x).trim().toLowerCase());
   const iId = h.indexOf('property_id'), iDate = h.indexOf('date'), iRev = h.indexOf('room_rev'), iOcc = h.indexOf('rooms_occ');
   if (iId < 0 || iDate < 0 || iRev < 0 || iOcc < 0) throw new Error('Daily Actuals sheet needs columns: property_id, date, room_rev, rooms_occ.');
-  const want = new Set(propertyIds.map(String));
+  const want = new Set(missing);
+  const fresh = {};
+  missing.forEach(pid => { fresh[pid] = {}; });
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     const pid = String(row[iId]);
@@ -1241,9 +1261,36 @@ function fcLoadActuals_(propertyIds) {
     if (key < '2025-01-01') continue;
     const sold = Number(row[iOcc]) || 0, rev = Number(row[iRev]) || 0;
     if (sold <= 0) continue;
-    (out[pid] = out[pid] || {})[key] = [sold, rev / sold];
+    // A day that can't be real (revenue not posted yet when the Flash was pulled, or a credit/
+    // adjustment) is left out, so the baseline falls back to two years back instead of showing "$2".
+    if (rev / sold < FC_MIN_PLAUSIBLE_ADR) continue;
+    fresh[pid][key] = [sold, rev / sold];
   }
+  missing.forEach(pid => { out[pid] = fresh[pid]; cachePut_(keyOf(pid), fresh[pid], FC_ACTUALS_CACHE_SECONDS); });
   return out;
+}
+
+/** Run from the Apps Script editor: lists every day in Daily Actuals that looks wrong (so it can be corrected in the sheet). */
+function auditDailyActuals() {
+  const id = fcDailyActualsId_();
+  if (!id) { Logger.log('Daily Actuals is not set up yet.'); return; }
+  const ss = SpreadsheetApp.openById(id);
+  const tz = ss.getSpreadsheetTimeZone();
+  const sheet = ss.getSheets().find(s => !NON_DATA_TAB_NAMES.has(s.getName().trim().toLowerCase())) || ss.getSheets()[0];
+  const data = sheet.getDataRange().getValues();
+  const h = data[0].map(x => String(x).trim().toLowerCase());
+  const iId = h.indexOf('property_id'), iDate = h.indexOf('date'), iRev = h.indexOf('room_rev'), iOcc = h.indexOf('rooms_occ');
+  let n = 0;
+  for (let i = 1; i < data.length; i++) {
+    const sold = Number(data[i][iOcc]) || 0, rev = Number(data[i][iRev]) || 0;
+    if (sold <= 0) continue;
+    const adr = rev / sold;
+    if (adr < FC_MIN_PLAUSIBLE_ADR || adr > 900) {
+      n++;
+      Logger.log('Row ' + (i + 1) + ': property ' + data[i][iId] + ', ' + fcDateKey_(data[i][iDate], tz) + ' — ' + sold + ' rooms, $' + rev.toFixed(2) + ' room revenue (ADR $' + adr.toFixed(2) + ')');
+    }
+  }
+  Logger.log(n + ' day(s) to check. Fix room_rev / rooms_occ in the sheet, then run refreshHubCache.');
 }
 
 /** Baseline for a 2027 date: the same WEEKDAY one year back (364 days — keeps Fri on Fri,
