@@ -60,6 +60,14 @@
  * 4. Give the frontend the deployed /exec URL (APPS_SCRIPT_URL in the HTML)
  *    — the dashboard will prompt for username/password on first load.
  *    Give night auditors and franchise GMs: `<url>?view=entry`.
+ *
+ * GOOGLE SIGN-IN (feature/sso-dar-baseline) — supersedes most of the above for RGB staff:
+ *   Auth.gs      @rgbhospitality.com sign-in, Google Groups scopes, hubApi() for served pages
+ *   Dar.gs       night-audit submission links (one random token per hotel), GM approval queue
+ *   Baseline.gs  2027 system baseline (event normalization, Easter shift, growth)
+ *   App.html / NightAudit.html / Hub.html   pages served by this script
+ *   docs/DEPLOY.md has the two-deployment setup. The username/password path below stays only
+ *   for franchise GMs without Google accounts.
  */
 
 const PROPERTIES_SHEET_ID  = '1EZZel1s-F_cOLJ2mJbQ0G4VODahvmk1yVhSniwlqfaY'; // RGB Intel Hub — Properties (Canonical)
@@ -92,6 +100,54 @@ function firstDataSheet_(spreadsheetId) {
   const dataSheet = sheets.find(s => !NON_DATA_TAB_NAMES.has(s.getName().trim().toLowerCase()));
   if (!dataSheet) throw new Error(`No data tab found in spreadsheet ${spreadsheetId} — every tab matched a non-data name.`);
   return dataSheet;
+}
+
+// ═══ CACHE ═══
+// Opening a spreadsheet costs a fraction of a second every time, and the reference sheets
+// (properties, 2026 budget, history, last-year daily baselines) change rarely, so they are
+// kept in the script cache for a few minutes. The cache is shared by every caller, so it only
+// ever holds data that is the same for everyone; who may SEE a row is still decided per
+// request. Logins and permissions are deliberately never cached, so revoking a login takes
+// effect immediately. Run refreshHubCache after editing one of these sheets by hand.
+const CACHE_REF_SECONDS = 600;
+const CACHE_KEYS_ = ['hub:props', 'hub:budget', 'hub:hist'];
+function cacheGet_(key) {
+  try { const v = CacheService.getScriptCache().get(key); return v ? JSON.parse(v) : null; } catch (e) { return null; }
+}
+function cacheGetMany_(keys) {
+  const out = {};
+  try {
+    const got = CacheService.getScriptCache().getAll(keys);
+    keys.forEach(k => { if (got[k]) out[k] = JSON.parse(got[k]); });
+  } catch (e) { /* the cache is an optimisation only */ }
+  return out;
+}
+function cachePut_(key, value, seconds) {
+  try {
+    const s = JSON.stringify(value);
+    if (s.length < 90000) CacheService.getScriptCache().put(key, s, seconds);   // 100KB per-entry limit
+  } catch (e) { /* the cache is an optimisation only */ }
+}
+/** Header-keyed row objects of a reference sheet, cached. */
+function cachedSheetObjects_(cacheKey, spreadsheetId) {
+  const hit = cacheGet_(cacheKey);
+  if (hit) return hit;
+  const data = firstDataSheet_(spreadsheetId).getDataRange().getValues();
+  const header = data[0].map(h => String(h).trim().toLowerCase());
+  const rows = data.slice(1).map(r => {
+    const obj = {};
+    header.forEach((h, i) => obj[h] = r[i]);
+    return obj;
+  });
+  cachePut_(cacheKey, rows, CACHE_REF_SECONDS);
+  return rows;
+}
+/** Run from the Apps Script editor after hand-editing Properties, Budget 2026, Historical Actuals or Daily Actuals. */
+function refreshHubCache() {
+  requireOwner_();
+  try { CacheService.getScriptCache().removeAll(CACHE_KEYS_); } catch (e) { /* nothing cached */ }
+  PropertiesService.getScriptProperties().setProperty('FC_ACTUALS_VER', String(Date.now()));
+  Logger.log('Cache cleared — the next request reads the sheets fresh.');
 }
 
 // Properties whose DAR includes actual restaurant revenue (vs. just a small
@@ -131,17 +187,61 @@ const DAR_FIELDS = [
   { key: 'county_tax', label: 'County Tax', section: 'Taxes' },
   { key: 'sales_tax', label: 'Sales Tax', section: 'Taxes' },
   { key: 'tabc_sales_tax', label: 'TABC Sales Tax', section: 'Taxes' },
-  { key: 'state_cost_recovery_tax', label: 'State Cost Recovery Tax', section: 'Taxes', restaurantOnly: true }
+  { key: 'state_cost_recovery_tax', label: 'State Cost Recovery Tax', section: 'Taxes', restaurantOnly: true },
+
+  // ── Settlement & ledger, per-brand "profile" ──
+  // Built from Hampton Inn Portland's real DAR + Daily Deposits workbook. These
+  // show ONLY for properties mapped to the profile in DAR_PROFILE_BY_PROPERTY,
+  // so no other hotel's form or totals change until its own DAR has been seen.
+  { key: 'employee_accrual', label: 'Accrual Employee', section: 'Allowances & Adjustments', profile: 'hilton_select' },
+  { key: 'telephone_allowance', label: 'Telephone Allowance', section: 'Allowances & Adjustments', profile: 'hilton_select' },
+  { key: 'gtd_allowance_100pct', label: '100% GTD Allowance', section: 'Allowances & Adjustments', profile: 'hilton_select' },
+  { key: 'advance_purchase_allowance', label: 'Adv Purchase Allowance (enter as negative)', section: 'Allowances & Adjustments', profile: 'hilton_select' },
+  { key: 'writeoffs', label: 'Writeoffs', section: 'Allowances & Adjustments', profile: 'hilton_select' },
+  { key: 'paid_outs', label: 'Paid Outs', section: 'Deposits', profile: 'hilton_select' },
+  { key: 'bank_deposits', label: 'Bank Deposits (cash)', section: 'Deposits', profile: 'hilton_select' },
+  { key: 'direct_deposit_ach', label: 'Direct Deposit ACH', section: 'Deposits', profile: 'hilton_select' },
+  { key: 'amex', label: 'Amex', section: 'Deposits', profile: 'hilton_select' },
+  { key: 'visa_mc', label: 'Visa / MC / Discover (combined)', section: 'Deposits', profile: 'hilton_select' },
+  { key: 'loyalty_advance_purchase', label: 'Hhonors Allowance', section: 'Deposits', profile: 'hilton_select' },
+  { key: 'over_short', label: 'Over / Short', section: 'Deposits', profile: 'hilton_select' },
+  { key: 'tray_guest_ledger', label: 'Tray Ledger', section: 'Ledgers', profile: 'hilton_select' },
+  { key: 'city_ledger', label: 'City Ledger', section: 'Ledgers', profile: 'hilton_select' },
+  { key: 'advance_deposit_ledger', label: 'Advance Deposit', section: 'Ledgers', profile: 'hilton_select' }
 ];
 
-// DEFERRED — not on the entry form yet (accounting reconciliation, not
-// performance data, and the settlement/ledger structure genuinely differs
-// by brand: Hilton uses City/Tray Ledger + Closed Folio; IHG uses Guest
-// Ledger + Accounts Receivable + Advance Deposit + a separate POS terminal
-// breakdown; Marriott/Wyndham/Hyatt not yet seen at all). The DAR Data sheet
-// already has columns reserved for all of these — enabling this section
-// later is just uncommenting entries here (per-brand if the structures
-// don't reconcile into one shared list) plus a UI pass, no schema change.
+// property_id -> settlement profile. Add a hotel here once its own DAR has been
+// compared against the form. Empty/absent = core performance fields only.
+const DAR_PROFILE_BY_PROPERTY = {
+  '10795674': 'hilton_select' // Hampton Inn Portland — night audit pilot
+};
+function darProfileForProperty_(propertyId) { return DAR_PROFILE_BY_PROPERTY[String(propertyId)] || ''; }
+
+/** Fields that apply to this property: not restaurant-only unless it has a restaurant, and not
+ *  profile-specific unless it's on that profile. */
+function darFieldsForProperty_(propertyId) {
+  const hasRestaurant = propertyHasRestaurant_(propertyId), profile = darProfileForProperty_(propertyId);
+  return DAR_FIELDS.filter(f => (!f.restaurantOnly || hasRestaurant) && (!f.profile || f.profile === profile));
+}
+
+const DAR_TOTAL_KEYS = ['total_revenue', 'total_non_revenue', 'total_allowances', 'total_deposits', 'rev_deposit_difference', 'net_receivables'];
+function darAllKeys_() { return DAR_FIELDS.map(f => f.key).concat(DAR_TOTAL_KEYS); }
+
+/** Appends any missing columns to the right of an existing header row. Writes elsewhere are by
+ *  header name, so adding columns can't shift anything — and nobody has to edit the sheet by hand. */
+function darEnsureColumns_(sheet, keys) {
+  const lastCol = sheet.getLastColumn();
+  const header = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim().toLowerCase());
+  const missing = keys.filter(k => header.indexOf(k) < 0);
+  if (!missing.length) return;
+  if (sheet.getMaxColumns() < lastCol + missing.length) sheet.insertColumnsAfter(sheet.getMaxColumns(), lastCol + missing.length - sheet.getMaxColumns());
+  sheet.getRange(1, lastCol + 1, 1, missing.length).setValues([missing]);
+}
+
+// Other brands' settlement/ledger structures (not yet seen — add a profile above when they are):
+// IHG uses Guest Ledger + Accounts Receivable + Advance Deposit + a separate POS terminal
+// breakdown; Hilton full-service/Embassy uses City/Tray Ledger + Closed Folio; Marriott,
+// Wyndham and Hyatt not yet seen at all. Reserved/spare entries kept for reference:
 // const DAR_FIELDS_DEFERRED = [
 //   { key: 'employee_accrual', label: 'Employee Accrual', section: 'Other' },
 //   { key: 'telephone_allowance', label: 'Telephone Allowance', section: 'Other' },
@@ -166,6 +266,15 @@ const DAR_FIELDS = [
 
 function doGet(e) {
   const params = (e && e.parameter) || {};
+
+  // Night-audit submission link: the token alone decides the hotel (Dar.gs). No sign-in needed.
+  if (params.na) return naPage_(String(params.na));
+
+  // Google-signed-in pages. Both refuse anyone who isn't an @rgbhospitality.com account in a Hub group.
+  if (params.view === 'app') return servedPage_('App', 'RGB Intelligence Hub — Reviews & Planning', params);
+  if (params.view === 'hub' || (!params.view && !params.action && !params.module)) {
+    return servedPage_('Hub', 'RGB Intelligence Hub', params);
+  }
 
   if (params.view === 'entry') {
     return HtmlService.createHtmlOutput(renderEntryFormHtml_())
@@ -205,24 +314,50 @@ function doGet(e) {
       return jsonOut_({ error: 'unknown_module', message: `Module "${module}" is not wired to the API yet.` }, 400);
     }
 
-    const properties = getAuthorizedProperties_(identity.grant);
-    const idList = properties.map(p => p.property_id);
-    const flashRows = getFlashRows_(idList);
-    const budgetRows = getBudgetRows_(idList);
-    const historicalRows = getHistoricalRows_(idList);
-
-    return jsonOut_({
-      caller: identity.label,
-      scope: identity.grant,
-      properties: properties,
-      flash: flashRows,
-      budget: budgetRows,
-      historical: historicalRows
-    }, 200);
+    return jsonOut_(portfolioFlashPayload_({ username: identity.label, grant: identity.grant }), 200);
 
   } catch (err) {
     return jsonOut_({ error: 'server_error', message: String(err) }, 500);
   }
+}
+
+/** Portfolio Flash data for one caller, already cut down to the hotels they may see. */
+function portfolioFlashPayload_(me) {
+  const properties = getAuthorizedProperties_(me.grant);
+  const idList = properties.map(p => p.property_id);
+  return {
+    caller: me.username,
+    scope: me.grant,
+    properties: properties,
+    flash: getFlashRows_(idList),
+    budget: getBudgetRows_(idList),
+    historical: getHistoricalRows_(idList)
+  };
+}
+
+/** Serves Hub.html / App.html to signed-in RGB staff in a Hub group; everyone else gets a short refusal page. */
+function servedPage_(file, title, params) {
+  const email = ssoEmail_();
+  let grant = null;
+  if (email) { try { grant = ssoGrant_(email); } catch (e) { grant = null; } }
+  if (!email || !grant) {
+    const why = !email
+      ? 'Sign in with your @' + SSO_DOMAIN + ' Google account to use the Hub.'
+      : 'Your account (' + email + ') is not in a Hub group yet. Ask corporate to add you to your hotel\'s gm-…@ group.';
+    return HtmlService.createHtmlOutput('<div style="font-family:Arial,sans-serif;max-width:460px;margin:60px auto;color:#222"><h2 style="font-size:18px">RGB Intelligence Hub</h2><p>' +
+      htmlEsc_(why) + '</p></div>').setTitle(title);
+  }
+  const t = HtmlService.createTemplateFromFile(file);
+  t.boot = safeJsonForHtml_({ tab: String(params.tab || ''), property_id: String(params.property_id || '') });
+  return t.evaluate().setTitle(title).addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function htmlEsc_(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+/** JSON that is safe to drop inside a <script> block (no "</script>" breakouts). */
+function safeJsonForHtml_(v) {
+  return JSON.stringify(v).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
 }
 
 function doPost(e) {
@@ -248,28 +383,24 @@ function doPost(e) {
 /** Temporary wrapper — if syncCredentials_ won't show in the function
  *  dropdown, run this instead (does the exact same thing). Safe to leave
  *  in place, or delete once syncCredentials_ shows up normally. */
-function runSync(){ syncCredentials_(); }
+function runSync(){ requireOwner_(); syncCredentials_(); }
 
 /** Wrapper for addReadmeTab_ — the Run dropdown hides any function whose name
  *  ends in "_" (that's the "private helper" naming convention), so this
  *  plain-named wrapper is what actually shows up to click Run on. */
-function runAddReadmeTab(){ addReadmeTab_(); }
+function runAddReadmeTab(){ requireOwner_(); addReadmeTab_(); }
 
 // ═══ IDENTITY ═══
 
 /** Username/password only — see the file header for why Google auto-identity doesn't work here. */
 function resolveIdentity_(params) {
   if (!params.username || !params.password) return null;
-
-  const cred = checkCredentials_(params.username, params.password);
-  if (!cred || cred.role !== 'READ') return null;
-
   // Credentials only proves who they are. Their actual scope (single property,
   // market cluster, or full portfolio) is still looked up from Permissions,
   // keyed by the same email — one source of truth for "what can this person see."
-  const grant = lookupPermission_(cred.username);
-  if (!grant) return null;
-  return { label: cred.username, grant: grant };
+  const a = readAuth_(params);
+  if (a.err) return null;
+  return { label: a.username, grant: a.grant };
 }
 
 function lookupPermission_(email) {
@@ -317,6 +448,7 @@ function checkCredentials_(username, password) {
     const hash = String(row[hashCol]);
     if (!salt || !hash) return null; // not synced yet
     if (hashPassword_(password, salt) !== hash) return null;
+    if (String(row[roleCol]).trim().toUpperCase() === 'READ' && ssoEnforcedFor_(row[userCol])) return null; // must use Google sign-in
     return {
       username: String(row[userCol]),
       property_id: String(row[propCol]),
@@ -373,21 +505,22 @@ function syncCredentials_() {
 // ═══ DATA ACCESS ═══
 
 function getAuthorizedProperties_(grant) {
-  const sheet = firstDataSheet_(PROPERTIES_SHEET_ID);
-  const data = sheet.getDataRange().getValues();
-  const header = data[0].map(h => String(h).trim().toLowerCase());
-
-  const rows = data.slice(1).map(r => {
-    const obj = {};
-    header.forEach((h, i) => obj[h] = r[i]);
-    return obj;
-  });
+  const rows = cachedSheetObjects_('hub:props', PROPERTIES_SHEET_ID);
 
   if (grant.scope_type === 'portfolio') return rows;
+  if (grant.scope_type === 'set') return rows.filter(r => grantHasProperty_(grant, r));   // Google Groups (Auth.gs)
   if (grant.scope_type === 'market') {
     return rows.filter(r => String(r.market).toLowerCase() === grant.scope_value.toLowerCase());
   }
   return rows.filter(r => String(r.property_id) === grant.scope_value);
+}
+
+/** A Google Groups grant covers a hotel if its gm- group or its market's region- group does. */
+function grantHasProperty_(grant, prop) {
+  if (!prop) return false;
+  if ((grant.property_ids || []).indexOf(String(prop.property_id)) >= 0) return true;
+  const m = String(prop.market || '').toLowerCase();
+  return (grant.markets || []).some(x => String(x).toLowerCase() === m);
 }
 
 function getFlashRows_(propertyIds) {
@@ -411,36 +544,14 @@ function getFlashRows_(propertyIds) {
 function getBudgetRows_(propertyIds) {
   if (!propertyIds.length) return [];
   const idSet = new Set(propertyIds.map(String));
-  const sheet = firstDataSheet_(BUDGET_SHEET_ID);
-  const data = sheet.getDataRange().getValues();
-  const header = data[0].map(h => String(h).trim().toLowerCase());
-  const idCol = header.indexOf('property_id');
-
-  return data.slice(1)
-    .filter(r => idSet.has(String(r[idCol])))
-    .map(r => {
-      const obj = {};
-      header.forEach((h, i) => obj[h] = r[i]);
-      return obj;
-    });
+  return cachedSheetObjects_('hub:budget', BUDGET_SHEET_ID).filter(o => idSet.has(String(o.property_id)));
 }
 
 /** 2024/2025 actuals (property_id, name, year, month_index, room_rev, occupied_rooms) for the given property IDs only. */
 function getHistoricalRows_(propertyIds) {
   if (!propertyIds.length) return [];
   const idSet = new Set(propertyIds.map(String));
-  const sheet = firstDataSheet_(HISTORICAL_SHEET_ID);
-  const data = sheet.getDataRange().getValues();
-  const header = data[0].map(h => String(h).trim().toLowerCase());
-  const idCol = header.indexOf('property_id');
-
-  return data.slice(1)
-    .filter(r => idSet.has(String(r[idCol])))
-    .map(r => {
-      const obj = {};
-      header.forEach((h, i) => obj[h] = r[i]);
-      return obj;
-    });
+  return cachedSheetObjects_('hub:hist', HISTORICAL_SHEET_ID).filter(o => idSet.has(String(o.property_id)));
 }
 
 /** Night-audit submission. Property comes from the caller's credential, never from the payload. */
@@ -478,22 +589,12 @@ function handleFlashSubmission_(body) {
 }
 
 function getPropertyById_(propertyId) {
-  const sheet = firstDataSheet_(PROPERTIES_SHEET_ID);
-  const data = sheet.getDataRange().getValues();
-  const header = data[0].map(h => String(h).trim().toLowerCase());
-  const idCol = header.indexOf('property_id');
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][idCol]) === String(propertyId)) {
-      const obj = {};
-      header.forEach((h, j) => obj[h] = data[i][j]);
-      return obj;
-    }
-  }
-  return null;
+  return cachedSheetObjects_('hub:props', PROPERTIES_SHEET_ID).find(o => String(o.property_id) === String(propertyId)) || null;
 }
 
 function isAuthorizedForProperty_(grant, propertyId) {
   if (grant.scope_type === 'portfolio') return true;
+  if (grant.scope_type === 'set') return grantHasProperty_(grant, getPropertyById_(propertyId));
   if (grant.scope_type === 'property') return grant.scope_value === String(propertyId);
   if (grant.scope_type === 'market') {
     const prop = getPropertyById_(propertyId);
@@ -515,14 +616,14 @@ function handleWhoami_(params) {
       role: 'ENTRY',
       property_id: cred.property_id,
       property_name: prop ? prop.name : cred.property_id,
-      has_restaurant: propertyHasRestaurant_(cred.property_id)
+      has_restaurant: propertyHasRestaurant_(cred.property_id),
+      profile: darProfileForProperty_(cred.property_id)
     };
   }
 
-  const grant = lookupPermission_(cred.username);
-  if (!grant) return { error: 'not_authorized', message: 'Not on the Permissions sheet.', _status: 403 };
-  const properties = getAuthorizedProperties_(grant);
-  return { role: 'READ', username: cred.username, scope: grant, properties: properties };
+  const a = readAuth_(params);
+  if (a.err) return a.err;
+  return { role: 'READ', username: a.username, scope: a.grant, properties: getAuthorizedProperties_(a.grant) };
 }
 
 function readDarSheet_() {
@@ -551,20 +652,22 @@ function findDarRowIndex_(data, header, propertyId, date) {
 function handleDarGet_(params) {
   const cred = checkCredentials_(params.username, params.password);
   if (!cred) return { error: 'not_authorized', message: 'Invalid or inactive credentials.', _status: 401 };
+  const date = String(params.date || '').trim();
 
-  let propertyId;
   if (cred.role === 'ENTRY') {
-    propertyId = cred.property_id;
-  } else {
-    const grant = lookupPermission_(cred.username);
-    if (!grant) return { error: 'not_authorized', message: 'Not on the Permissions sheet.', _status: 403 };
-    propertyId = params.property_id;
-    if (!propertyId || !isAuthorizedForProperty_(grant, propertyId)) {
-      return { error: 'not_authorized', message: 'Not authorized for this property.', _status: 403 };
-    }
+    // Night audit is write-only: an auditor login learns whether a date is already in and its
+    // status, never the numbers on file.
+    const { data, header } = readDarSheet_();
+    const i = findDarRowIndex_(data, header, cred.property_id, date);
+    return { property_id: cred.property_id, date: date, exists: i >= 0, status: i >= 0 ? String(data[i][header.indexOf('status')]) : '', row: null };
   }
 
-  const date = String(params.date || '').trim();
+  const a = readAuth_(params);
+  if (a.err) return a.err;
+  const propertyId = params.property_id;
+  if (!propertyId || !isAuthorizedForProperty_(a.grant, propertyId)) {
+    return { error: 'not_authorized', message: 'Not authorized for this property.', _status: 403 };
+  }
   const { data, header } = readDarSheet_();
   const rowIndex = findDarRowIndex_(data, header, propertyId, date);
   return {
@@ -577,14 +680,9 @@ function handleDarGet_(params) {
 
 /** List of SUBMITTED (pending-review) DAR rows across whatever properties this login can see. */
 function handleDarPending_(params) {
-  const cred = checkCredentials_(params.username, params.password);
-  if (!cred) return { error: 'not_authorized', message: 'Invalid or inactive credentials.', _status: 401 };
-  if (cred.role !== 'READ') return { error: 'not_authorized', message: 'This login cannot review DARs.', _status: 403 };
-
-  const grant = lookupPermission_(cred.username);
-  if (!grant) return { error: 'not_authorized', message: 'Not on the Permissions sheet.', _status: 403 };
-
-  const authorizedIds = new Set(getAuthorizedProperties_(grant).map(p => String(p.property_id)));
+  const a = readAuth_(params);
+  if (a.err) return a.err;
+  const authorizedIds = new Set(getAuthorizedProperties_(a.grant).map(p => String(p.property_id)));
   const { data, header } = readDarSheet_();
   const idCol = header.indexOf('property_id');
   const statusCol = header.indexOf('status');
@@ -601,18 +699,30 @@ function handleDarPending_(params) {
 /** Revenue-generating lines only — the totals below intentionally reference every
  *  possible field (including ones not yet on the form) so turning on a deferred
  *  field later doesn't require touching this formula. */
-function computeDarTotals_(v) {
+function computeDarTotals_(v, profile) {
   const n = k => Number(v[k]) || 0;
   const total_revenue = n('room_rental_revenue') + n('dry_cleaning_laundry') + n('parking') + n('early_late_fee') +
     n('hotel_misc') + n('data_internet_charge') + n('market_food') + n('market_beverage') + n('market_beer') +
     n('market_wine') + n('restaurant_food') + n('restaurant_liquor') + n('restaurant_beer') + n('restaurant_wine') +
     n('meeting_room_rental') + n('banquet_food') + n('banquet_misc');
+  // On the Hilton select-service DAR (confirmed from Hampton Inn Portland's), Non-Revenue =
+  // taxes + Accrual Employee + Banquet Service Charge, and Allowances include Writeoffs. Other
+  // hotels' treatment of the banquet service charge isn't confirmed, so it stays as it was.
+  const hilton = profile === 'hilton_select';
   const total_non_revenue = n('state_hotel_tax') + n('city_hotel_tax') + n('county_tax') + n('sales_tax') +
-    n('tabc_sales_tax') + n('state_meeting_room_tax') + n('state_cost_recovery_tax') + n('restaurant_food_tax');
-  const total_allowances = n('telephone_allowance') + n('gtd_allowance_100pct') + n('advance_purchase_allowance');
+    n('tabc_sales_tax') + n('state_meeting_room_tax') + n('state_cost_recovery_tax') + n('restaurant_food_tax') +
+    n('employee_accrual') + (hilton ? n('banquet_service_charge') : 0);
+  const total_allowances = n('telephone_allowance') + n('gtd_allowance_100pct') + n('advance_purchase_allowance') + n('writeoffs');
   const total_deposits = n('loyalty_advance_purchase') + n('amex') + n('visa_mc') + n('discover') +
-    n('other_card_allowance') + n('over_short') + n('bank_deposits');
-  return { total_revenue, total_non_revenue, total_allowances, total_deposits };
+    n('other_card_allowance') + n('over_short') + n('bank_deposits') + n('direct_deposit_ach');
+  const totals = { total_revenue, total_non_revenue, total_allowances, total_deposits };
+  if (hilton) {
+    // The two checks the auditor and GM actually reconcile each morning (Hampton's DAR rows 47 and 49):
+    // deposits minus everything charged, and what the ledgers say is still owed.
+    totals.rev_deposit_difference = Math.round((total_deposits - (total_revenue + total_non_revenue + total_allowances)) * 100) / 100;
+    totals.net_receivables = Math.round((n('tray_guest_ledger') + n('city_ledger') - n('advance_deposit_ledger')) * 100) / 100;
+  }
+  return totals;
 }
 
 function handleDarSubmission_(body) {
@@ -625,53 +735,73 @@ function handleDarSubmission_(body) {
     return { error: 'bad_request', message: 'date must be YYYY-MM-DD.', _status: 400 };
   }
 
-  const { sheet, data, header } = readDarSheet_();
-  const rowIndex = findDarRowIndex_(data, header, cred.property_id, date);
-  if (rowIndex >= 0 && String(data[rowIndex][header.indexOf('status')]) === 'VALIDATED') {
-    return { error: 'already_validated', message: 'This date was already approved by the GM and can no longer be resubmitted. Contact your GM if it needs correction.', _status: 409 };
+  const profile = darProfileForProperty_(cred.property_id);
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    // New fields get their columns added automatically (to the right of the existing ones).
+    darEnsureColumns_(firstDataSheet_(DAR_SHEET_ID), darAllKeys_());
+
+    const { sheet, data, header } = readDarSheet_();
+    const rowIndex = findDarRowIndex_(data, header, cred.property_id, date);
+    const curStatus = rowIndex >= 0 ? String(data[rowIndex][header.indexOf('status')]) : '';
+    if (curStatus === 'VALIDATED') {
+      return { error: 'already_validated', message: 'This date was already approved by the GM and can no longer be resubmitted. Contact your GM if it needs correction.', _status: 409 };
+    }
+    if (curStatus === 'FLAGGED') {
+      return { error: 'flagged', message: 'Your GM flagged this date for correction and it is with corporate. Corporate will reopen it if it needs resubmitting.', _status: 409 };
+    }
+
+    // Only the fields this hotel's form actually shows are accepted; everything else is stored as 0.
+    const values = {};
+    DAR_FIELDS.forEach(f => { values[f.key] = 0; });
+    darFieldsForProperty_(cred.property_id).forEach(f => { values[f.key] = Number(body[f.key]) || 0; });
+    const totals = computeDarTotals_(values, profile);
+    const now = new Date();
+
+    const rowData = header.map(h => {
+      if (h === 'property_id') return cred.property_id;
+      if (h === 'date') return date;
+      if (h in values) return values[h];
+      if (h in totals) return totals[h];
+      if (h === 'submitted_by') return cred.username;
+      if (h === 'submitted_at') return now;
+      if (h === 'status') return 'SUBMITTED';
+      return ''; // validated_by, validated_at, flag_note, and any total not computed for this hotel
+    });
+
+    if (rowIndex >= 0) {
+      sheet.getRange(rowIndex + 1, 1, 1, rowData.length).setValues([rowData]);
+    } else {
+      sheet.appendRow(rowData);
+    }
+
+    // Permanent, append-only record of this exact submission — kept even if a
+    // later resubmission overwrites the "current" row above. Never updated or
+    // deleted by any code path; this is the answer to "what did the auditor
+    // actually submit, and when" regardless of what happened afterward.
+    logDarSubmission_(cred.property_id, date, cred.username, values, totals);
+
+    return { ok: true, property_id: cred.property_id, date: date, status: 'SUBMITTED', totals: totals };
+  } finally {
+    lock.releaseLock();
   }
-
-  const values = {};
-  DAR_FIELDS.forEach(f => { values[f.key] = Number(body[f.key]) || 0; });
-  const totals = computeDarTotals_(values);
-  const now = new Date();
-
-  const rowData = header.map(h => {
-    if (h === 'property_id') return cred.property_id;
-    if (h === 'date') return date;
-    if (h in values) return values[h];
-    if (h in totals) return totals[h];
-    if (h === 'submitted_by') return cred.username;
-    if (h === 'submitted_at') return now;
-    if (h === 'status') return 'SUBMITTED';
-    return ''; // validated_by, validated_at, flag_note, and any deferred field not in this submission
-  });
-
-  if (rowIndex >= 0) {
-    sheet.getRange(rowIndex + 1, 1, 1, rowData.length).setValues([rowData]);
-  } else {
-    sheet.appendRow(rowData);
-  }
-
-  // Permanent, append-only record of this exact submission — kept even if a
-  // later resubmission overwrites the "current" row above. Never updated or
-  // deleted by any code path; this is the answer to "what did the auditor
-  // actually submit, and when" regardless of what happened afterward.
-  logDarSubmission_(cred.property_id, date, cred.username, values, totals);
-
-  return { ok: true, property_id: cred.property_id, date: date, status: 'SUBMITTED', totals: totals };
 }
 
-function logDarSubmission_(propertyId, date, submittedBy, values, totals) {
+/** `extra` (optional) adds audit columns such as action / submission_source / token_hint / note. */
+function logDarSubmission_(propertyId, date, submittedBy, values, totals, extra) {
+  extra = extra || { action: 'SUBMIT', submission_source: 'password-login' };
   const sheet = firstDataSheet_(DAR_LOG_SHEET_ID);
+  darEnsureColumns_(sheet, darAllKeys_().concat(DAR_LOG_AUDIT_KEYS));
   const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim().toLowerCase());
   const row = header.map(h => {
     if (h === 'logged_at') return new Date();
     if (h === 'property_id') return propertyId;
     if (h === 'date') return date;
     if (h === 'submitted_by') return submittedBy;
-    if (h in values) return values[h];
-    if (h in totals) return totals[h];
+    if (h in extra) return extra[h];
+    if (values && h in values) return values[h];
+    if (totals && h in totals) return totals[h];
     return '';
   });
   sheet.appendRow(row);
@@ -679,34 +809,10 @@ function logDarSubmission_(propertyId, date, submittedBy, values, totals) {
 
 /** GM (or corporate) approves or flags a SUBMITTED DAR. Read-only review — no direct edits. */
 function handleDarValidation_(body, newStatus) {
-  const cred = checkCredentials_(body.username, body.password);
-  if (!cred) return { error: 'not_authorized', message: 'Invalid or inactive credentials.', _status: 401 };
-  if (cred.role !== 'READ') return { error: 'not_authorized', message: 'This login cannot validate DARs.', _status: 403 };
-
-  const grant = lookupPermission_(cred.username);
-  if (!grant || !isAuthorizedForProperty_(grant, body.property_id)) {
-    return { error: 'not_authorized', message: 'Not authorized for this property.', _status: 403 };
-  }
-
-  const date = String(body.date || '').trim();
-  const { sheet, data, header } = readDarSheet_();
-  const rowIndex = findDarRowIndex_(data, header, body.property_id, date);
-  if (rowIndex < 0) return { error: 'not_found', message: 'No DAR submission found for that property/date.', _status: 404 };
-  if (String(data[rowIndex][header.indexOf('status')]) !== 'SUBMITTED') {
-    return { error: 'bad_state', message: 'This DAR is not pending review.', _status: 409 };
-  }
-
-  const statusCol = header.indexOf('status');
-  const validatedByCol = header.indexOf('validated_by');
-  const validatedAtCol = header.indexOf('validated_at');
-  const flagNoteCol = header.indexOf('flag_note');
-
-  sheet.getRange(rowIndex + 1, statusCol + 1).setValue(newStatus);
-  sheet.getRange(rowIndex + 1, validatedByCol + 1).setValue(cred.username);
-  sheet.getRange(rowIndex + 1, validatedAtCol + 1).setValue(new Date());
-  sheet.getRange(rowIndex + 1, flagNoteCol + 1).setValue(newStatus === 'FLAGGED' ? String(body.note || '') : '');
-
-  return { ok: true, property_id: body.property_id, date: date, status: newStatus };
+  // Same rules as the Google-signed-in queue (Dar.gs): note required to flag, flags route to corporate.
+  const a = readAuth_(body);
+  if (a.err) return a.err;
+  return darDecide_(a, { property_id: body.property_id, date: body.date, decision: newStatus === 'FLAGGED' ? 'FLAG' : 'APPROVE', note: body.note });
 }
 
 // ═══ AVAILABILITY (rooms to sell, rolling window — feeds Rate Shop) ═══
@@ -841,7 +947,7 @@ function firstOrCreateSheet_(spreadsheetId, name) {
 
 /** Wrapper — see firstDataSheet_'s header comment for why this exists (the
  *  Run dropdown hides any function whose name ends in "_"). */
-function runParseRateShop(){ parseRateShopImport_(); }
+function runParseRateShop(){ requireOwner_(); parseRateShopImport_(); }
 
 /** Recognizes a date in an OTA Insight "Rates" header cell and normalizes it
  *  to "yyyy-MM-dd", or returns null if the cell isn't a date at all. Handles
@@ -1000,7 +1106,8 @@ const DAILY_ACTUALS_SHEET_ID = '';
 
 const FC_HEADERS = {
   forecast: ['property_id', 'date', 'rooms_sold', 'adr', 'notes', 'updated_by', 'updated_at'],
-  status: ['property_id', 'status', 'submitted_by', 'submitted_at', 'reviewed_by', 'reviewed_at', 'review_note', 'locked_at', 'locked_by'],
+  status: ['property_id', 'status', 'submitted_by', 'submitted_at', 'reviewed_by', 'reviewed_at', 'review_note', 'locked_at', 'locked_by',
+    'baseline_revpar', 'gm_revpar', 'baseline_diff_pct', 'baseline_justification'],
   log: ['logged_at', 'property_id', 'date', 'action', 'old_rooms_sold', 'old_adr', 'new_rooms_sold', 'new_adr', 'notes', 'user'],
   budget: ['property_id', 'date', 'rooms_sold', 'adr', 'notes', 'locked_by', 'locked_at']
 };
@@ -1009,7 +1116,7 @@ const FC_HEADERS = {
 const FC_SPREADSHEETS = {
   FC_FORECAST_ID: { title: 'RGB Intel Hub — Forecast 2027', tabs: [
     { name: 'Forecast', header: FC_HEADERS.forecast, text: [1, 2, 5, 6, 7] },
-    { name: 'Status', header: FC_HEADERS.status, text: [1, 2, 3, 4, 5, 6, 7, 8, 9] }
+    { name: 'Status', header: FC_HEADERS.status, text: [1, 2, 3, 4, 5, 6, 7, 8, 9, 13] }
   ] },
   FC_LOG_ID: { title: 'RGB Intel Hub — Forecast Log 2027 (append-only)', tabs: [
     { name: 'Log', header: FC_HEADERS.log, text: [1, 2, 3, 4, 9, 10] }
@@ -1021,6 +1128,7 @@ const FC_SPREADSHEETS = {
 
 /** Run once from the Apps Script editor. Safe to re-run: it only creates what's missing. */
 function setupForecast2027() {
+  requireOwner_();
   Object.keys(FC_SPREADSHEETS).forEach(key => {
     const ss = fcEnsureSpreadsheet_(key);
     Logger.log(FC_SPREADSHEETS[key].title + ' -> ' + ss.getUrl());
@@ -1034,6 +1142,7 @@ function setupForecast2027() {
 
 /** Use after uploading a refreshed daily-actuals file: drops the remembered sheet and imports the file again. */
 function reimportDailyActuals() {
+  requireOwner_();
   PropertiesService.getScriptProperties().deleteProperty('DAILY_ACTUALS_ID');
   Logger.log(fcImportDailyActuals_());
 }
@@ -1121,12 +1230,9 @@ function fcErr_(code, message) { return { error: code, message: message }; }
 
 /** Budget screens are for logged-in READ users (GM / regional / corporate) with a row on the Permissions sheet. */
 function fcAuth_(source) {
-  const cred = checkCredentials_(source.username, source.password);
-  if (!cred) return { err: fcErr_('not_authorized', 'Invalid or inactive credentials.') };
-  if (cred.role !== 'READ') return { err: fcErr_('not_authorized', 'This login cannot access budgets.') };
-  const grant = lookupPermission_(cred.username);
-  if (!grant) return { err: fcErr_('not_authorized', 'Not on the Permissions sheet.') };
-  return { cred: cred, grant: grant, isCorporate: grant.scope_type === 'portfolio' };
+  const a = readAuth_(source);   // Google sign-in via hubApi, or the legacy username/password
+  if (a.err) return { err: fcErr_('not_authorized', a.cred ? 'This login cannot access budgets.' : a.err.message) };
+  return { cred: { username: a.username }, grant: a.grant, isCorporate: a.isCorporate };
 }
 
 // ── dates ──
@@ -1150,11 +1256,23 @@ function fcYearDays_(year) {
 }
 
 // ── last year's actuals → "same weekday last year" baseline ──
+const FC_MIN_PLAUSIBLE_ADR = 35;            // below this a day is a bad Flash entry, not a rate
+const FC_ACTUALS_CACHE_SECONDS = 1800;
 /** {propertyId: {'yyyy-MM-dd': [roomsSold, adr]}} for 2025 onward, for the given properties only. */
 function fcLoadActuals_(propertyIds) {
   const out = {};
   const actualsId = fcDailyActualsId_();
   if (!actualsId) return out;
+
+  // The sheet is ~29k rows, so each hotel's baseline is cached once it has been read.
+  const ver = actualsId + ':' + (PropertiesService.getScriptProperties().getProperty('FC_ACTUALS_VER') || '0');
+  const keyOf = pid => 'fcact:' + ver + ':' + pid;
+  const ids = propertyIds.map(String);
+  const cached = cacheGetMany_(ids.map(keyOf));
+  const missing = [];
+  ids.forEach(pid => { if (cached[keyOf(pid)]) out[pid] = cached[keyOf(pid)]; else missing.push(pid); });
+  if (!missing.length) return out;
+
   const ss = SpreadsheetApp.openById(actualsId);
   const tz = ss.getSpreadsheetTimeZone();
   const sheet = ss.getSheets().find(s => !NON_DATA_TAB_NAMES.has(s.getName().trim().toLowerCase())) || ss.getSheets()[0];
@@ -1162,7 +1280,9 @@ function fcLoadActuals_(propertyIds) {
   const h = data[0].map(x => String(x).trim().toLowerCase());
   const iId = h.indexOf('property_id'), iDate = h.indexOf('date'), iRev = h.indexOf('room_rev'), iOcc = h.indexOf('rooms_occ');
   if (iId < 0 || iDate < 0 || iRev < 0 || iOcc < 0) throw new Error('Daily Actuals sheet needs columns: property_id, date, room_rev, rooms_occ.');
-  const want = new Set(propertyIds.map(String));
+  const want = new Set(missing);
+  const fresh = {};
+  missing.forEach(pid => { fresh[pid] = {}; });
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     const pid = String(row[iId]);
@@ -1171,9 +1291,37 @@ function fcLoadActuals_(propertyIds) {
     if (key < '2025-01-01') continue;
     const sold = Number(row[iOcc]) || 0, rev = Number(row[iRev]) || 0;
     if (sold <= 0) continue;
-    (out[pid] = out[pid] || {})[key] = [sold, rev / sold];
+    // A day that can't be real (revenue not posted yet when the Flash was pulled, or a credit/
+    // adjustment) is left out, so the baseline falls back to two years back instead of showing "$2".
+    if (rev / sold < FC_MIN_PLAUSIBLE_ADR) continue;
+    fresh[pid][key] = [sold, rev / sold];
   }
+  missing.forEach(pid => { out[pid] = fresh[pid]; cachePut_(keyOf(pid), fresh[pid], FC_ACTUALS_CACHE_SECONDS); });
   return out;
+}
+
+/** Run from the Apps Script editor: lists every day in Daily Actuals that looks wrong (so it can be corrected in the sheet). */
+function auditDailyActuals() {
+  requireOwner_();
+  const id = fcDailyActualsId_();
+  if (!id) { Logger.log('Daily Actuals is not set up yet.'); return; }
+  const ss = SpreadsheetApp.openById(id);
+  const tz = ss.getSpreadsheetTimeZone();
+  const sheet = ss.getSheets().find(s => !NON_DATA_TAB_NAMES.has(s.getName().trim().toLowerCase())) || ss.getSheets()[0];
+  const data = sheet.getDataRange().getValues();
+  const h = data[0].map(x => String(x).trim().toLowerCase());
+  const iId = h.indexOf('property_id'), iDate = h.indexOf('date'), iRev = h.indexOf('room_rev'), iOcc = h.indexOf('rooms_occ');
+  let n = 0;
+  for (let i = 1; i < data.length; i++) {
+    const sold = Number(data[i][iOcc]) || 0, rev = Number(data[i][iRev]) || 0;
+    if (sold <= 0) continue;
+    const adr = rev / sold;
+    if (adr < FC_MIN_PLAUSIBLE_ADR || adr > 900) {
+      n++;
+      Logger.log('Row ' + (i + 1) + ': property ' + data[i][iId] + ', ' + fcDateKey_(data[i][iDate], tz) + ' — ' + sold + ' rooms, $' + rev.toFixed(2) + ' room revenue (ADR $' + adr.toFixed(2) + ')');
+    }
+  }
+  Logger.log(n + ' day(s) to check. Fix room_rev / rooms_occ in the sheet, then run refreshHubCache.');
 }
 
 /** Baseline for a 2027 date: the same WEEKDAY one year back (364 days — keeps Fri on Fri,
@@ -1207,6 +1355,10 @@ function fcReadForecast_() {
 
 function fcReadStatus_() {
   const sheet = fcSheet_('FC_FORECAST_ID', 'Status');
+  if (sheet.getLastColumn() < FC_HEADERS.status.length) {   // older Status tabs: add the baseline columns' headers
+    if (sheet.getMaxColumns() < FC_HEADERS.status.length) sheet.insertColumnsAfter(sheet.getMaxColumns(), FC_HEADERS.status.length - sheet.getMaxColumns());
+    sheet.getRange(1, 1, 1, FC_HEADERS.status.length).setValues([FC_HEADERS.status]);
+  }
   const data = sheet.getDataRange().getValues();
   const map = {};
   for (let i = 1; i < data.length; i++) {
@@ -1233,7 +1385,11 @@ function fcPublicStatus_(st) {
   return {
     status: st.status || '', submitted_by: st.submitted_by || '', submitted_at: st.submitted_at || '',
     reviewed_by: st.reviewed_by || '', reviewed_at: st.reviewed_at || '', review_note: st.review_note || '',
-    locked_at: st.locked_at || '', locked_by: st.locked_by || ''
+    locked_at: st.locked_at || '', locked_by: st.locked_by || '',
+    baseline_revpar: st.baseline_revpar === '' || st.baseline_revpar == null ? '' : Number(st.baseline_revpar),
+    gm_revpar: st.gm_revpar === '' || st.gm_revpar == null ? '' : Number(st.gm_revpar),
+    baseline_diff_pct: st.baseline_diff_pct === '' || st.baseline_diff_pct == null ? '' : Number(st.baseline_diff_pct),
+    baseline_justification: st.baseline_justification || ''
   };
 }
 
@@ -1358,6 +1514,7 @@ function handleForecastGet_(params) {
     year: FORECAST_YEAR,
     property: { property_id: pid, name: prop.name, brand: prop.brand, market: prop.market, rooms: Number(prop.rooms) || 0 },
     status: st, forecast: days, base: base, base_error: baseError,
+    system_baseline: blCompactForProperty_(pid),   // Baseline.gs — shown beside the GM's numbers
     can_review: a.isCorporate,
     can_edit: a.isCorporate || st.status !== 'SUBMITTED'
   };
@@ -1455,9 +1612,13 @@ function handleForecastSubmit_(body) {
       return fcErr_('incomplete', 'Every day needs rooms sold and ADR before submitting. Still missing: ' + missingByMonth.join(', ') + '.');
     }
 
+    // A GM RevPAR far from the system baseline needs a written reason (Baseline.gs).
+    const gate = blSubmitGate_(pid, days, body.justification);
+    if (gate.error) return gate;
+
     const now = fcNowIso_();
-    fcSetStatus_(pid, { status: 'SUBMITTED', submitted_by: a.cred.username, submitted_at: now });
-    fcLog_([[now, pid, '', 'SUBMIT', '', '', '', '', '', a.cred.username]]);
+    fcSetStatus_(pid, Object.assign({ status: 'SUBMITTED', submitted_by: a.cred.username, submitted_at: now }, gate.status));
+    fcLog_([[now, pid, '', 'SUBMIT', '', '', '', '', gate.status.baseline_justification || '', a.cred.username]]);
     return { ok: true, status: 'SUBMITTED' };
   } finally {
     lock.releaseLock();
@@ -1561,7 +1722,7 @@ const API_URL = '${scriptUrl}'; // the real /exec URL, injected server-side — 
                                  // inside a served Apps Script page points at an internal
                                  // googleusercontent.com content URL, not this one, so it can't
                                  // be used to build fetch() targets.
-let CTX = null; // {property_id, has_restaurant, username, password, date}
+let CTX = null; // {property_id, has_restaurant, profile, username, password, date}
 
 function yesterday(){ const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); }
 document.getElementById('d').value = yesterday();
@@ -1584,7 +1745,7 @@ function loadForm(){
     .then(who=>{
       if(who.error){ setMsg(who.message||'Login failed.', true); return; }
       if(who.role!=='ENTRY'){ setMsg('This login is not a night-audit login.', true); return; }
-      CTX = {property_id: who.property_id, has_restaurant: who.has_restaurant, username:u, password:p, date:d};
+      CTX = {property_id: who.property_id, has_restaurant: who.has_restaurant, profile: who.profile||'', username:u, password:p, date:d};
       document.getElementById('propInfo').textContent = 'Property: ' + who.property_name;
       return fetch(base()+'?action=dar_get&username='+encodeURIComponent(u)+'&password='+encodeURIComponent(p)+'&date='+d);
     })
@@ -1641,6 +1802,7 @@ function renderFields(existing){
   const sections={};
   FIELDS.forEach(f=>{
     if(f.restaurantOnly && !CTX.has_restaurant) return;
+    if(f.profile && f.profile!==CTX.profile) return;
     (sections[f.section]=sections[f.section]||[]).push(f);
   });
   let html='';
@@ -1665,7 +1827,15 @@ function submitDar(){
     .then(r=>r.json())
     .then(j=>{
       if(j.error){ setMsg(j.message||'Submit failed.', true); }
-      else { setMsg('Saved. Total Revenue: $'+j.totals.total_revenue.toFixed(2), false); }
+      else {
+        let m='Saved. Total Revenue: $'+j.totals.total_revenue.toFixed(2);
+        // Hotels on a settlement profile get the same check the Excel DAR ends with: deposits minus everything charged.
+        if(j.totals.rev_deposit_difference!==undefined){
+          const d=j.totals.rev_deposit_difference;
+          m+=' · Total Deposits: $'+j.totals.total_deposits.toFixed(2)+' · Deposit difference: '+(d<0?'-':'')+'$'+Math.abs(d).toFixed(2)+' · Net Receivables: $'+j.totals.net_receivables.toFixed(2);
+        }
+        setMsg(m, false);
+      }
     })
     .catch(err=>setMsg('Network error: '+err, true));
 }
@@ -1734,6 +1904,9 @@ function renderList(rows){
     return '<div class="card">'+
       '<h4>'+r.property_id+' — '+r.date+'</h4>'+
       '<div>Total Revenue: $'+Number(r.total_revenue||0).toFixed(2)+' | Total Non-Revenue (taxes): $'+Number(r.total_non_revenue||0).toFixed(2)+'</div>'+
+      (r.rev_deposit_difference!==''&&r.rev_deposit_difference!=null&&!isNaN(Number(r.rev_deposit_difference))
+        ? '<div style="margin-top:4px">Total Deposits: $'+Number(r.total_deposits||0).toFixed(2)+' | <strong>Deposit difference: $'+Number(r.rev_deposit_difference).toFixed(2)+'</strong> | Net Receivables: $'+Number(r.net_receivables||0).toFixed(2)+'</div>'
+        : '')+
       '<table>'+fieldRows+'</table>'+
       '<div style="margin-top:8px">'+
         '<button class="approve" onclick="act('+idx+',\\'validate_dar\\')">Approve</button>'+

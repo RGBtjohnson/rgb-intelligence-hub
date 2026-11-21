@@ -1042,6 +1042,19 @@ function getStoredCreds_(){
     return (u && p) ? {u,p} : null;
   }catch(e){ return null; }
 }
+// ═══ GOOGLE SIGN-IN MODE ═══
+// When this file is served by Apps Script (the "Hub" HTML file, docs/DEPLOY.md), Google has
+// already signed the person in and google.script.run exists: every call goes through hubApi(),
+// which identifies the caller from their Google session and filters on the server. No password
+// is asked for or stored. Opened as a plain static page, everything below falls back to the old
+// username/password fetch() path (franchise GMs).
+const SSO = (typeof google!=='undefined' && google.script && google.script.run) ? true : false;
+let SSO_ME = null;
+function hubCall(params){
+  return new Promise((res,rej)=>{
+    google.script.run.withSuccessHandler(r=>res(r||{})).withFailureHandler(e=>rej(e instanceof Error?e:new Error(String(e)))).hubApi(params);
+  });
+}
 function setStoredCreds_(u,p){ try{ sessionStorage.setItem('rgb_u',u); sessionStorage.setItem('rgb_p',p); }catch(e){} }
 function clearStoredCreds_(){ try{ sessionStorage.removeItem('rgb_u'); sessionStorage.removeItem('rgb_p'); }catch(e){} }
 
@@ -1057,16 +1070,22 @@ function submitFlashLogin(){
 
 async function loadPortfolioFlash(){
   if(flashState==='ready'||flashState==='loading') return;
-  const creds=getStoredCreds_();
-  if(!creds){ flashState='needs_login'; return; }
+  const creds=SSO?null:getStoredCreds_();
+  if(!SSO && !creds){ flashState='needs_login'; return; }
   flashState='loading';
   try{
-    if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_')===0){
-      throw new Error('Apps Script API URL not configured yet (APPS_SCRIPT_URL).');
+    let json;
+    if(SSO){
+      json = await hubCall({action:'portfolio_flash'});
+      if(json.error) throw new Error(json.message||json.error);
+    } else {
+      if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_')===0){
+        throw new Error('Apps Script API URL not configured yet (APPS_SCRIPT_URL).');
+      }
+      const qs=new URLSearchParams({module:'portfolio-flash', username:creds.u, password:creds.p});
+      const res = await fetch(`${APPS_SCRIPT_URL}?${qs.toString()}`);
+      json = await res.json();
     }
-    const qs=new URLSearchParams({module:'portfolio-flash', username:creds.u, password:creds.p});
-    const res = await fetch(`${APPS_SCRIPT_URL}?${qs.toString()}`);
-    const json = await res.json();
     if(json._status && json._status>=400){
       if(json._status===401){ clearStoredCreds_(); flashState='needs_login'; flashError=json.message||'Login failed.'; return; }
       throw new Error(json.message||('API error '+json._status));
@@ -1378,6 +1397,7 @@ function bgMsg(text,kind){ const el=document.getElementById('bgMsg'); el.textCon
 function bgChip(s){ const x=BG_STATUS[s||'']||BG_STATUS['']; return `<span style="font-size:10px;font-weight:600;color:${x[1]};border:.5px solid ${x[1]};border-radius:10px;padding:1px 8px;white-space:nowrap">${x[0]}</span>`; }
 
 async function bgApi(action,params,post){
+  if(SSO) return hubCall(Object.assign({action:action},params));   // identity from the Google session
   const c=getStoredCreds_(); if(!c) throw new Error('Please sign in again.');
   if(post){
     const r=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(Object.assign({action:action,username:c.u,password:c.p},params))});
@@ -1448,6 +1468,7 @@ async function bgOpen(pid){
     if(j.error){ bgMsg(j.message||'Could not open.','err'); return; }
     BG.prop=j.property; BG.status=j.status||{}; BG.base=j.base||{}; BG.baseError=j.base_error||'';
     BG.canEdit=!!j.can_edit; BG.canReview=!!j.can_review; BG.edits={}; BG.saved={};
+    BG.sysBase=j.system_baseline||null;   // 2027 system baseline (Baseline.gs), shown beside the GM's numbers
     Object.keys(j.forecast||{}).forEach(d=>{ const f=j.forecast[d]; BG.saved[d]={rooms:f[0],adr:f[1],notes:f[2]||''}; });
     BG.view='month'; BG.month=bgFirstIncompleteMonth();
     bgMsg('');
@@ -1637,13 +1658,32 @@ function bgRefreshKpi(){
     <div class="kc"><div class="kl">Occupancy</div><div class="kv">${t.occ!==null?t.occ.toFixed(1)+'%':'—'}</div><div class="kch">${(occM!==null&&lyOcc!==null)?arrowHtml(occM-lyOcc,{pts:true}):'<span class="neu">—</span>'}</div></div>
     <div class="kc"><div class="kl">ADR</div><div class="kv">${t.adr!==null?'$'+t.adr.toFixed(0):'—'}</div><div class="kch">${dv(adrM,lyAdr)}</div></div>
     <div class="kc"><div class="kl">RevPAR</div><div class="kv">${t.revpar!==null?'$'+t.revpar.toFixed(0):'—'}</div><div class="kch">${dv(revparM,lyRevpar)}</div></div>
-    <div class="kc"><div class="kl">Days entered</div><div class="kv">${t.n}/${t.total}</div><div class="kch neu">${t.n===t.total?'full year — ready to submit':(t.total-t.n)+' to go'}</div></div>`;
+    <div class="kc"><div class="kl">Days entered</div><div class="kv">${t.n}/${t.total}</div><div class="kch neu">${t.n===t.total?'full year — ready to submit':(t.total-t.n)+' to go'}</div></div>${bgSysBaseTile(t)}`;
   // month tabs show a check when every day is in
   document.querySelectorAll('#bgTabs .mtab').forEach((b,m)=>{
     if(m>11) return;
     const days=bgMonthDays(m), done=bgStats(days).n===days.length;
     b.textContent=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m]+(done?' ✓':'');
   });
+}
+
+// System baseline beside the GM's numbers: compares the GM's RevPAR over the months they have
+// fully entered with the baseline for those same months (the full year once it's complete).
+function bgSysBaseTile(t){
+  const sb=BG.sysBase; if(!sb||!sb.totals) return '';
+  let gmRev=0, blRev=0, avail=0, months=0;
+  for(let m=0;m<12;m++){
+    const days=bgMonthDays(m), s=bgStats(days);
+    if(s.n!==days.length) continue;
+    gmRev+=s.rev; blRev+=sb.months[m].rev; avail+=sb.months[m].avail; months++;
+  }
+  const blRp=sb.totals.revpar;
+  let ch='<span class="neu">enter a full month to compare</span>';
+  if(months&&avail&&blRev){
+    const d=(gmRev/blRev-1)*100, over=Math.abs(d)>sb.threshold_pct;
+    ch=`<span style="color:${over?'var(--red)':'var(--tm)'}">GM ${d>0?'+':''}${d.toFixed(1)}% vs baseline${months<12?` (${months} mo)`:''}${over?` · over ±${sb.threshold_pct}%: justification needed`:''}</span>`;
+  }
+  return `<div class="kc" title="${bgEsc(sb.label)}"><div class="kl">System baseline RevPAR</div><div class="kv">$${blRp.toFixed(0)}</div><div class="kch">${ch}</div></div>`;
 }
 
 function bgRefreshRow(d){
@@ -1722,7 +1762,13 @@ async function bgSubmit(){
   if(!confirm(`Submit the ${BG_YEAR} forecast for ${BG.prop.name} to corporate for review?\n\nYou won't be able to edit it until it's reviewed.`)) return;
   bgSetBusy(true); bgMsg('Submitting…');
   try{
-    const j=await bgApi('forecast_submit',{property_id:BG.prop.property_id},true);
+    let j=await bgApi('forecast_submit',{property_id:BG.prop.property_id},true);
+    if(j.error==='justification_required'){
+      // GM RevPAR is outside the allowed band around the system baseline: a written reason is required.
+      const why=prompt(j.message+'\n\nJustification:');
+      if(why===null){ bgSetBusy(false); bgMsg('Not submitted — a justification is needed for this RevPAR.','err'); return; }
+      j=await bgApi('forecast_submit',{property_id:BG.prop.property_id,justification:why},true);
+    }
     bgSetBusy(false);
     if(j.error){ bgMsg(j.message||'Submit failed.','err'); return; }
     BG.status.status='SUBMITTED'; BG.status.submitted_at=new Date().toISOString();
@@ -1882,13 +1928,17 @@ const RATE_SHOP_MAX_DAYS=21; // the export covers ~91 days; cap the table to a r
 
 async function loadRateShop(){
   if(rateShopState==='ready'||rateShopState==='loading'){ refreshRateShop(); return; }
-  const creds=getStoredCreds_();
-  if(!creds){ rateShopState='error'; rateShopError='Sign in on the Portfolio screen first.'; refreshRateShop(); return; }
+  const creds=SSO?null:getStoredCreds_();
+  if(!SSO && !creds){ rateShopState='error'; rateShopError='Sign in on the Portfolio screen first.'; refreshRateShop(); return; }
   rateShopState='loading'; refreshRateShop();
   try{
-    const qs=new URLSearchParams({module:'rate-shop', username:creds.u, password:creds.p});
-    const res=await fetch(`${APPS_SCRIPT_URL}?${qs.toString()}`);
-    const json=await res.json();
+    let json;
+    if(SSO){ json=await hubCall({action:'rate_shop'}); if(json.error) throw new Error(json.message||json.error); }
+    else {
+      const qs=new URLSearchParams({module:'rate-shop', username:creds.u, password:creds.p});
+      const res=await fetch(`${APPS_SCRIPT_URL}?${qs.toString()}`);
+      json=await res.json();
+    }
     if(json._status && json._status>=400) throw new Error(json.message||('API error '+json._status));
     RATE_SHOP=json.rateShop||[];
     rateShopState='ready';
@@ -2125,7 +2175,28 @@ function splashLogin(){
 
 // On load: if a session is already cached from an earlier visit, skip the
 // login form entirely and go straight to routing.
+// Google sign-in mode: Google already knows who this is, so there is no login form at all.
+function ssoBoot(){
+  document.getElementById('splashU').parentElement.querySelectorAll('label,input,button').forEach(el=>el.style.display='none');
+  splashSetMsg('Signing you in with Google…', false);
+  hubCall({action:'whoami'}).then(who=>{
+    if(who.error){ splashSetMsg(who.message||'Not authorized.', true); return; }
+    SSO_ME=who;
+    document.querySelectorAll('#nav-signout, #land > button').forEach(b=>b.style.display='none');
+    const base=who.app_url+'?view=app&tab=';
+    const links=[['dar','DAR Review'],['baseline','2027 Baseline']].concat(who.is_corporate?[['settings','Settings']]:[]);
+    const nav=document.querySelector('.hnav');
+    links.forEach(l=>{ const a=document.createElement('a'); a.href=base+l[0]; a.target='_top'; a.className='nb'; a.textContent=l[1]; a.style.textDecoration='none'; nav.insertBefore(a, document.getElementById('nav-signout')); });
+    const grid=document.querySelector('#land .mgrid');
+    const card=document.createElement('a'); card.href=base+'dar'; card.target='_top'; card.className='mc live'; card.style.textDecoration='none'; card.style.color='inherit';
+    card.innerHTML='<div class="mi ig">✅</div><div class="ml">Night Audit</div><div class="mt">DAR Review & 2027 Baseline</div><div class="md">Approve or flag submitted DARs, see status by date, and review the 2027 system baseline.</div><div class="badge bl"><span class="bd2"></span>Signed in as '+String(who.username).replace(/[<>&"]/g,'')+'</div>';
+    grid.insertBefore(card, grid.firstChild);
+    splashRoute(who, who.username);
+  }).catch(err=>splashSetMsg('Could not sign in: '+err.message, true));
+}
+
 (function initSplash(){
+  if(SSO){ ssoBoot(); return; }
   const creds = getStoredCreds_();
   if(!creds) return; // splash login form stays visible, waiting for input
   splashSetMsg('Checking session...', false);

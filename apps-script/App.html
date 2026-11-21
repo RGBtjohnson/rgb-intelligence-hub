@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<title>RGB Intelligence Hub — Reviews & Planning</title>
+<style>
+  :root{--gold:#b8862e;--t:#1d1d1b;--tm:#6b6b66;--td:#a29d92;--line:#e4ded2;--off:#faf8f4;--card:#fff;
+        --grn:#1a8754;--red:#c0392b;--amb:#c47f00;--blu:#2c6fb7;--pur:#7b4bb3}
+  *{box-sizing:border-box}
+  body{font-family:Arial,Helvetica,sans-serif;background:var(--off);color:var(--t);margin:0;font-size:13px}
+  .hdr{background:#fff;border-bottom:1px solid var(--line);padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .brand{font-weight:bold;font-size:15px} .brand em{color:var(--gold);font-style:italic}
+  .who{margin-left:auto;color:var(--tm);font-size:12px}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap}
+  .tab{border:1px solid var(--line);background:#fff;padding:6px 12px;border-radius:16px;cursor:pointer;font-size:12px;color:var(--t)}
+  .tab.active{background:var(--gold);border-color:var(--gold);color:#fff}
+  a.tab{text-decoration:none}
+  main{padding:16px;max-width:1200px;margin:0 auto}
+  h2{font-size:17px;margin:4px 0 2px} .ss{color:var(--tm);font-size:12px;margin-bottom:12px}
+  .krow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+  .kc{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+  .kl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--tm)} .kv{font-size:20px;font-weight:bold;margin-top:3px}
+  .kch{font-size:11px;color:var(--tm);margin-top:2px}
+  .tw{background:var(--card);border:1px solid var(--line);border-radius:8px;margin-bottom:16px;overflow:hidden}
+  .tbar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);gap:8px;flex-wrap:wrap}
+  .ttitle{font-weight:bold}
+  .scroll{overflow-x:auto}
+  table{border-collapse:collapse;width:100%}
+  th,td{padding:6px 10px;border-bottom:1px solid #f0ece3;text-align:left;white-space:nowrap}
+  th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--tm);background:#fcfbf8}
+  td.r,th.r{text-align:right} .mono{font-family:Consolas,Menlo,monospace}
+  tr.click{cursor:pointer} tr.click:hover td{background:#fbf6ec}
+  .chip{display:inline-block;font-size:10px;font-weight:bold;border-radius:10px;padding:2px 8px;border:1px solid currentColor;white-space:nowrap}
+  .c-pend{color:var(--blu)} .c-ok{color:var(--grn)} .c-flag{color:var(--red)} .c-reo{color:var(--amb)} .c-none{color:var(--td)}
+  .c-gm{color:var(--grn)} .c-bl{color:var(--pur)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+  .card h4{margin:0 0 4px;font-size:14px}
+  .meta{color:var(--tm);font-size:11px}
+  .mets{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0}
+  .mets div span{display:block;font-size:10px;color:var(--tm);text-transform:uppercase}
+  .btn{padding:7px 12px;border-radius:5px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:12px}
+  .btn.pri{background:var(--grn);border-color:var(--grn);color:#fff} .btn.warn{background:var(--red);border-color:var(--red);color:#fff}
+  .btn.gold{background:var(--gold);border-color:var(--gold);color:#fff}
+  .btn:disabled{opacity:.5;cursor:default}
+  textarea,input,select{font:inherit;padding:6px 8px;border:1px solid #cfc8b8;border-radius:5px;background:#fff}
+  textarea{width:100%;min-height:54px;margin-top:6px}
+  input.n{width:72px;text-align:right}
+  .msg{min-height:16px;font-size:12px;margin:6px 0}
+  .ok{color:var(--grn)} .err{color:var(--red)}
+  .flag{background:#fdf1ef;border:1px solid #f3cfc9;color:#7d2a20;border-radius:6px;padding:8px 10px;margin:6px 0;font-size:12px}
+  .note{background:#fbf6ec;border:1px solid #efe2c6;border-radius:6px;padding:8px 10px;margin:6px 0;font-size:12px}
+  .bltag{display:inline-block;background:#f1ebf8;color:var(--pur);border:1px dashed var(--pur);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:bold}
+  details summary{cursor:pointer;color:var(--blu);font-size:12px;margin-top:4px}
+  .grid td{padding:4px 3px;text-align:center} .grid th{padding:4px 3px;text-align:center}
+  .dot{display:inline-block;width:14px;height:14px;border-radius:3px;background:#eee}
+  .d-SUBMITTED{background:var(--blu)} .d-VALIDATED{background:var(--grn)} .d-FLAGGED{background:var(--red)} .d-REOPENED{background:var(--amb)}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--tm);padding:8px 14px}
+  .legend span{display:inline-flex;align-items:center;gap:4px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:16px} @media(max-width:860px){.row2{grid-template-columns:1fr}}
+  .form td{padding:4px 8px}
+  .hidden{display:none!important}
+  .linkbox{font-family:Consolas,Menlo,monospace;font-size:11px;word-break:break-all;background:#f3f9f5;border:1px solid #cfe6d8;padding:8px;border-radius:5px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="brand">RGB Intelligence <em>Hub</em></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="who" id="who">Signing in…</div>
+</div>
+<main>
+  <div class="msg" id="topMsg"></div>
+  <section id="tab-dar" class="hidden"></section>
+  <section id="tab-rollup" class="hidden"></section>
+  <section id="tab-baseline" class="hidden"></section>
+  <section id="tab-settings" class="hidden"></section>
+</main>
+<script>
+const BOOT = <?!= boot ?>;
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let ME=null, CUR='dar';
+const STATE={queue:null, grid:null, rollup:null, bl:null, blDetail:null, settings:null, tokens:null};
+
+// ── helpers ──
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function $(id){return document.getElementById(id);}
+function money(n,dec){if(n==null||!isFinite(n))return '—';if(Math.abs(n)<(dec?0.005:0.5))n=0;return (n<0?'-':'')+'$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:dec||0,maximumFractionDigits:dec||0});}
+function pct(x,d){return x==null||!isFinite(x)?'—':(x*100).toFixed(d==null?1:d)+'%';}
+function sgn(x,d){return x==null||!isFinite(x)?'—':(x>0?'+':'')+x.toFixed(d==null?1:d)+'%';}
+function when(iso){if(!iso)return '—';const t=new Date(iso);return isNaN(t)?esc(iso):t.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}
+function api(action,params){
+  return new Promise((res,rej)=>{
+    google.script.run.withSuccessHandler(r=>{ if(r&&r.error) rej(new Error(r.message||r.error)); else res(r); })
+      .withFailureHandler(e=>rej(e instanceof Error?e:new Error(String(e))))
+      .hubApi(Object.assign({action:action},params||{}));
+  });
+}
+function topMsg(t,cls){const m=$('topMsg');m.textContent=t||'';m.className='msg '+(cls||'');}
+const STATUS_CHIP={'':['Not submitted','c-none'],SUBMITTED:['Pending GM review','c-pend'],VALIDATED:['Approved','c-ok'],FLAGGED:['Flagged — with corporate','c-flag'],REOPENED:['Reopened — resubmit','c-reo']};
+function statusChip(s){const x=STATUS_CHIP[s||'']||[s,'c-none'];return '<span class="chip '+x[1]+'">'+esc(x[0])+'</span>';}
+
+// ── shell ──
+function renderTabs(){
+  const t=[['dar','DAR Review'],['rollup','Approved DARs'],['baseline','2027 Baseline']];
+  if(ME.is_corporate) t.push(['settings','Settings']);
+  let h=t.map(x=>'<button class="tab'+(x[0]===CUR?' active':'')+'" onclick="show(\''+x[0]+'\')">'+x[1]+'</button>').join('');
+  h+='<a class="tab" href="'+esc(ME.app_url)+'">← Hub</a>';
+  $('tabs').innerHTML=h;
+}
+function show(tab){
+  if(tab==='settings'&&!ME.is_corporate) tab='dar';
+  CUR=tab; renderTabs();
+  ['dar','rollup','baseline','settings'].forEach(x=>$('tab-'+x).classList.toggle('hidden',x!==tab));
+  if(tab==='dar') loadDar();
+  if(tab==='rollup') loadRollup();
+  if(tab==='baseline') loadBaseline();
+  if(tab==='settings') loadSettings();
+}
+
+// ═══ DAR REVIEW ═══
+async function loadDar(){
+  const el=$('tab-dar'); el.innerHTML='<div class="meta">Loading…</div>';
+  try{
+    const [q,g]=await Promise.all([api('dar_queue'),api('dar_status',{days:21})]);
+    STATE.queue=q; STATE.grid=g; renderDar();
+  }catch(e){ el.innerHTML='<div class="err">'+esc(e.message)+'</div>'; }
+}
+function darMetrics(r){
+  const v=r.values,t=r.totals,rooms=v.rooms_rented||0;
+  const m=[['Rooms rented',rooms],['Occupancy',r.rooms?pct(rooms/r.rooms):'—'],['ADR',rooms?money(v.room_rental_revenue/rooms,2):'—'],['RevPAR',r.rooms?money(v.room_rental_revenue/r.rooms,2):'—'],['Total revenue',money(t.total_revenue,2)]];
+  if(t.rev_deposit_difference!=null) m.push(['Deposit difference',money(t.rev_deposit_difference,2)]);
+  return '<div class="mets">'+m.map(x=>'<div><span>'+x[0]+'</span><strong class="mono">'+x[1]+'</strong></div>').join('')+'</div>';
+}
+function darFields(r){
+  const L=STATE.queue.labels;
+  const rows=Object.keys(r.values).filter(k=>Number(r.values[k])).map(k=>'<tr><td>'+esc(L[k]||k)+'</td><td class="r mono">'+(k==='rooms_rented'?r.values[k]:money(r.values[k],2))+'</td></tr>').join('');
+  return '<details><summary>All lines</summary><table>'+(rows||'<tr><td class="meta">All zero</td></tr>')+'</table></details>';
+}
+function darCard(r,i,kind){
+  const id=kind+i;
+  let h='<div class="card" id="card_'+id+'"><h4>'+esc(r.property_name)+' — '+esc(r.date)+' '+statusChip(r.status)+'</h4>';
+  h+='<div class="meta">Submitted by '+esc(r.submitted_by||'—')+' · '+when(r.submitted_at)+(r.submission_source?' · via '+esc(r.submission_source):'')+'</div>';
+  h+=darMetrics(r)+darFields(r);
+  if(kind==='p'){
+    h+='<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" onclick="decide(\''+id+'\',\'APPROVE\')">Approve</button><button class="btn warn" onclick="toggleNote(\''+id+'\')">Flag for correction</button></div>';
+    h+='<div id="nb_'+id+'" class="hidden"><textarea id="note_'+id+'" placeholder="What needs correcting? (required)"></textarea><button class="btn warn" onclick="decide(\''+id+'\',\'FLAG\')">Send flag to corporate</button></div>';
+  } else {
+    h+='<div class="flag"><strong>GM note:</strong> '+esc(r.flag_note)+' <span class="meta">— '+esc(r.validated_by)+', '+when(r.validated_at)+'</span></div>';
+    if(STATE.queue.is_corporate){
+      h+='<textarea id="note_'+id+'" placeholder="Note to the hotel (required to reopen)"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="btn gold" onclick="corp(\''+id+'\',\'REOPEN\')">Reopen for resubmission</button><button class="btn pri" onclick="corp(\''+id+'\',\'APPROVE\')">Approve as is</button></div>';
+    } else h+='<div class="meta">Corporate is reviewing this flag.</div>';
+  }
+  return h+'<div class="msg" id="msg_'+id+'"></div></div>';
+}
+function renderDar(){
+  const q=STATE.queue,g=STATE.grid;
+  let h='<h2>DAR Review</h2><div class="ss">Night-audit submissions land here as <strong>Pending GM review</strong>. Approve to lock a date and roll it into the portfolio; flag it with a note to send it to corporate.</div>';
+  h+='<div class="krow"><div class="kc"><div class="kl">Pending review</div><div class="kv">'+q.pending.length+'</div></div><div class="kc"><div class="kl">Flagged</div><div class="kv">'+q.flagged.length+'</div><div class="kch">'+(q.is_corporate?'waiting on corporate':'with corporate')+'</div></div></div>';
+  h+='<div class="row2"><div><div class="ttitle" style="margin-bottom:8px">Pending GM review</div>'+(q.pending.length?q.pending.map((r,i)=>darCard(r,i,'p')).join(''):'<div class="card meta">Nothing pending. 👍</div>')+'</div>';
+  h+='<div><div class="ttitle" style="margin-bottom:8px">Flagged for correction</div>'+(q.flagged.length?q.flagged.map((r,i)=>darCard(r,i,'f')).join(''):'<div class="card meta">No open flags.</div>')+'</div></div>';
+  // status by date
+  h+='<div class="tw"><div class="tbar"><div class="ttitle">Status by business date — last '+g.dates.length+' days</div></div><div class="scroll"><table class="grid"><thead><tr><th style="text-align:left">Hotel</th>'+
+    g.dates.map(d=>'<th title="'+d+'">'+d.slice(5).replace('-','/')+'</th>').join('')+'</tr></thead><tbody>'+
+    g.properties.map(p=>'<tr><td style="text-align:left">'+esc(p.name)+'</td>'+g.dates.map(d=>{const s=p.cells[d]||'';return '<td><span class="dot d-'+s+'" title="'+esc(d+': '+(g.labels[s]||s))+'"></span></td>';}).join('')+'</tr>').join('')+
+    '</tbody></table></div><div class="legend"><span><i class="dot"></i>Not submitted</span><span><i class="dot d-SUBMITTED"></i>Pending GM review</span><span><i class="dot d-VALIDATED"></i>Approved (locked)</span><span><i class="dot d-FLAGGED"></i>Flagged</span><span><i class="dot d-REOPENED"></i>Reopened</span></div></div>';
+  $('tab-dar').innerHTML=h;
+}
+function rowFor(id){const k=id[0],i=Number(id.slice(1));return k==='p'?STATE.queue.pending[i]:STATE.queue.flagged[i];}
+function toggleNote(id){$('nb_'+id).classList.toggle('hidden');const n=$('note_'+id);if(n)n.focus();}
+function cardMsg(id,t,c){const m=$('msg_'+id);if(m){m.textContent=t;m.className='msg '+(c||'');}}
+function lockCard(id,on){document.querySelectorAll('#card_'+id+' button').forEach(b=>b.disabled=on);}
+async function decide(id,decision){
+  const r=rowFor(id),note=decision==='FLAG'?($('note_'+id).value||'').trim():'';
+  if(decision==='FLAG'&&note.length<3){cardMsg(id,'A note is required to flag.','err');return;}
+  lockCard(id,true);cardMsg(id,'Saving…');
+  try{const j=await api('dar_decide',{property_id:r.property_id,date:r.date,decision:decision,note:note});cardMsg(id,j.status_label+'.','ok');setTimeout(loadDar,700);}
+  catch(e){lockCard(id,false);cardMsg(id,e.message,'err');}
+}
+async function corp(id,decision){
+  const r=rowFor(id),note=($('note_'+id).value||'').trim();
+  if(decision==='REOPEN'&&note.length<3){cardMsg(id,'Add a note for the hotel.','err');return;}
+  lockCard(id,true);cardMsg(id,'Saving…');
+  try{const j=await api('dar_corporate',{property_id:r.property_id,date:r.date,decision:decision,note:note});cardMsg(id,j.status_label+'.','ok');setTimeout(loadDar,700);}
+  catch(e){lockCard(id,false);cardMsg(id,e.message,'err');}
+}
+
+// ═══ APPROVED ROLLUP ═══
+async function loadRollup(month){
+  const el=$('tab-rollup'); el.innerHTML='<div class="meta">Loading…</div>';
+  try{ STATE.rollup=await api('dar_rollup',month?{month:month}:{}); renderRollup(); }
+  catch(e){ el.innerHTML='<div class="err">'+esc(e.message)+'</div>'; }
+}
+function renderRollup(){
+  const R=STATE.rollup, rows=R.rows;
+  const T=rows.reduce((a,r)=>{a.rn+=r.rooms_sold;a.rev+=r.room_rev;a.tr+=r.total_rev;a.av+=r.rooms*r.approved_days;return a;},{rn:0,rev:0,tr:0,av:0});
+  let h='<h2>Approved DARs — portfolio rollup</h2><div class="ss">Only GM-approved (locked) dates count here. Pending and flagged dates are shown so gaps are visible.</div>';
+  h+='<div style="margin-bottom:10px">Month <input type="month" value="'+esc(R.month)+'" onchange="loadRollup(this.value)"></div>';
+  h+='<div class="krow"><div class="kc"><div class="kl">Room revenue</div><div class="kv">'+money(T.rev)+'</div></div><div class="kc"><div class="kl">Occupancy</div><div class="kv">'+(T.av?pct(T.rn/T.av):'—')+'</div><div class="kch">approved days only</div></div><div class="kc"><div class="kl">ADR</div><div class="kv">'+(T.rn?money(T.rev/T.rn,2):'—')+'</div></div><div class="kc"><div class="kl">RevPAR</div><div class="kv">'+(T.av?money(T.rev/T.av,2):'—')+'</div></div></div>';
+  h+='<div class="tw"><div class="scroll"><table><thead><tr><th>Hotel</th><th>Market</th><th class="r">Approved days</th><th class="r">Pending</th><th class="r">Flagged</th><th class="r">Rooms sold</th><th class="r">Occ</th><th class="r">ADR</th><th class="r">RevPAR</th><th class="r">Room rev</th><th class="r">Total rev</th></tr></thead><tbody>'+
+    rows.map(r=>'<tr><td>'+esc(r.name)+'</td><td>'+esc(r.market)+'</td><td class="r mono">'+r.approved_days+'</td><td class="r mono">'+(r.pending||'')+'</td><td class="r mono" style="color:var(--red)">'+(r.flagged||'')+'</td><td class="r mono">'+r.rooms_sold.toLocaleString()+'</td><td class="r mono">'+pct(r.occ)+'</td><td class="r mono">'+money(r.adr,2)+'</td><td class="r mono">'+money(r.revpar,2)+'</td><td class="r mono">'+money(r.room_rev)+'</td><td class="r mono">'+money(r.total_rev)+'</td></tr>').join('')+
+    '</tbody></table></div></div>';
+  $('tab-rollup').innerHTML=h;
+}
+
+// ═══ 2027 BASELINE ═══
+async function loadBaseline(){
+  const el=$('tab-baseline'); el.innerHTML='<div class="meta">Building baselines…</div>';
+  try{
+    STATE.bl=await api('baseline_portfolio');
+    if(BOOT.property_id&&!STATE.blDetail){ openBl(BOOT.property_id); return; }
+    renderBlList();
+  }catch(e){ el.innerHTML='<div class="err">'+esc(e.message)+'</div>'; }
+}
+function srcChip(r){return r.source==='gm'?'<span class="chip c-gm">GM-submitted</span>':'<span class="bltag">System baseline — not GM-submitted</span>';}
+function renderBlList(){
+  STATE.blDetail=null;
+  const B=STATE.bl,c=B.counts;
+  let h='<h2>2027 top-line — portfolio</h2><div class="ss">Where a GM has submitted 2027, their numbers are used; everywhere else the system baseline fills in. GM RevPAR more than ±'+B.threshold_pct+'% from the baseline needs a written justification.</div>';
+  h+='<div class="krow"><div class="kc"><div class="kl">GM-submitted</div><div class="kv" style="color:var(--grn)">'+c.gm_submitted+' / '+c.total+'</div></div><div class="kc"><div class="kl">System baseline</div><div class="kv" style="color:var(--pur)">'+c.baseline+' / '+c.total+'</div><div class="kch">not GM-submitted</div></div>'+
+    '<div class="kc"><div class="kl">Manual review</div><div class="kv" style="color:'+(c.manual_review?'var(--red)':'inherit')+'">'+c.manual_review+'</div></div>'+
+    '<div class="kc"><div class="kl">2027 room revenue</div><div class="kv">'+money(B.totals.rev)+'</div><div class="kch">GM where submitted, else baseline</div></div><div class="kc"><div class="kl">2027 RevPAR</div><div class="kv">'+money(B.totals.revpar,2)+'</div><div class="kch">Occ '+pct(B.totals.occ)+' · ADR '+money(B.totals.adr,2)+'</div></div></div>';
+  h+='<div class="tw"><div class="tbar"><div class="ttitle">Hotels</div><div class="meta">Click a hotel for its waterfall</div></div><div class="scroll"><table><thead><tr><th>Hotel</th><th>Market</th><th>Source</th><th class="r">2026 RevPAR</th><th class="r">Baseline RevPAR</th><th class="r">GM RevPAR</th><th class="r">GM vs baseline</th><th>Flags</th></tr></thead><tbody>'+
+    B.properties.map(r=>'<tr class="click" onclick="openBl(\''+esc(r.property_id)+'\')"><td>'+esc(r.name)+'</td><td>'+esc(r.market)+'</td><td>'+srcChip(r)+'</td><td class="r mono">'+money(r.raw2026.revpar,2)+'</td><td class="r mono">'+money(r.baseline.revpar,2)+'</td><td class="r mono">'+(r.gm?money(r.gm.revpar,2):'—')+'</td><td class="r mono" style="color:'+(r.over_threshold?'var(--red)':'inherit')+'">'+sgn(r.diff_pct)+(r.over_threshold?(r.justification?' ✎':' !'):'')+'</td><td>'+(r.manual_review?'<span class="chip c-flag">Manual review required</span> ':'')+(r.event?'<span class="chip c-reo">World Cup adj.</span>':'')+'</td></tr>').join('')+
+    '</tbody></table></div></div>';
+  if(B.settings_updated_at) h+='<div class="meta">Assumptions last changed '+when(B.settings_updated_at)+' by '+esc(B.settings_updated_by)+'.</div>';
+  $('tab-baseline').innerHTML=h;
+}
+async function openBl(pid){
+  const el=$('tab-baseline'); el.innerHTML='<div class="meta">Loading…</div>';
+  try{ STATE.blDetail=await api('baseline_property',{property_id:pid}); renderBlDetail('final'); }
+  catch(e){ el.innerHTML='<div class="err">'+esc(e.message)+'</div>'; }
+}
+function waterfallSvg(w){
+  const W=640,H=230,pad=40,bw=80,gap=(W-pad*2-bw*w.length)/(w.length-1);
+  let run=0; const bars=w.map(s=>{ if(s.kind==='total'){run=s.rev;return {lo:0,hi:s.rev,s:s};} const lo=run,hi=run+s.rev;run=hi;return {lo:Math.min(lo,hi),hi:Math.max(lo,hi),s:s}; });
+  const vals=bars.flatMap(b=>[b.lo,b.hi]).filter(v=>v>0);
+  const top=Math.max.apply(null,vals)*1.04, floor=Math.min.apply(null,bars.filter(b=>b.s.kind==='total').map(b=>b.hi))*0.85;
+  const y=v=>H-24-(Math.max(v,floor)-floor)/(top-floor)*(H-50);
+  let g='';
+  bars.forEach((b,i)=>{
+    const x=pad+i*(bw+gap), y1=y(b.hi), y0=y(b.lo), hgt=Math.max(1.5,y0-y1);
+    const zero=b.s.kind!=='total'&&Math.abs(b.s.rev)<0.5;
+    const col=b.s.kind==='total'?'#b8862e':zero?'#a29d92':(b.s.rev>=0?'#1a8754':'#c0392b');
+    g+='<rect x="'+x+'" y="'+y1+'" width="'+bw+'" height="'+hgt+'" rx="3" fill="'+col+'"/>';
+    const lbl=b.s.kind==='total'?money(b.s.rev):zero?'$0':((b.s.rev>=0?'+':'-')+money(Math.abs(b.s.rev)));
+    g+='<text x="'+(x+bw/2)+'" y="'+(y1-6)+'" font-size="11" text-anchor="middle" fill="#1d1d1b">'+esc(lbl)+'</text>';
+    g+='<text x="'+(x+bw/2)+'" y="'+(H-8)+'" font-size="11" text-anchor="middle" fill="#6b6b66">'+esc(b.s.step)+'</text>';
+    if(i<bars.length-1){const nx=x+bw+gap;const yy=y(b.s.kind==='total'?b.hi:(b.s.rev>=0?b.hi:b.lo));g+='<line x1="'+(x+bw)+'" x2="'+nx+'" y1="'+yy+'" y2="'+yy+'" stroke="#a29d92" stroke-dasharray="3 3"/>';}
+  });
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:'+W+'px;display:block" role="img" aria-label="Room revenue waterfall">'+g+'</svg><div class="meta" style="padding:0 0 4px">Room revenue. Axis starts at '+money(floor)+', not $0, so the adjustments are visible.</div>';
+}
+function renderBlDetail(stage){
+  const b=STATE.blDetail, A=b.assumptions, st=b.stages, gm=b.gm;
+  const stageNames={raw:'2026 raw',event:'After event adj',easter:'After Easter shift',final:'2027 baseline'};
+  let h='<div style="margin-bottom:8px"><button class="btn" onclick="renderBlList()">← All hotels</button></div>';
+  h+='<h2>'+esc(b.name)+' — 2027 build</h2><div class="ss">'+esc(b.market)+' · '+b.rooms+' rooms · '+(gm.submitted?'<span class="chip c-gm">GM-submitted ('+esc(gm.status)+') — GM numbers override the baseline</span>':'<span class="bltag">'+esc(b.label)+'</span>')+'</div>';
+  if(b.flags.length) h+=b.flags.map(f=>'<div class="'+(/Manual review/.test(f)?'flag':'note')+'">'+esc(f)+'</div>').join('');
+  const F=b.totals.final, Rw=b.totals.raw;
+  h+='<div class="krow"><div class="kc"><div class="kl">Baseline room revenue</div><div class="kv">'+money(F.rev)+'</div><div class="kch">'+sgn((F.rev/Rw.rev-1)*100)+' vs 2026 raw</div></div><div class="kc"><div class="kl">Baseline RevPAR</div><div class="kv">'+money(F.revpar,2)+'</div><div class="kch">2026 raw '+money(Rw.revpar,2)+'</div></div><div class="kc"><div class="kl">Occupancy</div><div class="kv">'+pct(F.occ)+'</div></div><div class="kc"><div class="kl">ADR</div><div class="kv">'+money(F.adr,2)+'</div></div>';
+  const gmRev=gm.months.reduce((a,m)=>a+m.rev,0),gmRn=gm.months.reduce((a,m)=>a+m.rn,0);
+  if(gm.days){const gRp=gmRev/F.avail, d=(gRp/F.revpar-1)*100, over=Math.abs(d)>b.threshold_pct&&gm.days===365;
+    h+='<div class="kc"><div class="kl">GM RevPAR'+(gm.days<365?' ('+gm.days+'/365 days)':'')+'</div><div class="kv">'+money(gRp,2)+'</div><div class="kch" style="color:'+(over?'var(--red)':'inherit')+'">'+sgn(d)+' vs baseline'+(over?' — beyond ±'+b.threshold_pct+'%':'')+'</div></div>';}
+  h+='</div>';
+  if(gm.justification) h+='<div class="note"><strong>GM justification:</strong> '+esc(gm.justification)+'</div>';
+  h+='<div class="tw"><div class="tbar"><div class="ttitle">Waterfall: 2026 raw → event adj → Easter shift → growth → 2027 baseline</div></div><div style="padding:10px 14px">'+waterfallSvg(b.waterfall)+'</div>';
+  h+='<div class="scroll"><table><thead><tr><th>Step</th><th class="r">Room revenue</th><th class="r">RevPAR</th></tr></thead><tbody>'+b.waterfall.map(s=>'<tr><td>'+esc(s.step)+'</td><td class="r mono">'+(s.kind==='delta'&&s.rev>=0.5?'+':'')+money(s.rev)+'</td><td class="r mono">'+(s.kind==='delta'&&s.revpar>=0.005?'+':'')+money(s.revpar,2)+'</td></tr>').join('')+'</tbody></table></div></div>';
+  // assumptions
+  const ev=b.event;
+  h+='<div class="tw"><div class="tbar"><div class="ttitle">Assumptions used</div></div><div class="scroll"><table><tbody>'+
+    '<tr><td>2026 base</td><td>Actuals Jan–'+MON[b.actuals_through_month]+', budget after (budget room revenue split by 2025 ADR)</td></tr>'+
+    '<tr><td>Event normalization</td><td>'+(A.event?(ev.applied?esc(ev.method)+(ev.occ_trend!=null?' · occ trend '+sgn(ev.occ_trend*100)+', ADR trend '+sgn(ev.adr_trend*100):'')+(ev.peers&&ev.peers.length?' · peers: '+esc(ev.peers.join(', ')):''):esc(ev.method||'—')):'Not a World Cup host market')+' <span class="meta">('+esc(A.event_source)+')</span></td></tr>'+
+    '<tr><td>Easter shift</td><td>'+A.easter_pct+'% of March room nights → April ('+Math.round(b.easter_moved_rn).toLocaleString()+' room nights) <span class="meta">('+esc(A.easter_source)+')</span></td></tr>'+
+    '<tr><td>Growth</td><td>ADR '+sgn(A.growth_adr)+' <span class="meta">('+esc(A.growth_adr_source)+')</span> · Occupancy '+sgn(A.growth_occ)+' <span class="meta">('+esc(A.growth_occ_source)+')</span> · RevPAR '+sgn(((1+A.growth_adr/100)*(1+A.growth_occ/100)-1)*100)+'</td></tr>'+
+    '<tr><td>Brand tier / demand mix</td><td>'+esc(A.tier)+(A.tier_inferred?' (inferred)':'')+' · '+esc(A.mix)+(A.mix_inferred?' (inferred)':'')+'</td></tr>'+
+    '</tbody></table></div></div>';
+  // monthly
+  const s=st[stage];
+  h+='<div class="tw"><div class="tbar"><div class="ttitle">Monthly — '+stageNames[stage]+(gm.days?' vs GM':'')+'</div><div class="tabs">'+Object.keys(stageNames).map(k=>'<button class="tab'+(k===stage?' active':'')+'" onclick="renderBlDetail(\''+k+'\')">'+stageNames[k]+'</button>').join('')+'</div></div><div class="scroll"><table><thead><tr><th>Month</th><th>Source</th><th class="r">Room nights</th><th class="r">Occ</th><th class="r">ADR</th><th class="r">RevPAR</th><th class="r">Room rev</th>'+(gm.days?'<th class="r">GM RevPAR</th><th class="r">GM vs baseline</th>':'')+'</tr></thead><tbody>'+
+    s.map((x,m)=>{const g=gm.months[m],fa=st.final[m].avail,gR=g.days?g.rev/fa:null,bR=st.final[m].avail?st.final[m].rev/st.final[m].avail:0;
+      return '<tr><td>'+MON[m]+'</td><td class="meta">'+esc(x.src)+'</td><td class="r mono">'+Math.round(x.rn).toLocaleString()+'</td><td class="r mono">'+pct(x.avail?x.rn/x.avail:null)+'</td><td class="r mono">'+money(x.rn?x.rev/x.rn:null,2)+'</td><td class="r mono">'+money(x.avail?x.rev/x.avail:null,2)+'</td><td class="r mono">'+money(x.rev)+'</td>'+
+      (gm.days?'<td class="r mono">'+(g.days?money(gR,2)+(g.days<new Date(Date.UTC(2027,m+1,0)).getUTCDate()?'*':''):'—')+'</td><td class="r mono">'+(g.days&&bR?sgn((gR/bR-1)*100):'—')+'</td>':'')+'</tr>';}).join('')+
+    '</tbody></table></div>'+(gm.days?'<div class="meta" style="padding:6px 14px">* month not fully entered by the GM yet. GM vs baseline always compares with the 2027 baseline.</div>':'')+'</div>';
+  $('tab-baseline').innerHTML=h;
+}
+
+// ═══ SETTINGS (corporate) ═══
+async function loadSettings(){
+  const el=$('tab-settings'); el.innerHTML='<div class="meta">Loading…</div>';
+  try{
+    const [s,t]=await Promise.all([api('baseline_settings_get'),api('na_tokens')]);
+    STATE.settings=s; STATE.tokens=t; renderSettings();
+  }catch(e){ el.innerHTML='<div class="err">'+esc(e.message)+'</div>'; }
+}
+function numIn(id,v,ph){return '<input class="n" id="'+id+'" value="'+(v===''||v==null?'':esc(v))+'" placeholder="'+(ph==null?'':esc(ph))+'">';}
+function renderSettings(){
+  const X=STATE.settings, S=X.settings, D=X.defaults;
+  let h='<h2>Settings <span class="chip c-flag">corporate only</span></h2><div class="ss">Changes apply to every baseline immediately. Blank tier / market fields inherit the default.</div>';
+  h+='<div class="row2"><div class="tw"><div class="tbar"><div class="ttitle">Baseline assumptions</div></div><table class="form"><tbody>'+
+    '<tr><td>2026 actuals through</td><td><select id="s_through">'+MON.map((m,i)=>'<option value="'+i+'"'+(i===Number(S.actuals_through_month)?' selected':'')+'>'+m+'</option>').join('')+'</select> <span class="meta">budget after</span></td></tr>'+
+    '<tr><td>Default ADR growth %</td><td>'+numIn('s_gadr',S.growth.default.adr)+'</td></tr>'+
+    '<tr><td>Default occupancy growth %</td><td>'+numIn('s_gocc',S.growth.default.occ)+' <span class="meta" id="s_rp"></span></td></tr>'+
+    X.tiers.map(t=>'<tr><td>'+esc(X.tier_labels[t])+' ADR / Occ %</td><td>'+numIn('s_t_adr_'+t,(S.growth.tiers[t]||{}).adr,'default')+' '+numIn('s_t_occ_'+t,(S.growth.tiers[t]||{}).occ,'default')+'</td></tr>').join('')+
+    '<tr><td>World Cup host markets</td><td><input id="s_evm" value="'+esc((S.event.markets||[]).join(', '))+'" style="width:220px"></td></tr>'+
+    '<tr><td>Event months</td><td><input id="s_evmo" value="'+esc((S.event.months||[]).map(m=>MON[m]).join(', '))+'" style="width:120px"> <span class="meta">e.g. Jun, Jul</span></td></tr>'+
+    '<tr><td>Event trend cap ±%</td><td>'+numIn('s_cap',S.event.trend_cap_pct)+'</td></tr>'+
+    X.mixes.map(m=>'<tr><td>Easter shift % — '+esc(m)+'</td><td>'+numIn('s_e_'+m,S.easter[m])+'</td></tr>').join('')+
+    '<tr><td>GM vs baseline threshold ±%</td><td>'+numIn('s_thr',S.gm_threshold_pct)+'</td></tr>'+
+    '</tbody></table></div>';
+  h+='<div class="tw"><div class="tbar"><div class="ttitle">Per-market growth overrides</div></div><table class="form"><thead><tr><th>Market</th><th>ADR %</th><th>Occ %</th></tr></thead><tbody>'+
+    X.markets.map((mk,i)=>{const o=S.growth.markets[mk]||{};return '<tr><td>'+esc(mk)+'</td><td>'+numIn('s_m_adr_'+i,o.adr,'inherit')+'</td><td>'+numIn('s_m_occ_'+i,o.occ,'inherit')+'</td></tr>';}).join('')+
+    '</tbody></table></div></div>';
+  h+='<div class="tw"><div class="tbar"><div class="ttitle">Per-hotel overrides</div><div class="meta">Blank / auto = inferred from the hotel name and market</div></div><div class="scroll"><table class="form"><thead><tr><th>Hotel</th><th>Market</th><th>Brand tier</th><th>Demand mix</th><th>World Cup adj.</th><th>Easter %</th></tr></thead><tbody>'+
+    X.properties.map((p,i)=>{const o=S.properties[p.property_id]||{};
+      const sel=(id,opts,val,inf)=>'<select id="'+id+'"><option value="">auto ('+esc(inf)+')</option>'+opts.map(x=>'<option'+(x===val?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select>';
+      return '<tr><td>'+esc(p.name)+'</td><td>'+esc(p.market)+'</td><td>'+sel('s_p_tier_'+i,X.tiers,o.tier,p.inferred_tier)+'</td><td>'+sel('s_p_mix_'+i,X.mixes,o.mix,p.inferred_mix)+'</td><td><select id="s_p_ev_'+i+'">'+['auto','yes','no'].map(x=>'<option'+(x===(o.event||'auto')?' selected':'')+'>'+x+'</option>').join('')+'</select></td><td>'+numIn('s_p_e_'+i,o.easter_pct,'mix')+'</td></tr>';}).join('')+
+    '</tbody></table></div></div>';
+  h+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:22px"><button class="btn gold" onclick="saveSettings()">Save assumptions</button><button class="btn" onclick="resetDefaults()">Reset to defaults</button><span class="msg" id="setMsg"></span></div>';
+  if(S.updated_at) h+='<div class="meta" style="margin:-14px 0 18px">Last saved '+when(S.updated_at)+' by '+esc(S.updated_by)+'.</div>';
+  // tokens
+  const T=STATE.tokens;
+  h+='<div class="tw"><div class="tbar"><div class="ttitle">Night-audit submission links</div><div class="meta">One link per hotel. Rotating makes a new link and stops the old one at once.</div></div>';
+  h+='<div style="padding:10px 14px">Public (Anyone) deployment URL: <input id="naUrl" value="'+esc(T.public_url_set?T.public_url:'')+'" placeholder="https://script.google.com/macros/s/…/exec" style="width:420px;max-width:100%"> <button class="btn" onclick="saveNaUrl()">Save</button>'+(T.public_url_set?'':' <span class="err">Not set — links will use this deployment, which auditors can\'t open.</span>')+'<div class="msg" id="naUrlMsg"></div></div>';
+  h+='<div class="scroll"><table><thead><tr><th>Hotel</th><th>Status</th><th>Link ends</th><th>Created</th><th class="r">Revoked before</th><th></th></tr></thead><tbody>'+
+    T.properties.map((p,i)=>'<tr><td>'+esc(p.name)+'</td><td>'+(p.active?'<span class="chip c-ok">Active</span>':'<span class="chip c-none">No link</span>')+'</td><td class="mono">'+(p.hint?'…'+esc(p.hint):'—')+'</td><td>'+(p.created_at?when(p.created_at)+' · '+esc(p.created_by):'—')+'</td><td class="r mono">'+p.revoked_count+'</td><td><button class="btn" onclick="rotate('+i+')">'+(p.active?'Rotate':'Create link')+'</button> '+(p.active?'<button class="btn warn" onclick="revoke('+i+')">Revoke</button>':'')+'</td></tr><tr class="hidden" id="tokRow_'+i+'"><td colspan="6"><div id="tokOut_'+i+'"></div></td></tr>').join('')+
+    '</tbody></table></div></div>';
+  $('tab-settings').innerHTML=h;
+  const rp=()=>{const a=Number($('s_gadr').value)||0,o=Number($('s_gocc').value)||0;$('s_rp').textContent='= RevPAR '+sgn(((1+a/100)*(1+o/100)-1)*100,2);};
+  $('s_gadr').oninput=rp; $('s_gocc').oninput=rp; rp();
+}
+function v(id){const e=$(id);return e?e.value.trim():'';}
+function collectSettings(){
+  const X=STATE.settings, out={actuals_through_month:Number(v('s_through')),growth:{default:{adr:v('s_gadr'),occ:v('s_gocc')},tiers:{},markets:{}},
+    event:{markets:v('s_evm').split(',').map(s=>s.trim()).filter(Boolean),months:v('s_evmo').split(',').map(s=>MON.indexOf(s.trim().slice(0,3).replace(/^./,c=>c.toUpperCase()))).filter(m=>m>=0),trend_cap_pct:v('s_cap')},
+    easter:{},gm_threshold_pct:v('s_thr'),properties:{}};
+  X.tiers.forEach(t=>{out.growth.tiers[t]={adr:v('s_t_adr_'+t),occ:v('s_t_occ_'+t)};});
+  X.markets.forEach((mk,i)=>{out.growth.markets[mk]={adr:v('s_m_adr_'+i),occ:v('s_m_occ_'+i)};});
+  X.mixes.forEach(m=>{out.easter[m]=v('s_e_'+m);});
+  X.properties.forEach((p,i)=>{out.properties[p.property_id]={tier:v('s_p_tier_'+i),mix:v('s_p_mix_'+i),event:v('s_p_ev_'+i),easter_pct:v('s_p_e_'+i)};});
+  return out;
+}
+async function saveSettings(){
+  const m=$('setMsg'); m.textContent='Saving…'; m.className='msg';
+  try{ const j=await api('baseline_settings_save',{settings:collectSettings()}); STATE.settings.settings=j.settings; STATE.bl=null; m.textContent='Saved. Baselines use the new assumptions now.'; m.className='msg ok'; }
+  catch(e){ m.textContent=e.message; m.className='msg err'; }
+}
+function resetDefaults(){
+  if(!confirm('Reset every baseline assumption and per-hotel override to the defaults? (Not saved until you click Save.)')) return;
+  STATE.settings.settings=JSON.parse(JSON.stringify(STATE.settings.defaults)); renderSettings();
+}
+async function saveNaUrl(){
+  const m=$('naUrlMsg'); m.textContent='Saving…'; m.className='msg';
+  try{ await api('na_set_url',{url:v('naUrl')}); m.textContent='Saved. New and rotated links use it.'; m.className='msg ok'; }
+  catch(e){ m.textContent=e.message; m.className='msg err'; }
+}
+async function rotate(i){
+  const p=STATE.tokens.properties[i];
+  if(p.active&&!confirm('Rotate the night-audit link for '+p.name+'?\n\nThe current link stops working immediately; send the new one to the hotel.')) return;
+  const row=$('tokRow_'+i), out=$('tokOut_'+i); row.classList.remove('hidden'); out.innerHTML='<span class="meta">Creating…</span>';
+  try{ const j=await api('na_rotate',{property_id:p.property_id});
+    out.innerHTML='<strong>New link for '+esc(p.name)+'</strong> — copy it now; it is not shown again.<div class="linkbox" id="lk_'+i+'">'+esc(j.url)+'</div><button class="btn" onclick="copyLink('+i+')">Copy</button>';
+    p.active=true; p.hint=j.hint; p.created_at=j.created_at; p.created_by=ME.username;
+  }catch(e){ out.innerHTML='<span class="err">'+esc(e.message)+'</span>'; }
+}
+function copyLink(i){ const t=$('lk_'+i).textContent; try{ navigator.clipboard.writeText(t); }catch(e){ const r=document.createRange(); r.selectNode($('lk_'+i)); getSelection().removeAllRanges(); getSelection().addRange(r); document.execCommand('copy'); } }
+async function revoke(i){
+  const p=STATE.tokens.properties[i];
+  if(!confirm('Revoke the night-audit link for '+p.name+'? Nobody will be able to submit until you create a new one.')) return;
+  try{ await api('na_revoke',{property_id:p.property_id}); STATE.tokens=await api('na_tokens'); renderSettings(); }
+  catch(e){ alert(e.message); }
+}
+
+// ── boot ──
+(async function(){
+  try{
+    ME=await api('whoami');
+    $('who').textContent=ME.username+' · '+(ME.hub_role==='CORPORATE'?'Corporate':ME.hub_role==='REGIONAL'?'Regional':'GM')+' · '+ME.properties.length+' hotel'+(ME.properties.length===1?'':'s');
+    show(['dar','rollup','baseline','settings'].indexOf(BOOT.tab)>=0?BOOT.tab:'dar');
+  }catch(e){ $('who').textContent=''; topMsg(e.message,'err'); }
+})();
+</script>
+</body>
+</html>
