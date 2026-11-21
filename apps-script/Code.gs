@@ -60,6 +60,14 @@
  * 4. Give the frontend the deployed /exec URL (APPS_SCRIPT_URL in the HTML)
  *    — the dashboard will prompt for username/password on first load.
  *    Give night auditors and franchise GMs: `<url>?view=entry`.
+ *
+ * GOOGLE SIGN-IN (feature/sso-dar-baseline) — supersedes most of the above for RGB staff:
+ *   Auth.gs      @rgbhospitality.com sign-in, Google Groups scopes, hubApi() for served pages
+ *   Dar.gs       night-audit submission links (one random token per hotel), GM approval queue
+ *   Baseline.gs  2027 system baseline (event normalization, Easter shift, growth)
+ *   App.html / NightAudit.html / Hub.html   pages served by this script
+ *   docs/DEPLOY.md has the two-deployment setup. The username/password path below stays only
+ *   for franchise GMs without Google accounts.
  */
 
 const PROPERTIES_SHEET_ID  = '1EZZel1s-F_cOLJ2mJbQ0G4VODahvmk1yVhSniwlqfaY'; // RGB Intel Hub — Properties (Canonical)
@@ -136,6 +144,7 @@ function cachedSheetObjects_(cacheKey, spreadsheetId) {
 }
 /** Run from the Apps Script editor after hand-editing Properties, Budget 2026, Historical Actuals or Daily Actuals. */
 function refreshHubCache() {
+  requireOwner_();
   try { CacheService.getScriptCache().removeAll(CACHE_KEYS_); } catch (e) { /* nothing cached */ }
   PropertiesService.getScriptProperties().setProperty('FC_ACTUALS_VER', String(Date.now()));
   Logger.log('Cache cleared — the next request reads the sheets fresh.');
@@ -258,6 +267,15 @@ function darEnsureColumns_(sheet, keys) {
 function doGet(e) {
   const params = (e && e.parameter) || {};
 
+  // Night-audit submission link: the token alone decides the hotel (Dar.gs). No sign-in needed.
+  if (params.na) return naPage_(String(params.na));
+
+  // Google-signed-in pages. Both refuse anyone who isn't an @rgbhospitality.com account in a Hub group.
+  if (params.view === 'app') return servedPage_('App', 'RGB Intelligence Hub — Reviews & Planning', params);
+  if (params.view === 'hub' || (!params.view && !params.action && !params.module)) {
+    return servedPage_('Hub', 'RGB Intelligence Hub', params);
+  }
+
   if (params.view === 'entry') {
     return HtmlService.createHtmlOutput(renderEntryFormHtml_())
       .setTitle('RGB Intelligence Hub — Data Entry')
@@ -296,24 +314,50 @@ function doGet(e) {
       return jsonOut_({ error: 'unknown_module', message: `Module "${module}" is not wired to the API yet.` }, 400);
     }
 
-    const properties = getAuthorizedProperties_(identity.grant);
-    const idList = properties.map(p => p.property_id);
-    const flashRows = getFlashRows_(idList);
-    const budgetRows = getBudgetRows_(idList);
-    const historicalRows = getHistoricalRows_(idList);
-
-    return jsonOut_({
-      caller: identity.label,
-      scope: identity.grant,
-      properties: properties,
-      flash: flashRows,
-      budget: budgetRows,
-      historical: historicalRows
-    }, 200);
+    return jsonOut_(portfolioFlashPayload_({ username: identity.label, grant: identity.grant }), 200);
 
   } catch (err) {
     return jsonOut_({ error: 'server_error', message: String(err) }, 500);
   }
+}
+
+/** Portfolio Flash data for one caller, already cut down to the hotels they may see. */
+function portfolioFlashPayload_(me) {
+  const properties = getAuthorizedProperties_(me.grant);
+  const idList = properties.map(p => p.property_id);
+  return {
+    caller: me.username,
+    scope: me.grant,
+    properties: properties,
+    flash: getFlashRows_(idList),
+    budget: getBudgetRows_(idList),
+    historical: getHistoricalRows_(idList)
+  };
+}
+
+/** Serves Hub.html / App.html to signed-in RGB staff in a Hub group; everyone else gets a short refusal page. */
+function servedPage_(file, title, params) {
+  const email = ssoEmail_();
+  let grant = null;
+  if (email) { try { grant = ssoGrant_(email); } catch (e) { grant = null; } }
+  if (!email || !grant) {
+    const why = !email
+      ? 'Sign in with your @' + SSO_DOMAIN + ' Google account to use the Hub.'
+      : 'Your account (' + email + ') is not in a Hub group yet. Ask corporate to add you to your hotel\'s gm-…@ group.';
+    return HtmlService.createHtmlOutput('<div style="font-family:Arial,sans-serif;max-width:460px;margin:60px auto;color:#222"><h2 style="font-size:18px">RGB Intelligence Hub</h2><p>' +
+      htmlEsc_(why) + '</p></div>').setTitle(title);
+  }
+  const t = HtmlService.createTemplateFromFile(file);
+  t.boot = safeJsonForHtml_({ tab: String(params.tab || ''), property_id: String(params.property_id || '') });
+  return t.evaluate().setTitle(title).addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function htmlEsc_(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+/** JSON that is safe to drop inside a <script> block (no "</script>" breakouts). */
+function safeJsonForHtml_(v) {
+  return JSON.stringify(v).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
 }
 
 function doPost(e) {
@@ -339,28 +383,24 @@ function doPost(e) {
 /** Temporary wrapper — if syncCredentials_ won't show in the function
  *  dropdown, run this instead (does the exact same thing). Safe to leave
  *  in place, or delete once syncCredentials_ shows up normally. */
-function runSync(){ syncCredentials_(); }
+function runSync(){ requireOwner_(); syncCredentials_(); }
 
 /** Wrapper for addReadmeTab_ — the Run dropdown hides any function whose name
  *  ends in "_" (that's the "private helper" naming convention), so this
  *  plain-named wrapper is what actually shows up to click Run on. */
-function runAddReadmeTab(){ addReadmeTab_(); }
+function runAddReadmeTab(){ requireOwner_(); addReadmeTab_(); }
 
 // ═══ IDENTITY ═══
 
 /** Username/password only — see the file header for why Google auto-identity doesn't work here. */
 function resolveIdentity_(params) {
   if (!params.username || !params.password) return null;
-
-  const cred = checkCredentials_(params.username, params.password);
-  if (!cred || cred.role !== 'READ') return null;
-
   // Credentials only proves who they are. Their actual scope (single property,
   // market cluster, or full portfolio) is still looked up from Permissions,
   // keyed by the same email — one source of truth for "what can this person see."
-  const grant = lookupPermission_(cred.username);
-  if (!grant) return null;
-  return { label: cred.username, grant: grant };
+  const a = readAuth_(params);
+  if (a.err) return null;
+  return { label: a.username, grant: a.grant };
 }
 
 function lookupPermission_(email) {
@@ -408,6 +448,7 @@ function checkCredentials_(username, password) {
     const hash = String(row[hashCol]);
     if (!salt || !hash) return null; // not synced yet
     if (hashPassword_(password, salt) !== hash) return null;
+    if (String(row[roleCol]).trim().toUpperCase() === 'READ' && ssoEnforcedFor_(row[userCol])) return null; // must use Google sign-in
     return {
       username: String(row[userCol]),
       property_id: String(row[propCol]),
@@ -467,10 +508,19 @@ function getAuthorizedProperties_(grant) {
   const rows = cachedSheetObjects_('hub:props', PROPERTIES_SHEET_ID);
 
   if (grant.scope_type === 'portfolio') return rows;
+  if (grant.scope_type === 'set') return rows.filter(r => grantHasProperty_(grant, r));   // Google Groups (Auth.gs)
   if (grant.scope_type === 'market') {
     return rows.filter(r => String(r.market).toLowerCase() === grant.scope_value.toLowerCase());
   }
   return rows.filter(r => String(r.property_id) === grant.scope_value);
+}
+
+/** A Google Groups grant covers a hotel if its gm- group or its market's region- group does. */
+function grantHasProperty_(grant, prop) {
+  if (!prop) return false;
+  if ((grant.property_ids || []).indexOf(String(prop.property_id)) >= 0) return true;
+  const m = String(prop.market || '').toLowerCase();
+  return (grant.markets || []).some(x => String(x).toLowerCase() === m);
 }
 
 function getFlashRows_(propertyIds) {
@@ -544,6 +594,7 @@ function getPropertyById_(propertyId) {
 
 function isAuthorizedForProperty_(grant, propertyId) {
   if (grant.scope_type === 'portfolio') return true;
+  if (grant.scope_type === 'set') return grantHasProperty_(grant, getPropertyById_(propertyId));
   if (grant.scope_type === 'property') return grant.scope_value === String(propertyId);
   if (grant.scope_type === 'market') {
     const prop = getPropertyById_(propertyId);
@@ -570,10 +621,9 @@ function handleWhoami_(params) {
     };
   }
 
-  const grant = lookupPermission_(cred.username);
-  if (!grant) return { error: 'not_authorized', message: 'Not on the Permissions sheet.', _status: 403 };
-  const properties = getAuthorizedProperties_(grant);
-  return { role: 'READ', username: cred.username, scope: grant, properties: properties };
+  const a = readAuth_(params);
+  if (a.err) return a.err;
+  return { role: 'READ', username: a.username, scope: a.grant, properties: getAuthorizedProperties_(a.grant) };
 }
 
 function readDarSheet_() {
@@ -602,20 +652,22 @@ function findDarRowIndex_(data, header, propertyId, date) {
 function handleDarGet_(params) {
   const cred = checkCredentials_(params.username, params.password);
   if (!cred) return { error: 'not_authorized', message: 'Invalid or inactive credentials.', _status: 401 };
+  const date = String(params.date || '').trim();
 
-  let propertyId;
   if (cred.role === 'ENTRY') {
-    propertyId = cred.property_id;
-  } else {
-    const grant = lookupPermission_(cred.username);
-    if (!grant) return { error: 'not_authorized', message: 'Not on the Permissions sheet.', _status: 403 };
-    propertyId = params.property_id;
-    if (!propertyId || !isAuthorizedForProperty_(grant, propertyId)) {
-      return { error: 'not_authorized', message: 'Not authorized for this property.', _status: 403 };
-    }
+    // Night audit is write-only: an auditor login learns whether a date is already in and its
+    // status, never the numbers on file.
+    const { data, header } = readDarSheet_();
+    const i = findDarRowIndex_(data, header, cred.property_id, date);
+    return { property_id: cred.property_id, date: date, exists: i >= 0, status: i >= 0 ? String(data[i][header.indexOf('status')]) : '', row: null };
   }
 
-  const date = String(params.date || '').trim();
+  const a = readAuth_(params);
+  if (a.err) return a.err;
+  const propertyId = params.property_id;
+  if (!propertyId || !isAuthorizedForProperty_(a.grant, propertyId)) {
+    return { error: 'not_authorized', message: 'Not authorized for this property.', _status: 403 };
+  }
   const { data, header } = readDarSheet_();
   const rowIndex = findDarRowIndex_(data, header, propertyId, date);
   return {
@@ -628,14 +680,9 @@ function handleDarGet_(params) {
 
 /** List of SUBMITTED (pending-review) DAR rows across whatever properties this login can see. */
 function handleDarPending_(params) {
-  const cred = checkCredentials_(params.username, params.password);
-  if (!cred) return { error: 'not_authorized', message: 'Invalid or inactive credentials.', _status: 401 };
-  if (cred.role !== 'READ') return { error: 'not_authorized', message: 'This login cannot review DARs.', _status: 403 };
-
-  const grant = lookupPermission_(cred.username);
-  if (!grant) return { error: 'not_authorized', message: 'Not on the Permissions sheet.', _status: 403 };
-
-  const authorizedIds = new Set(getAuthorizedProperties_(grant).map(p => String(p.property_id)));
+  const a = readAuth_(params);
+  if (a.err) return a.err;
+  const authorizedIds = new Set(getAuthorizedProperties_(a.grant).map(p => String(p.property_id)));
   const { data, header } = readDarSheet_();
   const idCol = header.indexOf('property_id');
   const statusCol = header.indexOf('status');
@@ -697,8 +744,12 @@ function handleDarSubmission_(body) {
 
     const { sheet, data, header } = readDarSheet_();
     const rowIndex = findDarRowIndex_(data, header, cred.property_id, date);
-    if (rowIndex >= 0 && String(data[rowIndex][header.indexOf('status')]) === 'VALIDATED') {
+    const curStatus = rowIndex >= 0 ? String(data[rowIndex][header.indexOf('status')]) : '';
+    if (curStatus === 'VALIDATED') {
       return { error: 'already_validated', message: 'This date was already approved by the GM and can no longer be resubmitted. Contact your GM if it needs correction.', _status: 409 };
+    }
+    if (curStatus === 'FLAGGED') {
+      return { error: 'flagged', message: 'Your GM flagged this date for correction and it is with corporate. Corporate will reopen it if it needs resubmitting.', _status: 409 };
     }
 
     // Only the fields this hotel's form actually shows are accepted; everything else is stored as 0.
@@ -737,17 +788,20 @@ function handleDarSubmission_(body) {
   }
 }
 
-function logDarSubmission_(propertyId, date, submittedBy, values, totals) {
+/** `extra` (optional) adds audit columns such as action / submission_source / token_hint / note. */
+function logDarSubmission_(propertyId, date, submittedBy, values, totals, extra) {
+  extra = extra || { action: 'SUBMIT', submission_source: 'password-login' };
   const sheet = firstDataSheet_(DAR_LOG_SHEET_ID);
-  darEnsureColumns_(sheet, darAllKeys_());
+  darEnsureColumns_(sheet, darAllKeys_().concat(DAR_LOG_AUDIT_KEYS));
   const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim().toLowerCase());
   const row = header.map(h => {
     if (h === 'logged_at') return new Date();
     if (h === 'property_id') return propertyId;
     if (h === 'date') return date;
     if (h === 'submitted_by') return submittedBy;
-    if (h in values) return values[h];
-    if (h in totals) return totals[h];
+    if (h in extra) return extra[h];
+    if (values && h in values) return values[h];
+    if (totals && h in totals) return totals[h];
     return '';
   });
   sheet.appendRow(row);
@@ -755,34 +809,10 @@ function logDarSubmission_(propertyId, date, submittedBy, values, totals) {
 
 /** GM (or corporate) approves or flags a SUBMITTED DAR. Read-only review — no direct edits. */
 function handleDarValidation_(body, newStatus) {
-  const cred = checkCredentials_(body.username, body.password);
-  if (!cred) return { error: 'not_authorized', message: 'Invalid or inactive credentials.', _status: 401 };
-  if (cred.role !== 'READ') return { error: 'not_authorized', message: 'This login cannot validate DARs.', _status: 403 };
-
-  const grant = lookupPermission_(cred.username);
-  if (!grant || !isAuthorizedForProperty_(grant, body.property_id)) {
-    return { error: 'not_authorized', message: 'Not authorized for this property.', _status: 403 };
-  }
-
-  const date = String(body.date || '').trim();
-  const { sheet, data, header } = readDarSheet_();
-  const rowIndex = findDarRowIndex_(data, header, body.property_id, date);
-  if (rowIndex < 0) return { error: 'not_found', message: 'No DAR submission found for that property/date.', _status: 404 };
-  if (String(data[rowIndex][header.indexOf('status')]) !== 'SUBMITTED') {
-    return { error: 'bad_state', message: 'This DAR is not pending review.', _status: 409 };
-  }
-
-  const statusCol = header.indexOf('status');
-  const validatedByCol = header.indexOf('validated_by');
-  const validatedAtCol = header.indexOf('validated_at');
-  const flagNoteCol = header.indexOf('flag_note');
-
-  sheet.getRange(rowIndex + 1, statusCol + 1).setValue(newStatus);
-  sheet.getRange(rowIndex + 1, validatedByCol + 1).setValue(cred.username);
-  sheet.getRange(rowIndex + 1, validatedAtCol + 1).setValue(new Date());
-  sheet.getRange(rowIndex + 1, flagNoteCol + 1).setValue(newStatus === 'FLAGGED' ? String(body.note || '') : '');
-
-  return { ok: true, property_id: body.property_id, date: date, status: newStatus };
+  // Same rules as the Google-signed-in queue (Dar.gs): note required to flag, flags route to corporate.
+  const a = readAuth_(body);
+  if (a.err) return a.err;
+  return darDecide_(a, { property_id: body.property_id, date: body.date, decision: newStatus === 'FLAGGED' ? 'FLAG' : 'APPROVE', note: body.note });
 }
 
 // ═══ AVAILABILITY (rooms to sell, rolling window — feeds Rate Shop) ═══
@@ -917,7 +947,7 @@ function firstOrCreateSheet_(spreadsheetId, name) {
 
 /** Wrapper — see firstDataSheet_'s header comment for why this exists (the
  *  Run dropdown hides any function whose name ends in "_"). */
-function runParseRateShop(){ parseRateShopImport_(); }
+function runParseRateShop(){ requireOwner_(); parseRateShopImport_(); }
 
 /** Recognizes a date in an OTA Insight "Rates" header cell and normalizes it
  *  to "yyyy-MM-dd", or returns null if the cell isn't a date at all. Handles
@@ -1076,7 +1106,8 @@ const DAILY_ACTUALS_SHEET_ID = '';
 
 const FC_HEADERS = {
   forecast: ['property_id', 'date', 'rooms_sold', 'adr', 'notes', 'updated_by', 'updated_at'],
-  status: ['property_id', 'status', 'submitted_by', 'submitted_at', 'reviewed_by', 'reviewed_at', 'review_note', 'locked_at', 'locked_by'],
+  status: ['property_id', 'status', 'submitted_by', 'submitted_at', 'reviewed_by', 'reviewed_at', 'review_note', 'locked_at', 'locked_by',
+    'baseline_revpar', 'gm_revpar', 'baseline_diff_pct', 'baseline_justification'],
   log: ['logged_at', 'property_id', 'date', 'action', 'old_rooms_sold', 'old_adr', 'new_rooms_sold', 'new_adr', 'notes', 'user'],
   budget: ['property_id', 'date', 'rooms_sold', 'adr', 'notes', 'locked_by', 'locked_at']
 };
@@ -1085,7 +1116,7 @@ const FC_HEADERS = {
 const FC_SPREADSHEETS = {
   FC_FORECAST_ID: { title: 'RGB Intel Hub — Forecast 2027', tabs: [
     { name: 'Forecast', header: FC_HEADERS.forecast, text: [1, 2, 5, 6, 7] },
-    { name: 'Status', header: FC_HEADERS.status, text: [1, 2, 3, 4, 5, 6, 7, 8, 9] }
+    { name: 'Status', header: FC_HEADERS.status, text: [1, 2, 3, 4, 5, 6, 7, 8, 9, 13] }
   ] },
   FC_LOG_ID: { title: 'RGB Intel Hub — Forecast Log 2027 (append-only)', tabs: [
     { name: 'Log', header: FC_HEADERS.log, text: [1, 2, 3, 4, 9, 10] }
@@ -1097,6 +1128,7 @@ const FC_SPREADSHEETS = {
 
 /** Run once from the Apps Script editor. Safe to re-run: it only creates what's missing. */
 function setupForecast2027() {
+  requireOwner_();
   Object.keys(FC_SPREADSHEETS).forEach(key => {
     const ss = fcEnsureSpreadsheet_(key);
     Logger.log(FC_SPREADSHEETS[key].title + ' -> ' + ss.getUrl());
@@ -1110,6 +1142,7 @@ function setupForecast2027() {
 
 /** Use after uploading a refreshed daily-actuals file: drops the remembered sheet and imports the file again. */
 function reimportDailyActuals() {
+  requireOwner_();
   PropertiesService.getScriptProperties().deleteProperty('DAILY_ACTUALS_ID');
   Logger.log(fcImportDailyActuals_());
 }
@@ -1197,12 +1230,9 @@ function fcErr_(code, message) { return { error: code, message: message }; }
 
 /** Budget screens are for logged-in READ users (GM / regional / corporate) with a row on the Permissions sheet. */
 function fcAuth_(source) {
-  const cred = checkCredentials_(source.username, source.password);
-  if (!cred) return { err: fcErr_('not_authorized', 'Invalid or inactive credentials.') };
-  if (cred.role !== 'READ') return { err: fcErr_('not_authorized', 'This login cannot access budgets.') };
-  const grant = lookupPermission_(cred.username);
-  if (!grant) return { err: fcErr_('not_authorized', 'Not on the Permissions sheet.') };
-  return { cred: cred, grant: grant, isCorporate: grant.scope_type === 'portfolio' };
+  const a = readAuth_(source);   // Google sign-in via hubApi, or the legacy username/password
+  if (a.err) return { err: fcErr_('not_authorized', a.cred ? 'This login cannot access budgets.' : a.err.message) };
+  return { cred: { username: a.username }, grant: a.grant, isCorporate: a.isCorporate };
 }
 
 // ── dates ──
@@ -1272,6 +1302,7 @@ function fcLoadActuals_(propertyIds) {
 
 /** Run from the Apps Script editor: lists every day in Daily Actuals that looks wrong (so it can be corrected in the sheet). */
 function auditDailyActuals() {
+  requireOwner_();
   const id = fcDailyActualsId_();
   if (!id) { Logger.log('Daily Actuals is not set up yet.'); return; }
   const ss = SpreadsheetApp.openById(id);
@@ -1324,6 +1355,10 @@ function fcReadForecast_() {
 
 function fcReadStatus_() {
   const sheet = fcSheet_('FC_FORECAST_ID', 'Status');
+  if (sheet.getLastColumn() < FC_HEADERS.status.length) {   // older Status tabs: add the baseline columns' headers
+    if (sheet.getMaxColumns() < FC_HEADERS.status.length) sheet.insertColumnsAfter(sheet.getMaxColumns(), FC_HEADERS.status.length - sheet.getMaxColumns());
+    sheet.getRange(1, 1, 1, FC_HEADERS.status.length).setValues([FC_HEADERS.status]);
+  }
   const data = sheet.getDataRange().getValues();
   const map = {};
   for (let i = 1; i < data.length; i++) {
@@ -1350,7 +1385,11 @@ function fcPublicStatus_(st) {
   return {
     status: st.status || '', submitted_by: st.submitted_by || '', submitted_at: st.submitted_at || '',
     reviewed_by: st.reviewed_by || '', reviewed_at: st.reviewed_at || '', review_note: st.review_note || '',
-    locked_at: st.locked_at || '', locked_by: st.locked_by || ''
+    locked_at: st.locked_at || '', locked_by: st.locked_by || '',
+    baseline_revpar: st.baseline_revpar === '' || st.baseline_revpar == null ? '' : Number(st.baseline_revpar),
+    gm_revpar: st.gm_revpar === '' || st.gm_revpar == null ? '' : Number(st.gm_revpar),
+    baseline_diff_pct: st.baseline_diff_pct === '' || st.baseline_diff_pct == null ? '' : Number(st.baseline_diff_pct),
+    baseline_justification: st.baseline_justification || ''
   };
 }
 
@@ -1475,6 +1514,7 @@ function handleForecastGet_(params) {
     year: FORECAST_YEAR,
     property: { property_id: pid, name: prop.name, brand: prop.brand, market: prop.market, rooms: Number(prop.rooms) || 0 },
     status: st, forecast: days, base: base, base_error: baseError,
+    system_baseline: blCompactForProperty_(pid),   // Baseline.gs — shown beside the GM's numbers
     can_review: a.isCorporate,
     can_edit: a.isCorporate || st.status !== 'SUBMITTED'
   };
@@ -1572,9 +1612,13 @@ function handleForecastSubmit_(body) {
       return fcErr_('incomplete', 'Every day needs rooms sold and ADR before submitting. Still missing: ' + missingByMonth.join(', ') + '.');
     }
 
+    // A GM RevPAR far from the system baseline needs a written reason (Baseline.gs).
+    const gate = blSubmitGate_(pid, days, body.justification);
+    if (gate.error) return gate;
+
     const now = fcNowIso_();
-    fcSetStatus_(pid, { status: 'SUBMITTED', submitted_by: a.cred.username, submitted_at: now });
-    fcLog_([[now, pid, '', 'SUBMIT', '', '', '', '', '', a.cred.username]]);
+    fcSetStatus_(pid, Object.assign({ status: 'SUBMITTED', submitted_by: a.cred.username, submitted_at: now }, gate.status));
+    fcLog_([[now, pid, '', 'SUBMIT', '', '', '', '', gate.status.baseline_justification || '', a.cred.username]]);
     return { ok: true, status: 'SUBMITTED' };
   } finally {
     lock.releaseLock();

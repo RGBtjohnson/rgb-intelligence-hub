@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<title>Night Audit Submission</title>
+<style>
+  :root{--gold:#b8862e;--t:#1d1d1b;--tm:#6b6b66;--line:#e4ded2;--off:#faf8f4;--grn:#1a8754;--red:#c0392b}
+  *{box-sizing:border-box}
+  body{font-family:Arial,Helvetica,sans-serif;background:var(--off);color:var(--t);margin:0;padding:16px}
+  .wrap{max-width:560px;margin:0 auto}
+  .card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px 18px 22px}
+  h1{font-size:18px;margin:0 0 2px} .sub{color:var(--tm);font-size:12px;margin-bottom:14px}
+  .lock{font-size:12px;background:#fbf6ec;border:1px solid #efe2c6;border-radius:6px;padding:8px 10px;margin-bottom:14px;color:#5c4a22}
+  h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);margin:18px 0 6px;border-bottom:1px solid var(--line);padding-bottom:4px}
+  label{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;margin-top:6px}
+  label span{flex:1}
+  input{width:150px;padding:7px 8px;font-size:14px;border:1px solid #cfc8b8;border-radius:5px;text-align:right}
+  input[type=date],input.name{width:180px;text-align:left}
+  .totals{margin-top:16px;font-size:13px;background:var(--off);border-radius:6px;padding:10px}
+  .totals div{display:flex;justify-content:space-between;margin:2px 0}
+  button{margin-top:16px;width:100%;padding:12px;font-size:15px;font-weight:bold;background:var(--gold);color:#fff;border:none;border-radius:6px;cursor:pointer}
+  button:disabled{opacity:.55;cursor:default}
+  #msg{margin-top:12px;font-size:13px;min-height:18px}
+  .ok{color:var(--grn)} .err{color:var(--red)}
+  .done{display:none;text-align:center;padding:24px 8px}
+  .done .big{font-size:20px;color:var(--grn);font-weight:bold;margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>Night Audit Submission</h1>
+    <div class="sub" id="prop"></div>
+    <div class="lock">Submit-only. Nothing already on file is shown here. You can resubmit a date while it is pending GM review; once your GM approves it, it is locked.</div>
+
+    <div id="formBox">
+      <label><span>Business date</span><input type="date" id="date"></label>
+      <label><span>Your name</span><input class="name" id="who" maxlength="80" autocomplete="name"></label>
+      <div id="fields"></div>
+      <div class="totals" id="totals"></div>
+      <button id="btn" onclick="submitDar()">Submit DAR</button>
+      <div id="msg"></div>
+    </div>
+
+    <div class="done" id="doneBox">
+      <div class="big">Received</div>
+      <div id="doneText"></div>
+      <button onclick="another()" style="background:#666">Submit another date</button>
+    </div>
+  </div>
+</div>
+<script>
+const BOOT = <?!= boot ?>;
+// Same revenue lines as computeDarTotals_ on the server; this is only a preview of what was typed.
+const REV_KEYS=['room_rental_revenue','dry_cleaning_laundry','parking','early_late_fee','hotel_misc','data_internet_charge','market_food','market_beverage','market_beer','market_wine','restaurant_food','restaurant_liquor','restaurant_beer','restaurant_wine','meeting_room_rental','banquet_food','banquet_misc'];
+const DEP_KEYS=['loyalty_advance_purchase','amex','visa_mc','discover','other_card_allowance','over_short','bank_deposits','direct_deposit_ach'];
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function shift(iso,d){const p=iso.split('-').map(Number);return new Date(Date.UTC(p[0],p[1]-1,p[2]+d)).toISOString().slice(0,10);}
+function money(n){return (n<0?'-':'')+'$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+function render(){
+  document.getElementById('prop').textContent=BOOT.property_name+(BOOT.rooms?' · '+BOOT.rooms+' rooms':'');
+  const d=document.getElementById('date');
+  d.max=BOOT.today; d.min=shift(BOOT.today,-BOOT.max_backdate_days); d.value=shift(BOOT.today,-1);
+  const sections={};
+  BOOT.fields.forEach(f=>{(sections[f.section]=sections[f.section]||[]).push(f);});
+  let html='';
+  Object.keys(sections).forEach(s=>{
+    html+='<h3>'+esc(s)+'</h3>';
+    sections[s].forEach(f=>{
+      const step=f.key==='rooms_rented'?'1':'0.01';
+      html+='<label><span>'+esc(f.label)+'</span><input type="number" inputmode="decimal" step="'+step+'" data-k="'+esc(f.key)+'" oninput="preview()"></label>';
+    });
+  });
+  document.getElementById('fields').innerHTML=html;
+  preview();
+}
+function vals(){const o={};document.querySelectorAll('#fields input').forEach(i=>{o[i.dataset.k]=i.value;});return o;}
+function preview(){
+  const v=vals(), n=k=>Number(v[k])||0;
+  const rev=REV_KEYS.reduce((a,k)=>a+n(k),0), rooms=n('rooms_rented');
+  let h='<div><span>Total revenue (what you typed)</span><strong>'+money(rev)+'</strong></div>';
+  if(rooms>0) h+='<div><span>ADR</span><span>'+money(n('room_rental_revenue')/rooms)+'</span></div>';
+  if(BOOT.rooms&&rooms>0) h+='<div><span>Occupancy</span><span>'+(rooms/BOOT.rooms*100).toFixed(1)+'%</span></div>';
+  if(BOOT.profile) h+='<div><span>Total deposits</span><span>'+money(DEP_KEYS.reduce((a,k)=>a+n(k),0))+'</span></div>';
+  document.getElementById('totals').innerHTML=h;
+}
+function msg(t,cls){const m=document.getElementById('msg');m.textContent=t;m.className=cls||'';}
+function submitDar(){
+  const date=document.getElementById('date').value, who=document.getElementById('who').value.trim();
+  if(!date){msg('Pick the business date.','err');return;}
+  if(!who){msg('Enter your name.','err');return;}
+  const payload=Object.assign(vals(),{date:date,submitter_name:who,user_agent:navigator.userAgent});
+  if(!(Number(payload.rooms_rented)>=0)||payload.rooms_rented===''){msg('Enter Rooms Rented.','err');return;}
+  const btn=document.getElementById('btn'); btn.disabled=true; msg('Submitting…');
+  google.script.run
+    .withSuccessHandler(r=>{
+      btn.disabled=false;
+      if(!r||r.error){msg((r&&r.message)||'Not received — try again.','err');return;}
+      const at=new Date(r.received_at).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
+      document.getElementById('doneText').textContent='DAR for '+r.date+' received '+at+'. It is now pending GM review.';
+      document.getElementById('formBox').style.display='none';
+      document.getElementById('doneBox').style.display='block';
+    })
+    .withFailureHandler(e=>{btn.disabled=false;msg('Not received: '+(e&&e.message||e),'err');})
+    .naSubmit(BOOT.token,payload);
+}
+function another(){
+  document.querySelectorAll('#fields input').forEach(i=>{i.value='';});
+  document.getElementById('doneBox').style.display='none';
+  document.getElementById('formBox').style.display='block';
+  msg(''); preview();
+}
+render();
+</script>
+</body>
+</html>

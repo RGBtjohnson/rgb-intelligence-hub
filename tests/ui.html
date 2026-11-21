@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Hub UI preview</title>
+<style>
+  body{font-family:Arial,sans-serif;margin:0;font-size:13px}
+  .bar{padding:8px 12px;background:#222;color:#fff;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .bar select,.bar button{font:inherit;padding:4px 8px}
+  iframe{width:100%;height:calc(100vh - 44px);border:0;display:block}
+</style>
+<script src="mocks.js"></script>
+<script src="../apps-script/Code.gs"></script>
+<script src="../apps-script/Auth.gs"></script>
+<script src="../apps-script/Dar.gs"></script>
+<script src="../apps-script/Baseline.gs"></script>
+<script src="fixtures.js"></script>
+</head>
+<body>
+<div class="bar">
+  <strong>UI preview (mock server)</strong>
+  Page <select id="page"><option>App</option><option>Hub</option><option>NightAudit</option></select>
+  Signed in as <select id="user"></select>
+  Tab <select id="tab"><option>dar</option><option>rollup</option><option>baseline</option><option>settings</option></select>
+  <button onclick="openPage()">Open</button>
+  <span id="info"></span>
+</div>
+<iframe id="frame"></iframe>
+<script>
+// Seed: fixtures + a few DARs in different states + one GM forecast, so every screen has something on it.
+loadFixtures();
+MOCK.props.NA_PUBLIC_URL = 'https://script.google.com/macros/s/PUBLICDEPLOY/exec';
+const today = todayKey_(), d = n => fcShiftDate_(today, -n);
+MOCK.user = FX.CORP;
+const tok = {};
+['10795674', 'PROV-DALES', 'HOUHX'].forEach(pid => { tok[pid] = hubApi({ action: 'na_rotate', property_id: pid }).url.split('?na=')[1]; });
+MOCK.user = '';
+const sub = (pid, n, rooms, rev) => naSubmit(tok[pid], { date: d(n), submitter_name: 'Night Auditor', rooms_rented: rooms, room_rental_revenue: rev, parking: 120, bank_deposits: 400, user_agent: 'preview' });
+[1, 2, 3, 4, 5].forEach(n => sub('10795674', n, 55 + n, 6600 + n * 90));
+[1, 2].forEach(n => sub('PROV-DALES', n, 120, 20400));
+sub('HOUHX', 1, 90, 11700);
+MOCK.user = FX.GM;
+hubApi({ action: 'dar_decide', property_id: '10795674', date: d(4), decision: 'APPROVE' });
+hubApi({ action: 'dar_decide', property_id: '10795674', date: d(5), decision: 'APPROVE' });
+hubApi({ action: 'dar_decide', property_id: '10795674', date: d(3), decision: 'FLAG', note: 'Room revenue does not match the PMS close-out' });
+MOCK.user = FX.OWNER; setupForecast2027(); MOCK.user = '';
+
+const USERS = [[FX.GM, 'GM — Hampton Inn Portland'], [FX.RVP, 'Regional — Dallas'], [FX.CORP, 'Corporate'], [FX.NOBODY, 'RGB, no group'], ['', 'Night auditor (no sign-in)']];
+document.getElementById('user').innerHTML = USERS.map((u, i) => '<option value="' + i + '">' + u[1] + '</option>').join('');
+let ACTIVE_USER = FX.GM;
+
+// google.script.run, routed to the mock server as ACTIVE_USER (results JSON-cloned, async like the real thing)
+function makeRun() {
+  const mk = (ok, fail) => {
+    const call = (fnName) => (...args) => setTimeout(() => {
+      try {
+        const prev = MOCK.user; MOCK.user = ACTIVE_USER;
+        let r; try { r = window[fnName](...JSON.parse(JSON.stringify(args))); } finally { MOCK.user = prev; }
+        if (ok) ok(r === undefined ? null : JSON.parse(JSON.stringify(r)));
+      } catch (e) { if (fail) fail(e); else console.error(e); }
+    }, 60);
+    return { withSuccessHandler: f => mk(f, fail), withFailureHandler: f => mk(ok, f), hubApi: call('hubApi'), naSubmit: call('naSubmit') };
+  };
+  return mk(null, null);
+}
+
+async function openPage() {
+  const page = document.getElementById('page').value;
+  ACTIVE_USER = USERS[Number(document.getElementById('user').value)][0];
+  let html = await (await fetch(page === 'Hub' ? '../rgb-intelligence-hub-v4.html' : '../apps-script/' + page + '.html')).text();
+  let boot;
+  if (page === 'NightAudit') boot = naPage_(tok['10795674']).v.boot;
+  else {
+    const out = (() => { const prev = MOCK.user; MOCK.user = ACTIVE_USER; try { return servedPage_(page, page, { tab: document.getElementById('tab').value }); } finally { MOCK.user = prev; } })();
+    if (out.kind === 'html') { document.getElementById('frame').srcdoc = out.v; document.getElementById('info').textContent = 'refused (as the server would)'; return; }
+    boot = out.v.boot;
+  }
+  html = html.replace('<?!= boot ?>', boot);
+  html = html.replace('<head>', '<head><script>window.google={script:{run:parent.makeRun()}};<\/script>');
+  document.getElementById('frame').srcdoc = html;
+  document.getElementById('info').textContent = page + ' as ' + (ACTIVE_USER || 'anonymous');
+}
+openPage();
+</script>
+</body>
+</html>
